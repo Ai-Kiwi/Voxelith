@@ -42,4 +42,5 @@ pub enum PixelTypes {
     Grass,
     Dirt,
     Stone,
+    Water,
 }

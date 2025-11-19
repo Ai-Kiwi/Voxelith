@@ -45,7 +45,7 @@ pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_
 
     for x in 0..=100 {
         for z in 0..=100 {
-            for y in -10..=100 {
+            for y in -40..=40 {
                 let _ = chunk_generation_request_tx.send((x,y,z));
             }
         }
@@ -98,9 +98,21 @@ pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_
                         },
                         InputEvent::Click(position, facing_dir) => {
                             let mut i = 0;
-                            for ray in raycast_test(position, facing_dir.normalize()) {
+                            'rayloop : for ray in raycast_test(position, facing_dir.normalize()) {
                                 i+=1;
-                                world.set_pixel_data((ray.x as i32,ray.y as i32,ray.z as i32), world::PixelTypes::Stone);
+                                if world.get_pixel_data(ray.x as i32,ray.y as i32,ray.z as i32) != world::PixelTypes::Air {
+                                    for x in -5..=5 {
+                                        for y in -5..=5 {
+                                            for z in -5..=5 {
+                                                world.set_pixel_data((ray.x as i32 + x,ray.y as i32 + y ,ray.z as i32 + z), world::PixelTypes::Air);
+                                            }
+                                        }
+                                    }
+                                    break 'rayloop;
+                                }
+                                
+                                
+                                //world.set_pixel_data((ray.x as i32,ray.y as i32,ray.z as i32), world::PixelTypes::Stone);
 
                                 if i > 500 {
                                     break;

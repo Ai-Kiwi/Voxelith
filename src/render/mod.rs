@@ -2,8 +2,7 @@ use std::{collections::HashMap, sync::mpsc::{Receiver, Sender}, time::Instant};
 
 use winit::event_loop::EventLoop;
 
-use crate::{game::InputEvent, render::{app::App, handle_input::handle_user_input, mesh::update_meshs, types::{ChunkMeshUpdate, EntityRenderData}, wgpu::RenderState}, utils::{Mesh, Vec2, Vec3}};
-use ::wgpu::Buffer;
+use crate::{game::InputEvent, render::{app::App, handle_input::handle_user_input, mesh::{chunk_buffer_cleanup, update_meshs}, types::{ChunkMeshUpdate, EntityRenderData}, wgpu::RenderState}, utils::{Mesh, Vec2, Vec3}};
 
 
 //mod entities;
@@ -14,6 +13,8 @@ pub mod types;
 mod camera;
 mod wgpu;
 mod app;
+mod init;
+mod render_frame;
 
 //pub const LEVEL_3_LOD_DISTANCE: f32 = 2560.0;
 //pub const LEVEL_2_LOD_DISTANCE: f32 = 1280.0;
@@ -23,20 +24,19 @@ pub const LEVEL_1_LOD_DISTANCE: f32 = 480.0;
 pub const LEVEL_2_LOD_DISTANCE: f32 = LEVEL_1_LOD_DISTANCE * 2.0;
 pub const LEVEL_3_LOD_DISTANCE: f32 = LEVEL_2_LOD_DISTANCE * 2.0;
 pub const LEVEL_4_LOD_DISTANCE: f32 = LEVEL_3_LOD_DISTANCE * 2.0;
+pub const MAP_VRAM_SIZE: u64 = 3 * 1024 * 1024 * 1024;
 
-
-pub struct RenderChunkMesh {
-    pub vertex_buffer: Buffer,
-    pub index_buffer: Buffer,
-    pub num_indices: u32,
-    pub mesh_data : Mesh,
+pub struct RenderChunkMeshBufferReference {
+    pub byte_vertex_position : u32,
+    pub byte_vertex_length : u32,
+    pub vertex_position : u32,
+    pub vertex_length : u32,
+    pub mesh : Mesh,
 }
 
-pub struct FullRenderChunkInfo {
-    pub main_lod : RenderChunkMesh,
-    pub lod_2 : RenderChunkMesh,
-    pub lod_4 : RenderChunkMesh,
-    pub lod_8 : RenderChunkMesh,
+pub struct FreeBufferSpace {
+    byte_start: u32,
+    byte_len: u32,
 }
 
 impl RenderData {
@@ -46,8 +46,6 @@ impl RenderData {
             camera_pitch: 0.0,
             camera_position: Vec3::new(0.0, 0.0, 0.0),
             chunk_meshs: HashMap::new(),
-            chunk_batch_meshs: HashMap::new(),
-            dirty_chunk_mesh_batches: HashMap::new(),
         }
     }
 }
@@ -62,9 +60,7 @@ pub struct RenderData {
     camera_yaw : f32,
     camera_pitch : f32,
     camera_position : Vec3,
-    chunk_meshs : HashMap<(i32,i32,i32),FullRenderChunkInfo>,
-    chunk_batch_meshs : HashMap<(i32,i32,i32,u8),RenderChunkMesh>,
-    dirty_chunk_mesh_batches : HashMap<(i32,i32,i32,u8),()>,
+    chunk_meshs : HashMap<(i32,i32,i32),RenderChunkMeshBufferReference>,
     //let mut entities_to_render: HashMap<u64,EntityRenderData> = HashMap::new();
 }
 
@@ -77,6 +73,7 @@ pub fn init_frame_render(render_state : &mut RenderState) {
 
     update_meshs(render_state);
 
+    chunk_buffer_cleanup(render_state);
 
     //cleanup data now that frame has happened
     render_state.keys_released.clear();

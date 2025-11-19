@@ -41,7 +41,8 @@ pub fn calculate_pix_color(pixel_type : PixelTypes,x : i32, y : i32, z : i32) ->
                 [117, 71, 19, 255]
             }
         },
-        PixelTypes::Stone => [0, 0, 0, 0],
+        PixelTypes::Stone => [67, 71, 66, 255],
+        PixelTypes::Water => [27, 38, 161, 255],
     };
 
     Color { 

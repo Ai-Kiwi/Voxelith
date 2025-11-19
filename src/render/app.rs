@@ -25,7 +25,7 @@ impl ApplicationHandler<RenderState> for App {
         let mut window_attributes = Window::default_attributes();
 
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
-        window.set_cursor_grab(winit::window::CursorGrabMode::Locked).expect("failed to grab mouse cursor");
+        let _ = window.set_cursor_grab(winit::window::CursorGrabMode::Confined).or_else(|_e| window.set_cursor_grab(winit::window::CursorGrabMode::Locked));
         window.set_cursor_visible(false);
         // If we are not on web we can use pollster to
         // await the 

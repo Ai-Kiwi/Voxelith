@@ -7,7 +7,7 @@ use crate::render::types;
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 pub struct Vertex {
-    pub position :  Vec3,
+    pub position :  VoxelPosition,
     pub color : Color,
     pub extra : [u8; 4],
 }
@@ -21,19 +21,63 @@ impl Vertex {
                 wgpu::VertexAttribute {
                     offset: 0,
                     shader_location: 0,
-                    format: wgpu::VertexFormat::Float32x3,
+                    format: wgpu::VertexFormat::Sint32x3,
                 },
                 wgpu::VertexAttribute {
-                    offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                    offset: std::mem::size_of::<[i32; 3]>() as wgpu::BufferAddress,
                     shader_location: 1,
                     format: wgpu::VertexFormat::Unorm8x4,
                 },
                 wgpu::VertexAttribute {
-                    offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress + std::mem::size_of::<[u8; 4]>() as wgpu::BufferAddress ,
+                    offset: std::mem::size_of::<[i32; 3]>() as wgpu::BufferAddress + std::mem::size_of::<[u8; 4]>() as wgpu::BufferAddress ,
                     shader_location: 2,
                     format: wgpu::VertexFormat::Unorm8x4,
                 }
             ]
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+pub struct VoxelPosition {
+    pub x : i32,
+    pub y : i32,
+    pub z : i32,
+}
+
+impl VoxelPosition {
+    pub fn to_vec3(&self) -> Vec3 {
+        return Vec3::new(
+            self.x as f32, 
+            self.y as f32, 
+            self.z as f32
+        )
+    }
+
+    pub const fn new(x : i32, y : i32, z : i32) -> VoxelPosition {
+        VoxelPosition { x, y, z }
+    }
+}
+
+impl Add for VoxelPosition {
+    type Output = VoxelPosition;
+    fn add(self, rhs: VoxelPosition) -> VoxelPosition {
+        VoxelPosition { 
+            x: self.x + rhs.x, 
+            y: self.y + rhs.y, 
+            z: self.z + rhs.z
+        }
+    }
+}
+
+impl Sub for VoxelPosition {
+    type Output = VoxelPosition;
+    fn sub(self, rhs: VoxelPosition) -> VoxelPosition {
+        VoxelPosition {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
         }
     }
 }
@@ -198,7 +242,6 @@ impl Color {
 #[derive(Clone, Debug)]
 pub struct Mesh {
     pub vertices : Vec<Vertex>, 
-    pub indices: Vec<u32>, 
 }
 
 

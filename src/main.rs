@@ -1,4 +1,4 @@
-use std::{sync::mpsc::Receiver, thread};
+use std::thread;
 
 use futures::executor::block_on;
 
