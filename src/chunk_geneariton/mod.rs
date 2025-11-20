@@ -38,8 +38,8 @@ fn get_multi_octave_map( frequency : f32, block_pos : VoxelPosition, random : f3
     return value / (1.0 + 2.0 + 4.0 + 6.0 + 8.0 + 10.0)
 }
     
-//const WORLD_SCALE : f64 = 0.05;
-const WORLD_SCALE : f32 = 15.0;
+const WORLD_SCALE : f32 = 0.05;
+//const WORLD_SCALE : f32 = 15.0;
 
 enum Biome {
     Plains,

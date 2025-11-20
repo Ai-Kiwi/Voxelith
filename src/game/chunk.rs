@@ -83,11 +83,6 @@ pub fn handle_chunk_loaded(world : &mut WorldData, chunk_generated_rx : &Receive
         range += 1;
     }
 
-    println!("tick {} {}",range,range_increased);
-    for chunk in &world.chunks_loading {
-        println!("{} {} {}",chunk.0.0,chunk.0.1,chunk.0.2)
-    }
-
     loop {
         let chunk_generated = chunk_generated_rx.try_recv();
         match chunk_generated {
