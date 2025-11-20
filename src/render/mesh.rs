@@ -93,6 +93,13 @@ pub fn update_meshs(render_state : &mut RenderState) {
         let distance = get_distance_to_camera_unsquared(render_state, mesh.0.0 as f32 * 16.0, mesh.0.1 as f32 * 16.0, mesh.0.2 as f32 * 16.0);
         if distance > LEVEL_4_LOD_DISTANCE*LEVEL_4_LOD_DISTANCE {
             //should unload but i haven't sorted that yet
+            if mesh.1.lod != 16 {
+                mesh_update.push(MeshUpdatesToBuffer { 
+                    mesh: Mesh { vertices: Vec::new() }, 
+                    chunk_pos: mesh.0.clone(),
+                    lod: 16 
+                });
+            }
         }else if distance > LEVEL_3_LOD_DISTANCE*LEVEL_3_LOD_DISTANCE {
             if mesh.1.lod != 8 {
                 if let Some(mesh_data_obj) = render_state.data.chunk_mesh_data.get(mesh.0) {
@@ -145,10 +152,9 @@ pub fn update_meshs(render_state : &mut RenderState) {
     }
     for mesh in mesh_update {
         update_render_mesh(render_state, mesh.chunk_pos, Some(&mesh.mesh), mesh.lod);
-    }
-
-    if chunk_handling_started.elapsed().as_millis() > 5 {
-        println!("more then safe amount of time has been spent on lod math");
+        if chunk_handling_started.elapsed().as_millis() > 5 {
+            //println!("more then safe amount of time has been spent on lod math");
+        }
     }
 }
 

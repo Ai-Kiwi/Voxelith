@@ -3,14 +3,6 @@ use wgpu::wgt::DrawIndirectArgs;
 
 use crate::{render::{LEVEL_1_LOD_DISTANCE, wgpu::RenderState}, utils::Vec3};
 
-fn chunk_to_batch(position_x : f32,position_y : f32,position_z : f32, batch_size : f32) -> (i32,i32,i32) {
-    return (
-        position_x.div_euclid(16.0 * batch_size) as i32,
-        position_y.div_euclid(16.0 * batch_size) as i32, 
-        position_z.div_euclid(16.0 * batch_size) as i32
-    );
-}
-
 impl RenderState {
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
         #[cfg(feature = "perf_logs")]

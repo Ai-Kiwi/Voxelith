@@ -280,7 +280,7 @@ pub async fn chunk_generation_thread(chunk_generation_request_rx : &mut Receiver
 
         while let Ok(req) = chunk_generation_request_rx.try_recv() {
             requests.push(req);
-            if requests.len() > 25 {
+            if requests.len() > 4 {
                 break;
             }
         }

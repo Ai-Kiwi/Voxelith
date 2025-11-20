@@ -77,6 +77,13 @@ pub fn init_frame_render(render_state : &mut RenderState) {
 
     chunk_buffer_cleanup(render_state);
 
+    //update player pos
+    let _ = render_state.render_channels.input_event_tx.send(InputEvent::CameraPositionUpdate(Vec3::new(
+        render_state.camera.eye.x, 
+        render_state.camera.eye.y, 
+        render_state.camera.eye.z
+    )));
+
     //cleanup data now that frame has happened
     render_state.keys_released.clear();
     render_state.keys_pressed.clear();
