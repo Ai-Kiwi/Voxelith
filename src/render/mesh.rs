@@ -120,9 +120,7 @@ pub fn update_meshs(render_state : &mut RenderState) {
         }else if distance > LEVEL_1_LOD_DISTANCE*LEVEL_1_LOD_DISTANCE {
             if mesh.1.lod != 2 {
                 if let Some(mesh_data_obj) = render_state.data.chunk_mesh_data.get(mesh.0) {
-                    println!("1");
                     if let Some(mesh_data) = &mesh_data_obj.mesh_l2 {
-                        println!("2");
                         mesh_update.push(MeshUpdatesToBuffer { 
                             mesh: mesh_data.clone(), 
                             chunk_pos: mesh.0.clone(),
