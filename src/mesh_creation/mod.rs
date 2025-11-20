@@ -30,10 +30,10 @@ pub async fn chunk_mesh_creation_thread(chunk_mesh_update_tx : Sender<ChunkMeshU
 
                 let _ = chunk_mesh_update_tx.send(ChunkMeshUpdate { 
                     chunk_pos: request.position, 
-                    mesh,
-                    mesh_l2: mesh_l2,
-                    mesh_l4: mesh_l4,
-                    mesh_l8: mesh_l8, 
+                    mesh: Some(mesh),
+                    mesh_l2: Some(mesh_l2),
+                    mesh_l4: Some(mesh_l4),
+                    mesh_l8: Some(mesh_l8), 
                 });
             },
             Err(_) => {},

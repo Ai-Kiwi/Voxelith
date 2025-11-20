@@ -43,6 +43,26 @@ pub fn calculate_pix_color(pixel_type : PixelTypes,x : i32, y : i32, z : i32) ->
         },
         PixelTypes::Stone => [67, 71, 66, 255],
         PixelTypes::Water => [27, 38, 161, 255],
+        PixelTypes::Sand => {
+            if code > 0.75 {
+                [227, 177, 77, 255]
+            }else if code > 0.5 {
+                [201, 152, 52, 255]
+            }else if code > 0.25 {
+                [191, 141, 38, 255]
+            } else {
+                [222, 157, 22, 255]
+            }
+        },
+        PixelTypes::Snow => {
+            if code > 0.95 {
+                [185, 220, 235, 255]
+            }else if code > 0.5 {
+                [230, 237, 232, 255]
+            }else {
+                [228, 237, 230, 255]
+            }
+        },
     };
 
     Color { 

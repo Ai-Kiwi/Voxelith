@@ -43,8 +43,8 @@ pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_
     });
 
 
-    for x in 0..=100 {
-        for z in 0..=100 {
+    for x in 0..=50 {
+        for z in 0..=50 {
             for y in -40..=40 {
                 let _ = chunk_generation_request_tx.send((x,y,z));
             }

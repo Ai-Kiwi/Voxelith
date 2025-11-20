@@ -31,7 +31,7 @@ pub struct RenderChunkMeshBufferReference {
     pub byte_vertex_length : u32,
     pub vertex_position : u32,
     pub vertex_length : u32,
-    pub mesh : Mesh,
+    pub lod : u8,
 }
 
 pub struct FreeBufferSpace {
@@ -46,6 +46,7 @@ impl RenderData {
             camera_pitch: 0.0,
             camera_position: Vec3::new(0.0, 0.0, 0.0),
             chunk_meshs: HashMap::new(),
+            chunk_mesh_data: HashMap::new(),
         }
     }
 }
@@ -61,6 +62,7 @@ pub struct RenderData {
     camera_pitch : f32,
     camera_position : Vec3,
     chunk_meshs : HashMap<(i32,i32,i32),RenderChunkMeshBufferReference>,
+    chunk_mesh_data : HashMap<(i32,i32,i32),ChunkMeshUpdate>,
     //let mut entities_to_render: HashMap<u64,EntityRenderData> = HashMap::new();
 }
 

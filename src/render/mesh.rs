@@ -2,9 +2,9 @@ use std::{mem, time::Instant};
 
 use wgpu::CommandEncoderDescriptor;
 
-use crate::{render::{FreeBufferSpace, RenderChunkMeshBufferReference, wgpu::RenderState}, utils::{Mesh, Vertex}};
+use crate::{render::{self, FreeBufferSpace, LEVEL_1_LOD_DISTANCE, LEVEL_2_LOD_DISTANCE, LEVEL_3_LOD_DISTANCE, LEVEL_4_LOD_DISTANCE, RenderChunkMeshBufferReference, mesh, wgpu::{RenderState, get_distance_to_camera_unsquared}}, utils::{Mesh, Vertex}};
 
-fn create_chunk_mesh(render_state : &mut RenderState, mesh : &Mesh) -> RenderChunkMeshBufferReference {
+fn create_chunk_mesh(render_state : &mut RenderState, mesh : &Mesh, lod : u8) -> RenderChunkMeshBufferReference {
     let mesh_buffer_space_bytes: u32 = (mesh.vertices.len() * mem::size_of::<Vertex>()) as u32;
    if mesh_buffer_space_bytes == 0 {
         return RenderChunkMeshBufferReference {
@@ -12,7 +12,7 @@ fn create_chunk_mesh(render_state : &mut RenderState, mesh : &Mesh) -> RenderChu
             vertex_length: 0,
             byte_vertex_position: 0,
             byte_vertex_length: 0,
-            mesh: mesh.clone(),
+            lod : lod
         };
    }
    
@@ -37,7 +37,7 @@ fn create_chunk_mesh(render_state : &mut RenderState, mesh : &Mesh) -> RenderChu
                 vertex_length: mesh.vertices.len() as u32,
                 byte_vertex_position: offset_bytes,
                 byte_vertex_length: mesh_buffer_space_bytes,
-                mesh: mesh.clone(),
+                lod : lod
             };
         },
         None => panic!("failed to load chunk to buffer. Likely out of vram"),
@@ -45,34 +45,113 @@ fn create_chunk_mesh(render_state : &mut RenderState, mesh : &Mesh) -> RenderChu
 }
 
 
+pub fn update_render_mesh(render_state : &mut RenderState, chunk_pos : (i32,i32,i32), mesh : Option<&Mesh>, lod : u8) {
+    if let Some(chunk_data) = render_state.data.chunk_meshs.get(&chunk_pos) {
+        render_state.free_mesh_buffer_ranges.push(FreeBufferSpace {
+            byte_start: chunk_data.byte_vertex_position,
+            byte_len: chunk_data.byte_vertex_length,
+        });
+    };
+    if let Some(mesh_data) = mesh {
+        let full_info = create_chunk_mesh(render_state, &mesh_data, lod);
+        render_state.data.chunk_meshs.insert(chunk_pos,full_info);
+    }else{
+        render_state.data.chunk_meshs.remove(&chunk_pos);
+    }
+}
+
 
 pub fn update_meshs(render_state : &mut RenderState) {
+    let chunk_handling_started = Instant::now();
     loop {
         let mesh_update = render_state.render_channels.chunk_mesh_update_rx.try_recv();
         match mesh_update {
             Ok(mesh_update) => {
-                
-                if let Some(chunk_data) = render_state.data.chunk_meshs.get(&mesh_update.chunk_pos) {
-                    render_state.free_mesh_buffer_ranges.push(FreeBufferSpace {
-                        byte_start: chunk_data.byte_vertex_position,
-                        byte_len: chunk_data.byte_vertex_length,
-                    });
-                };
+                update_render_mesh(render_state, mesh_update.chunk_pos, mesh_update.mesh.as_ref(), 0);
 
-                let full_info = create_chunk_mesh(render_state, &mesh_update.mesh);
-
-
-
-                render_state.data.chunk_meshs.insert(mesh_update.chunk_pos,full_info);
+                render_state.data.chunk_mesh_data.insert(mesh_update.chunk_pos, mesh_update);
                 //println!("render mesh update {} {} {}",mesh_update.chunk_pos.0,mesh_update.chunk_pos.1,mesh_update.chunk_pos.2);
-
             },
             Err(_) => {
                 break
             },
         }
+        if chunk_handling_started.elapsed().as_millis() > 3 {
+            break;
+        }
     }
 
+    struct MeshUpdatesToBuffer {
+        mesh : Mesh,
+        chunk_pos : (i32,i32,i32),
+        lod : u8
+    }
+
+    //convert meshs to lod
+    let mut mesh_update: Vec<MeshUpdatesToBuffer> = Vec::new();
+    for mesh in &render_state.data.chunk_meshs {        
+        let distance = get_distance_to_camera_unsquared(render_state, mesh.0.0 as f32 * 16.0, mesh.0.1 as f32 * 16.0, mesh.0.2 as f32 * 16.0);
+        if distance > LEVEL_4_LOD_DISTANCE*LEVEL_4_LOD_DISTANCE {
+            //should unload but i haven't sorted that yet
+        }else if distance > LEVEL_3_LOD_DISTANCE*LEVEL_3_LOD_DISTANCE {
+            if mesh.1.lod != 8 {
+                if let Some(mesh_data_obj) = render_state.data.chunk_mesh_data.get(mesh.0) {
+                    if let Some(mesh_data) = &mesh_data_obj.mesh_l8 {
+                        mesh_update.push(MeshUpdatesToBuffer { 
+                            mesh: mesh_data.clone(), 
+                            chunk_pos: mesh.0.clone(),
+                            lod: 8 
+                        });
+                    }
+                }
+            }
+        }else if distance > LEVEL_2_LOD_DISTANCE*LEVEL_2_LOD_DISTANCE {
+            if mesh.1.lod != 4 {
+                if let Some(mesh_data_obj) = render_state.data.chunk_mesh_data.get(mesh.0) {
+                    if let Some(mesh_data) = &mesh_data_obj.mesh_l4 {
+                        mesh_update.push(MeshUpdatesToBuffer { 
+                            mesh: mesh_data.clone(), 
+                            chunk_pos: mesh.0.clone(),
+                            lod: 4, 
+                        });
+                    }
+                }
+            }
+        }else if distance > LEVEL_1_LOD_DISTANCE*LEVEL_1_LOD_DISTANCE {
+            if mesh.1.lod != 2 {
+                if let Some(mesh_data_obj) = render_state.data.chunk_mesh_data.get(mesh.0) {
+                    println!("1");
+                    if let Some(mesh_data) = &mesh_data_obj.mesh_l2 {
+                        println!("2");
+                        mesh_update.push(MeshUpdatesToBuffer { 
+                            mesh: mesh_data.clone(), 
+                            chunk_pos: mesh.0.clone(),
+                            lod: 2, 
+                        });
+                    }
+                }
+            }
+        }else {
+            if mesh.1.lod != 1 {
+                if let Some(mesh_data_obj) = render_state.data.chunk_mesh_data.get(mesh.0) {
+                    if let Some(mesh_data) = &mesh_data_obj.mesh {
+                        mesh_update.push(MeshUpdatesToBuffer { 
+                            mesh: mesh_data.clone(), 
+                            chunk_pos: mesh.0.clone(),
+                            lod: 1, 
+                        });
+                    }
+                }
+            }
+        }
+    }
+    for mesh in mesh_update {
+        update_render_mesh(render_state, mesh.chunk_pos, Some(&mesh.mesh), mesh.lod);
+    }
+
+    if chunk_handling_started.elapsed().as_millis() > 5 {
+        println!("more then safe amount of time has been spent on lod math");
+    }
 }
 
 

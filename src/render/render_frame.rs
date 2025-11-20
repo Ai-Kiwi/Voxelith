@@ -70,52 +70,25 @@ impl RenderState {
             self.camera.target.z - self.camera.eye.z
         ).normalize();
 
-
-        let camera_position = Vec3::new(
-            self.camera.eye.x,
-            self.camera.eye.y,
-            self.camera.eye.z
-        );
-
         #[cfg(feature = "perf_logs")]
         let setup_start = Instant::now();
-
-        let mut lvl0_chunk_render_list: Vec<(i32,i32,i32)> = Vec::new();
-        let lvl0_chunk_range = (LEVEL_1_LOD_DISTANCE / 16.0) as i32;
-        let lvl0_middle_chunk_place = chunk_to_batch(camera_position.x, camera_position.y, camera_position.z, 1.0);
-        
-        for x in ((lvl0_middle_chunk_place.0 as i32)-lvl0_chunk_range)..((lvl0_middle_chunk_place.0 as i32)+lvl0_chunk_range) {
-            for y in ((lvl0_middle_chunk_place.1 as i32)-lvl0_chunk_range)..((lvl0_middle_chunk_place.1 as i32)+lvl0_chunk_range) {
-                for z in ((lvl0_middle_chunk_place.2 as i32)-lvl0_chunk_range)..((lvl0_middle_chunk_place.2 as i32)+lvl0_chunk_range) {
-                    let camera_chunk_normal = Vec3::new(
-                        (x * 16 + 8) as f32 - self.camera.eye.x,
-                        (y * 16 + 8) as f32 - self.camera.eye.y, 
-                        (z * 16 + 8) as f32 - self.camera.eye.z
-                    ).normalize();
-                
-                    let cos_angle = camera_chunk_normal.dot(&camera_direction_normal);
-                    if cos_angle < 0.707 { //around 45 degrees
-                        continue;
-                    }
-                    lvl0_chunk_render_list.push((x,y,z));
-                }
-            }
-        }
-
-        let final_render_mesh_list : Vec<_> = lvl0_chunk_render_list
-        .par_iter()
-        .filter_map(|&(x, y, z)| {
-            self.data.chunk_meshs
-            .get(&(x, y, z))
-            .filter(|mesh| mesh.vertex_length > 0)
-        })
-        .collect();
 
         let mut indirect_draw_calls = Vec::new();
 
 
         for mesh in &self.data.chunk_meshs {
             if mesh.1.vertex_length > 0 {
+                let camera_chunk_normal = Vec3::new(
+                    (mesh.0.0 * 16 + 8) as f32 - self.camera.eye.x,
+                    (mesh.0.1 * 16 + 8) as f32 - self.camera.eye.y, 
+                    (mesh.0.2 * 16 + 8) as f32 - self.camera.eye.z
+                ).normalize();
+            
+                let cos_angle = camera_chunk_normal.dot(&camera_direction_normal);
+                if cos_angle < 0.707 { //around 45 degrees
+                    continue;
+                }
+
                 indirect_draw_calls.push(DrawIndirectArgs {
                         vertex_count: mesh.1.vertex_length,
                         instance_count: 1,
