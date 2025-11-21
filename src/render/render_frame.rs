@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use wgpu::wgt::DrawIndirectArgs;
 
@@ -52,8 +54,6 @@ impl RenderState {
         self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
         render_pass.set_pipeline(&self.opaque_render_pipeline);
         
-        #[cfg(feature = "perf_logs")]
-        let mut stats = RenderStats::new();
 
         let camera_direction_normal = Vec3::new(
             self.camera.target.x - self.camera.eye.x, 
@@ -66,21 +66,21 @@ impl RenderState {
 
 
 
-        //render opaque
+        //setup opaque
         let mut opaque_indirect_draw_calls = Vec::new();
 
         for mesh in &self.data.chunk_meshs {
             if mesh.1.vertex_length > 0 && mesh.0.3 == false {
-                let camera_chunk_normal = Vec3::new(
-                    (mesh.0.0 * 16 + 8) as f32 - self.camera.eye.x,
-                    (mesh.0.1 * 16 + 8) as f32 - self.camera.eye.y, 
-                    (mesh.0.2 * 16 + 8) as f32 - self.camera.eye.z
-                ).normalize();
+                //let camera_chunk_normal = Vec3::new(
+                //    (mesh.0.0 * 16 + 8) as f32 - self.camera.eye.x,
+                //    (mesh.0.1 * 16 + 8) as f32 - self.camera.eye.y, 
+                //    (mesh.0.2 * 16 + 8) as f32 - self.camera.eye.z
+                //).normalize();
             
-                let cos_angle = camera_chunk_normal.dot(&camera_direction_normal);
-                if cos_angle < 0.5 { //around 60 degrees
-                    continue;
-                }
+                //let cos_angle = camera_chunk_normal.dot(&camera_direction_normal);
+                //if cos_angle < 0.5 { //around 60 degrees
+                //    continue;
+                //}
 
                 opaque_indirect_draw_calls.push(DrawIndirectArgs {
                         vertex_count: mesh.1.vertex_length,
@@ -91,11 +91,41 @@ impl RenderState {
             }
         }
 
+        //setup transparent
+        let mut transparent_indirect_draw_calls = Vec::new();
+
+        for mesh in &self.data.chunk_meshs {
+            if mesh.1.vertex_length > 0 && mesh.0.3 == true {
+                //let camera_chunk_normal = Vec3::new(
+                //    (mesh.0.0 * 16 + 8) as f32 - self.camera.eye.x,
+                //    (mesh.0.1 * 16 + 8) as f32 - self.camera.eye.y, 
+                //    (mesh.0.2 * 16 + 8) as f32 - self.camera.eye.z
+                //).normalize();
+            
+                //let cos_angle = camera_chunk_normal.dot(&camera_direction_normal);
+                //if cos_angle < 0.5 { //around 60 degrees
+                //    continue;
+                //}
+
+                transparent_indirect_draw_calls.push(DrawIndirectArgs {
+                        vertex_count: mesh.1.vertex_length,
+                        instance_count: 1,
+                        first_vertex: mesh.1.vertex_position,
+                        first_instance: 0,
+                });
+            }
+        }
+        
+        #[cfg(feature = "perf_logs")]
+        println!("finished render setup {}ms",setup_start.elapsed().as_millis());
+        #[cfg(feature = "perf_logs")]
+        let render_start = Instant::now();
+
+        //render opaque
         self.queue.write_buffer(&self.opaque_indirect_buffer, 0, bytemuck::cast_slice(&opaque_indirect_draw_calls));
         self.queue.write_buffer(&self.opaque_count_buffer, 0, bytemuck::cast_slice(&[opaque_indirect_draw_calls.len() as u32]));
         render_pass.set_vertex_buffer(0, self.chunk_mesh_buffer.slice(..));
         render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
-
 
         render_pass.multi_draw_indirect_count(
             &self.opaque_indirect_buffer, 
@@ -107,30 +137,6 @@ impl RenderState {
 
         //render transparent
         render_pass.set_pipeline(&self.transparent_render_pipeline);
-        let mut transparent_indirect_draw_calls = Vec::new();
-
-        for mesh in &self.data.chunk_meshs {
-            if mesh.1.vertex_length > 0 && mesh.0.3 == true {
-                let camera_chunk_normal = Vec3::new(
-                    (mesh.0.0 * 16 + 8) as f32 - self.camera.eye.x,
-                    (mesh.0.1 * 16 + 8) as f32 - self.camera.eye.y, 
-                    (mesh.0.2 * 16 + 8) as f32 - self.camera.eye.z
-                ).normalize();
-            
-                let cos_angle = camera_chunk_normal.dot(&camera_direction_normal);
-                if cos_angle < 0.5 { //around 60 degrees
-                    continue;
-                }
-
-                transparent_indirect_draw_calls.push(DrawIndirectArgs {
-                        vertex_count: mesh.1.vertex_length,
-                        instance_count: 1,
-                        first_vertex: mesh.1.vertex_position,
-                        first_instance: 0,
-                });
-            }
-        }
-
         self.queue.write_buffer(&self.transparent_indirect_buffer, 0, bytemuck::cast_slice(&transparent_indirect_draw_calls));
         self.queue.write_buffer(&self.transparent_count_buffer, 0, bytemuck::cast_slice(&[transparent_indirect_draw_calls.len() as u32]));
         render_pass.set_vertex_buffer(0, self.chunk_mesh_buffer.slice(..));
@@ -148,25 +154,10 @@ impl RenderState {
 
 
 
-
-
-
-        #[cfg(feature = "perf_logs")]
-        println!("Started setup {}ms",setup_start.elapsed().as_millis());
-        #[cfg(feature = "perf_logs")]
-        let render_start = Instant::now();
         drop(render_pass);
 
         #[cfg(feature = "perf_logs")]
         println!("renderer game {}ms",render_start.elapsed().as_millis());
- 
-
-        #[cfg(feature = "perf_logs")]
-        println!(
-            "Draw calls: {}, Triangles: {}",
-            stats.draw_calls,
-            stats.triangles
-        );
 
         // submit will accept anything that implements IntoIter
         self.queue.submit(std::iter::once(encoder.finish()));

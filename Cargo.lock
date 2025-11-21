@@ -3,7 +3,7 @@
 version = 4
 
 [[package]]
-name = "Macroquad"
+name = "Voxelith"
 version = "0.1.0"
 dependencies = [
  "anyhow",

@@ -22,9 +22,9 @@ pub fn handle_user_input(render_state : &mut RenderState) {
     let left_dir = right_dir  * -1.0;
 
     let movement_speed = if render_state.keys_down.contains_key(&winit::keyboard::KeyCode::ShiftLeft) {
-        200.0
+        500.0
     }else {
-        25.0
+        100.0
     };
 
 

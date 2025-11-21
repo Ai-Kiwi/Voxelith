@@ -68,6 +68,7 @@ pub fn update_render_mesh(render_state : &mut RenderState, chunk_pos : (i32,i32,
 
 
 pub fn update_meshs(render_state : &mut RenderState) {
+    #[cfg(feature = "perf_logs")]
     let chunk_handling_started = Instant::now();
     loop {
         let mesh_update = render_state.render_channels.chunk_mesh_update_rx.try_recv();
@@ -82,11 +83,12 @@ pub fn update_meshs(render_state : &mut RenderState) {
                 break
             },
         }
-        if chunk_handling_started.elapsed().as_millis() > 3 {
-            break;
-        }
     }
 
+    #[cfg(feature = "perf_logs")]
+    println!("render chunk mesh upload {}ms",chunk_handling_started.elapsed().as_millis());
+    #[cfg(feature = "perf_logs")]
+    let chunk_render_lod_started = Instant::now();
     struct MeshUpdatesToBuffer {
         mesh : Mesh,
         chunk_pos : (i32,i32,i32),
@@ -98,6 +100,9 @@ pub fn update_meshs(render_state : &mut RenderState) {
     let mut mesh_update: Vec<MeshUpdatesToBuffer> = Vec::new();
     for mesh in &render_state.data.chunk_meshs {        
         let distance = get_distance_to_camera_unsquared(render_state, mesh.0.0 as f32 * 16.0, mesh.0.1 as f32 * 16.0, mesh.0.2 as f32 * 16.0);
+        if mesh.1.vertex_length == 0 {
+            continue;
+        }
         if distance > LEVEL_4_LOD_DISTANCE*LEVEL_4_LOD_DISTANCE {
             //should unload but i haven't sorted that yet
             if mesh.1.lod != 16 {
@@ -164,10 +169,10 @@ pub fn update_meshs(render_state : &mut RenderState) {
     }
     for mesh in mesh_update {
         update_render_mesh(render_state, mesh.chunk_pos, Some(&mesh.mesh), mesh.lod, mesh.transparent);
-        if chunk_handling_started.elapsed().as_millis() > 5 {
-            //println!("more then safe amount of time has been spent on lod math");
-        }
     }
+    #[cfg(feature = "perf_logs")]
+    println!("chunk render lod update {}ms",chunk_render_lod_started.elapsed().as_millis());
+
 }
 
 const MIN_FREE_SPACE_SIZE: u32 =  (0.5 * 1024.0 * 1024.0) as u32;
@@ -203,14 +208,15 @@ pub fn chunk_buffer_cleanup(render_state : &mut RenderState) {
         }
     };
 
-    println!("free space {}% usable {}% across {} fragments {} need resizing", ((free_space as f32 / MAP_VRAM_SIZE as f32) * 100.0).round(), ((real_free_space as f32 / MAP_VRAM_SIZE as f32) * 100.0).round(), fragments, need_resizing_fragments);
-
+    
     //not critical so don't bother
     //leaving till later lets huge areas build up as well which can be skipped
     if need_resizing_fragments < 60000 || (real_free_space as f32 / MAP_VRAM_SIZE as f32) < 0.25 {
         return;
     }
-
+    if (real_free_space as f32 / MAP_VRAM_SIZE as f32) < 0.2 {
+        println!("free space {}% usable {}% across {} fragments {} need resizing", ((free_space as f32 / MAP_VRAM_SIZE as f32) * 100.0).round(), ((real_free_space as f32 / MAP_VRAM_SIZE as f32) * 100.0).round(), fragments, need_resizing_fragments);
+    }
 
     //move items to clean up gaps
     let mut chunk_list: Vec<_> = render_state.data.chunk_meshs.iter_mut().collect();
