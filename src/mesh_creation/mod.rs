@@ -23,17 +23,32 @@ pub async fn chunk_mesh_creation_thread(chunk_mesh_update_tx : Sender<ChunkMeshU
         let chunk_mesh_create_request = request_chunk_mesh_update_rx.recv();
         match chunk_mesh_create_request {
             Ok(request) => {
-                let mesh = create_chunk_mesh(&request, 1);
-                let mesh_l2 = create_chunk_mesh(&request, 2);
-                let mesh_l4 = create_chunk_mesh(&request, 4);
-                let mesh_l8 = create_chunk_mesh(&request, 8);
+                //non transparent
+                let mesh = create_chunk_mesh(&request, 1, false);
+                let mesh_l2 = create_chunk_mesh(&request, 2, false);
+                let mesh_l4 = create_chunk_mesh(&request, 4, false);
+                let mesh_l8 = create_chunk_mesh(&request, 8, false);
+                let _ = chunk_mesh_update_tx.send(ChunkMeshUpdate { 
+                    chunk_pos: request.position, 
+                    mesh: Some(mesh),
+                    mesh_l2: Some(mesh_l2),
+                    mesh_l4: Some(mesh_l4),
+                    mesh_l8: Some(mesh_l8),
+                    transparent: false,
+                });
 
+                //transparent
+                let mesh = create_chunk_mesh(&request, 1, true);
+                let mesh_l2 = create_chunk_mesh(&request, 2, true);
+                let mesh_l4 = create_chunk_mesh(&request, 4, true);
+                let mesh_l8 = create_chunk_mesh(&request, 8, true);
                 let _ = chunk_mesh_update_tx.send(ChunkMeshUpdate { 
                     chunk_pos: request.position, 
                     mesh: Some(mesh),
                     mesh_l2: Some(mesh_l2),
                     mesh_l4: Some(mesh_l4),
                     mesh_l8: Some(mesh_l8), 
+                    transparent: true,
                 });
             },
             Err(_) => {},

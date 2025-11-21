@@ -11,6 +11,7 @@ mod pixel_updates;
 mod mesh_updates;
 mod handle_inputs;
 mod entity;
+pub mod pixel;
 
 pub enum InputEvent {
     Move(Vec2),
@@ -23,6 +24,8 @@ pub enum InputEvent {
     //DropItem(u32),
     // ... other game actions
 }
+
+pub const MAX_CHUNK_LOAD_DISTANCE: i32 = 100;
 
 
 pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_render_tx : Sender<EntityRenderData>, input_event_rx : &mut Receiver<InputEvent>) {

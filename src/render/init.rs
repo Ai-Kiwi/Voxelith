@@ -111,9 +111,16 @@ impl RenderState {
             byte_len: (MAP_VRAM_SIZE as u32) - 1,
         });
 
-        let indirect_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        let opaque_indirect_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Indirect Buffer"),
-            size: 16 * 1024 * 1024, // 1 MB
+            size: 16 * 1024 * 1024, // 16 MB
+            usage: wgpu::BufferUsages::INDIRECT | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let transparent_indirect_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Indirect Buffer"),
+            size: 16 * 1024 * 1024, // 16 MB
             usage: wgpu::BufferUsages::INDIRECT | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -125,8 +132,14 @@ impl RenderState {
             mapped_at_creation: false,
         });
 
-        let count_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Count Buffer"),
+        let opaque_count_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Opaque Count Buffer"),
+            contents: bytemuck::cast_slice(&[0 as u32]),
+            usage: wgpu::BufferUsages::INDIRECT | wgpu::BufferUsages::COPY_DST,
+        });
+
+        let transparent_count_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Transparent Count Buffer"),
             contents: bytemuck::cast_slice(&[0 as u32]),
             usage: wgpu::BufferUsages::INDIRECT | wgpu::BufferUsages::COPY_DST,
         });
@@ -168,8 +181,8 @@ impl RenderState {
                 push_constant_ranges: &[],
         });
 
-        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Render Pipeline"),
+        let opaque_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Opaque Render Pipeline"),
             layout: Some(&render_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
@@ -217,6 +230,56 @@ impl RenderState {
             cache: None,
         });
 
+        let transparent_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Transparent Render Pipeline"),
+            layout: Some(&render_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: Some("vs_main"),
+                buffers: &[
+                    Vertex::desc()
+                ],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: Some("fs_main"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: config.format,
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: None,
+                // Setting this to anything other than Fill requires Features::NON_FILL_POLYGON_MODE
+                polygon_mode: wgpu::PolygonMode::Fill,
+                // Requires Features::DEPTH_CLIP_CONTROL
+                unclipped_depth: false,
+                // Requires Features::CONSERVATIVE_RASTERIZATION
+                conservative: false,
+            },
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: wgpu::TextureFormat::Depth32Float,
+                depth_write_enabled: false,
+                depth_compare: wgpu::CompareFunction::LessEqual, // closer fragments overwrite farther ones
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
+            multisample: wgpu::MultisampleState {
+                count: 1,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            multiview: None,
+            cache: None,
+        });
+
+
         let depth_texture = create_depth_texture(&device,size.width,size.height);
         let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -226,7 +289,8 @@ impl RenderState {
             queue,
             config,
             is_surface_configured: false,
-            render_pipeline,
+            opaque_render_pipeline,
+            transparent_render_pipeline,
             camera,
             camera_uniform,
             camera_buffer,
@@ -242,11 +306,14 @@ impl RenderState {
             mouse_position_delta: Vec2::new(0.0, 0.0),
             chunk_mesh_buffer,
             free_mesh_buffer_ranges,
-            indirect_buffer,
+            opaque_indirect_buffer,
+            transparent_indirect_buffer,
             temporary_move_buffer,
-            count_buffer,
+            opaque_count_buffer,
+            transparent_count_buffer,
             depth_texture,
             depth_view,
+
         })
     }
 }

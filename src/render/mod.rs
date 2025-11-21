@@ -61,8 +61,8 @@ pub struct RenderData {
     camera_yaw : f32,
     camera_pitch : f32,
     camera_position : Vec3,
-    chunk_meshs : HashMap<(i32,i32,i32),RenderChunkMeshBufferReference>,
-    chunk_mesh_data : HashMap<(i32,i32,i32),ChunkMeshUpdate>,
+    chunk_meshs : HashMap<(i32,i32,i32,bool),RenderChunkMeshBufferReference>,
+    chunk_mesh_data : HashMap<(i32,i32,i32,bool),ChunkMeshUpdate>,
     //let mut entities_to_render: HashMap<u64,EntityRenderData> = HashMap::new();
 }
 

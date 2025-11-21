@@ -35,25 +35,6 @@ pub fn create_depth_texture(device: &wgpu::Device, width: u32, height: u32) -> w
     })
 }
 
-#[repr(C)]
-#[derive(Copy, Clone, Pod, Zeroable)]
-struct DrawIndirectArgs {
-    vertex_count: u32,
-    instance_count: u32,
-    first_vertex: u32,
-    first_instance: u32,
-}
-
-struct RenderStats {
-    draw_calls: u32,
-    triangles: u32,
-}
-
-impl RenderStats {
-    fn new() -> Self {
-        Self { draw_calls: 0, triangles: 0 }
-    }
-}
 
 pub struct RenderState {
     pub surface: wgpu::Surface<'static>,
@@ -61,7 +42,8 @@ pub struct RenderState {
     pub queue: wgpu::Queue,
     pub config: wgpu::SurfaceConfiguration,
     pub is_surface_configured: bool,
-    pub render_pipeline: wgpu::RenderPipeline,
+    pub opaque_render_pipeline: wgpu::RenderPipeline,
+    pub transparent_render_pipeline: wgpu::RenderPipeline,
     pub camera: Camera,
     pub camera_uniform: CameraUniform,
     pub camera_buffer: wgpu::Buffer,
@@ -81,8 +63,10 @@ pub struct RenderState {
 
     pub chunk_mesh_buffer: wgpu::Buffer,
     pub free_mesh_buffer_ranges : Vec<FreeBufferSpace>,
-    pub indirect_buffer: wgpu::Buffer,
-    pub count_buffer: wgpu::Buffer,
+    pub opaque_indirect_buffer: wgpu::Buffer,
+    pub transparent_indirect_buffer: wgpu::Buffer,
+    pub opaque_count_buffer: wgpu::Buffer,
+    pub transparent_count_buffer: wgpu::Buffer,
     pub temporary_move_buffer: wgpu::Buffer,
 
     pub mouse_position_delta: Vec2,

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{game::chunk::{Chunk,}};
+use crate::game::{chunk::Chunk, pixel::PixelTypes};
 
 pub struct WorldData {
     pub chunks : HashMap<(i32, i32,i32), Arc<Chunk>>,
@@ -34,16 +34,4 @@ impl WorldData {
     pub fn set_pixel_data(&mut self, pixel_pos : (i32,i32,i32), pixel : PixelTypes) {
         self.pixel_edit_queue.push((pixel_pos.0,pixel_pos.1,pixel_pos.2,pixel));
     }
-}
-
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum PixelTypes {
-    Air,
-    Grass,
-    Dirt,
-    Stone,
-    Water,
-    Sand,
-    Snow,
 }

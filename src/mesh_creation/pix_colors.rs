@@ -1,4 +1,4 @@
-use crate::{game::world::PixelTypes, utils::Color};
+use crate::{game::pixel::PixelTypes, utils::Color};
 
 fn hash_position(x: i32, y: i32, z: i32) -> f32 {
     let mut seed = (x as u32).wrapping_mul(374761393)
@@ -42,7 +42,7 @@ pub fn calculate_pix_color(pixel_type : PixelTypes,x : i32, y : i32, z : i32) ->
             }
         },
         PixelTypes::Stone => [67, 71, 66, 255],
-        PixelTypes::Water => [27, 38, 161, 255],
+        PixelTypes::Water => [27, 38, 161, 200],
         PixelTypes::Sand => {
             if code > 0.75 {
                 [227, 177, 77, 255]

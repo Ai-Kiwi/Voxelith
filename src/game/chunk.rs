@@ -1,6 +1,6 @@
 use std::sync::{Arc, mpsc::{Receiver, Sender}};
 
-use crate::{chunk_geneariton::NewChunkInfo, game::world::{PixelTypes, WorldData,}, utils::Vec3};
+use crate::{chunk_geneariton::NewChunkInfo, game::{MAX_CHUNK_LOAD_DISTANCE, pixel::PixelTypes, world::WorldData}, utils::Vec3};
 
 
 #[derive(Clone)]
@@ -23,7 +23,7 @@ pub fn handle_chunk_loaded(world : &mut WorldData, chunk_generated_rx : &Receive
     let middle_chunk_z = (player_position.z + 8.0).div_euclid(16.0) as i32;
     let mut range = 0;
     let mut range_increased = false;
-    if !world.chunks_loading.is_empty() {
+    if world.chunks_loading.iter().count() > 25 {
         range_increased = true
     }
     while range_increased == false {
@@ -77,7 +77,7 @@ pub fn handle_chunk_loaded(world : &mut WorldData, chunk_generated_rx : &Receive
                 }
             }
         }
-        if range > 25 {
+        if range > MAX_CHUNK_LOAD_DISTANCE {
             break;
         }
         range += 1;

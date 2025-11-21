@@ -1,7 +1,7 @@
 use std::{os::unix::thread, sync::mpsc::{Receiver, Sender}, thread::sleep};
 use fastnoise_lite::{FastNoiseLite, NoiseType};
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use crate::{game::{chunk::{self, Chunk}, world::PixelTypes}, utils::VoxelPosition};
+use rayon::{ThreadPoolBuilder, iter::{IntoParallelRefIterator, ParallelIterator}};
+use crate::{game::{chunk::{self, Chunk}, pixel::PixelTypes}, utils::VoxelPosition};
 
 pub struct NewChunkInfo {
     pub position : (i32, i32, i32),
@@ -38,8 +38,8 @@ fn get_multi_octave_map( frequency : f32, block_pos : VoxelPosition, random : f3
     return value / (1.0 + 2.0 + 4.0 + 6.0 + 8.0 + 10.0)
 }
     
-const WORLD_SCALE : f32 = 0.05;
-//const WORLD_SCALE : f32 = 15.0;
+//const WORLD_SCALE : f32 = 0.05;
+const WORLD_SCALE : f32 = 15.0;
 
 enum Biome {
     Plains,
@@ -182,12 +182,13 @@ fn create_chunk(noise : &FastNoiseLite, chunk_pos : (i32, i32, i32)) -> Chunk {
                         }
                     },
                     Biome::Ocean => {
-                        if (world_y as f32) < elevation - 4.0 {
-                            pixel_block = PixelTypes::Stone
-                        }else if (world_y as f32) < elevation- 1.0 {
-                            pixel_block = PixelTypes::Dirt
-                        }else if (world_y as f32) < elevation {
+                        if (world_y as f32) < 0.0 {
                             pixel_block = PixelTypes::Water
+                        }
+                        if (world_y as f32) < elevation - 3.0 {
+                            pixel_block = PixelTypes::Stone
+                        }else if (world_y as f32) < elevation {
+                            pixel_block = PixelTypes::Dirt
                         }
                     },
                     Biome::Desert => {
@@ -273,7 +274,6 @@ pub async fn chunk_generation_thread(chunk_generation_request_rx : &mut Receiver
     noise.set_seed(Some(34653452));
     noise.set_noise_type(Some(NoiseType::OpenSimplex2));
 
-    create_chunk(&noise, (0,0,0));
 
     loop {
         let mut requests: Vec<_> = Vec::new();
