@@ -1,6 +1,6 @@
 use std::sync::{Arc, mpsc::{Receiver, Sender}};
 
-use crate::{chunk_geneariton::NewChunkInfo, game::{MAX_CHUNK_LOAD_DISTANCE, pixel::PixelTypes, world::WorldData}, utils::Vec3};
+use crate::{chunk_geneariton::NewChunkInfo, game::{Game, MAX_CHUNK_LOAD_DISTANCE, pixel::PixelTypes, world::{self, WorldData}}, utils::Vec3};
 
 
 #[derive(Clone)]

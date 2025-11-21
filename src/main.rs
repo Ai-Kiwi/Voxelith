@@ -10,6 +10,8 @@ mod game;
 mod mesh_creation;
 mod chunk_geneariton;
 mod utils;
+mod entity;
+mod physics;
     
 fn main() {
     env_logger::init();

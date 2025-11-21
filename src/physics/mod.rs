@@ -1,4 +1,6 @@
-use crate::{entity, game::world::{PixelTypes, WorldData}};
+use cgmath::num_traits::{Float, float};
+
+use crate::{entity, game::{entity::Entities, pixel::PixelTypes, world::WorldData}};
 
 
 pub struct PhysicsObject {
@@ -29,79 +31,32 @@ fn get_block_locations_at_position(position: (f32,f32,f32), hitbox : (f32,f32,f3
 
 
 
-pub fn tick_physics(world : &mut WorldData) {
+pub fn tick_physics(world : &mut WorldData, entities : &mut Entities) {
+    //for now just assuming velocity as 1 unit per game tick. Will change to m/s later
 
-    let mut entities_x_col: Vec<u64> = Vec::new();
-    let mut entities_y_col: Vec<u64> = Vec::new();
-    let mut entities_z_col: Vec<u64> = Vec::new();
 
-    for entity in &world.entities {
-        
-        //x
-        let mut collision = false;
-        for block in get_block_locations_at_position((entity.1.position.0 + entity.1.physics.velocity.0,entity.1.position.1 ,entity.1.position.2 ), entity.1.physics.hitbox) {
-            if world.get_pixel_data(block.0,block.1,block.2) != PixelTypes::Air {
-                collision = true;
+    //run for all entities;
+    for (id, entity) in &mut entities.entities {
+        if entity.physics.velocity.0 != 0.0 {
+            let start_testing_x = entity.position.0 + (entity.physics.hitbox.0 * entity.physics.velocity.0.signum());
+            let end_testing_x = start_testing_x + entity.physics.velocity.0;
+
+            let start_testing_x = start_testing_x.trunc() as i32;
+            let end_testing_x = end_testing_x.trunc() as i32;
+
+            'x_test : for x_pos in start_testing_x..=end_testing_x {
+                let blocks = world.get_area_block_data_unordered((x_pos, (entity.position.0 - entity.physics.hitbox.0).ceil() as i32, (entity.position.2 - entity.physics.hitbox.2).ceil() as i32), (x_pos,(entity.position.0 - entity.physics.hitbox.0).floor() as i32, (entity.position.2 - entity.physics.hitbox.2).floor() as i32));
+                for block in blocks {
+                    if block != PixelTypes::Air {
+                        entity.position.0 = (x_pos - 1) as f32;
+                        entity.physics.velocity.0 = 0.0;
+                        break 'x_test;
+                    }
+                }
             }
-        }
-        if collision == true {
-            entities_x_col.push(*entity.0);
-        }
 
 
-        //y
-        let mut collision = false;
-        for block in get_block_locations_at_position((entity.1.position.0,entity.1.position.1 + entity.1.physics.velocity.1,entity.1.position.2 ), entity.1.physics.hitbox) {
-            if world.get_pixel_data(block.0,block.1,block.2) != PixelTypes::Air {
-                collision = true;
-            }
         }
-        if collision == true {
-            entities_y_col.push(*entity.0);
-        }
-
-        //z
-        let mut collision = false;
-        for block in get_block_locations_at_position((entity.1.position.0,entity.1.position.1,entity.1.position.2 + entity.1.physics.velocity.2 ), entity.1.physics.hitbox) {
-            if world.get_pixel_data(block.0,block.1,block.2) != PixelTypes::Air {
-                collision = true;
-            }
-        }
-        if collision == true {
-            entities_z_col.push(*entity.0);
-        }
-    }
-    for entity in &mut world.entities {
-        entity.1.physics.grounded = false;
-        if entities_x_col.contains(entity.0) {
-            entity.1.physics.velocity.0 = 0.0;
-        }else{
-            entity.1.position.0 += entity.1.physics.velocity.0;
-            entity.1.updated = true;
-        }
-        if entities_y_col.contains(entity.0) {
-            if entity.1.physics.velocity.1 < 0.0 {
-                entity.1.physics.grounded = true;
-            }
-            entity.1.physics.velocity.1 = 0.0;
-        }else{
-            entity.1.position.1 += entity.1.physics.velocity.1;
-            entity.1.updated = true;
-        }
-        if entities_z_col.contains(entity.0) {
-            entity.1.physics.velocity.2 = 0.0;
-        }else{
-            entity.1.position.2 += entity.1.physics.velocity.2;
-            entity.1.updated = true;
-        }
-
-        if entity.1.physics.gravity == true {
-            entity.1.physics.velocity.1 -= 0.25
-        }
-
-        entity.1.physics.velocity.0 *= 0.8;
-        entity.1.physics.velocity.1 *= 0.8;
-        entity.1.physics.velocity.2 *= 0.8; 
-    }
+    }   
 
 }

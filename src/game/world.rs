@@ -1,11 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::game::{chunk::Chunk, pixel::PixelTypes};
+use crate::{entity::Entity, game::{chunk::Chunk, pixel::PixelTypes}};
 
 pub struct WorldData {
     pub chunks : HashMap<(i32, i32,i32), Arc<Chunk>>,
-    //pub entities : HashMap<u64, Entity>,
-    //pub entities_count : u64,
     pub pixel_edit_queue : Vec<(i32,i32,i32,PixelTypes)>,
     pub chunk_mesh_updates_needed : HashMap<(i32,i32,i32),()>,
     pub chunks_loading : HashMap<(i32,i32,i32),()>
@@ -33,5 +31,40 @@ impl WorldData {
     }
     pub fn set_pixel_data(&mut self, pixel_pos : (i32,i32,i32), pixel : PixelTypes) {
         self.pixel_edit_queue.push((pixel_pos.0,pixel_pos.1,pixel_pos.2,pixel));
+    }
+
+    pub fn get_area_block_data_unordered(&self, start_pixel_pos : (i32,i32,i32), end_pixel_pos : (i32,i32,i32)) -> Vec<PixelTypes> {
+        let mut blocks_positions = Vec::new();
+        let start_chunk_x = start_pixel_pos.0.div_euclid(16);
+        let start_chunk_y = start_pixel_pos.0.div_euclid(16);
+        let start_chunk_z = start_pixel_pos.0.div_euclid(16);
+        let end_chunk_x = start_pixel_pos.0.div_euclid(16);
+        let end_chunk_y = start_pixel_pos.0.div_euclid(16);
+        let end_chunk_z = start_pixel_pos.0.div_euclid(16);
+
+        for chunk_y in start_chunk_y..end_chunk_y as i32 {
+            for chunk_z in start_chunk_z..end_chunk_z as i32 {
+                for chunk_x in start_chunk_x..end_chunk_x as i32 {
+                    let chunk_data = self.chunks.get(&(chunk_x,chunk_y,chunk_z));
+                    for local_y in 0..16 as i32 {
+                        for local_z in 0..16 as i32 {
+                            for local_x in 0..16 as i32 {
+                                let block_x = (chunk_x * 16) + local_x;
+                                let block_y = (chunk_y * 16) + local_y;
+                                let block_z = (chunk_z * 16) + local_z;
+                                if block_x <= end_chunk_x && block_x >= start_chunk_x && block_y <= end_chunk_y && block_y >= start_chunk_y && block_z <= end_chunk_z && block_z >= start_chunk_z {
+                                    match chunk_data {
+                                        Some(data) => blocks_positions.push(data.get_relative_pixel(local_x, local_y, local_z)),
+                                        None => blocks_positions.push(PixelTypes::Air),
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return blocks_positions;
     }
 }

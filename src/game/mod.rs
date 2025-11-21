@@ -1,16 +1,14 @@
-use std::{collections::HashMap, sync::{Arc, mpsc::{Receiver, Sender, channel}}, thread, time::{Duration, Instant}};
+use std::{collections::HashMap, sync::mpsc::{Receiver, Sender, channel}, thread, time::{Duration, Instant}};
 use futures::executor::block_on;
-use rayon::vec;
-use wgpu::Instance;
 
-use crate::{chunk_geneariton::{NewChunkInfo, chunk_generation_thread}, game::{chunk::handle_chunk_loaded, entity::handle_entity_update, handle_inputs::handle_user_inputs, mesh_updates::handle_chunk_mesh_updates, pixel_updates::handle_pixel_updates, world::WorldData}, mesh_creation::{ChunkMeshCreateRequest, chunk_mesh_creation_thread}, render::types::{ChunkMeshUpdate, EntityRenderData}, utils::{Vec2, Vec3, raycast_test}};
+use crate::{chunk_geneariton::{NewChunkInfo, chunk_generation_thread}, entity::Entity, game::{chunk::handle_chunk_loaded, entity::{Entities, handle_entity_update}, handle_inputs::handle_user_inputs, mesh_updates::handle_chunk_mesh_updates, pixel_updates::handle_pixel_updates, world::WorldData}, mesh_creation::{ChunkMeshCreateRequest, chunk_mesh_creation_thread}, render::types::{ChunkMeshUpdate, EntityRenderData}, utils::{Vec2, Vec3, raycast_test}};
 
 pub mod world;
 pub mod chunk;
 mod pixel_updates;
 mod mesh_updates;
 mod handle_inputs;
-mod entity;
+pub mod entity;
 pub mod pixel;
 
 pub enum InputEvent {
@@ -27,16 +25,27 @@ pub enum InputEvent {
 
 pub const MAX_CHUNK_LOAD_DISTANCE: i32 = 100;
 
+pub struct Game {
+    world : WorldData,
+    entities : Entities,
+}
+
 
 pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_render_tx : Sender<EntityRenderData>, input_event_rx : &mut Receiver<InputEvent>) {
     let _ = entity_render_tx;
-    let mut world: WorldData = WorldData {
-        chunks: HashMap::new(),
-        //entities: HashMap::new(),
-        //entities_count: 0,
-        pixel_edit_queue: Vec::new(),
-        chunk_mesh_updates_needed: HashMap::new(),
-        chunks_loading: HashMap::new(),
+    let mut game = Game {
+        world : WorldData {
+            chunks: HashMap::new(),
+            //entities: HashMap::new(),
+            //entities_count: 0,
+            pixel_edit_queue: Vec::new(),
+            chunk_mesh_updates_needed: HashMap::new(),
+            chunks_loading: HashMap::new(),
+        },
+        entities: Entities {
+            entities: HashMap::new(),
+            entities_count: 0,
+        }
     };
     let mut player_position = Vec3::new(0.0, 0.0, 0.0);
 
@@ -58,13 +67,13 @@ pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_
 
     println!("starting game loop");
     loop {
-        handle_chunk_loaded(&mut world, &chunk_generated_rx, &player_position, &chunk_generation_request_tx);
+        handle_chunk_loaded(&mut game.world, &chunk_generated_rx, &player_position, &chunk_generation_request_tx);
 
-        handle_user_inputs(&mut world, &mut player_position, input_event_rx);
+        handle_user_inputs(&mut game.world, &mut player_position, input_event_rx);
 
-        handle_pixel_updates(&mut world);
+        handle_pixel_updates(&mut game.world);
 
-        handle_chunk_mesh_updates(&mut world, &request_chunk_mesh_update_tx);
+        handle_chunk_mesh_updates(&mut game.world, &request_chunk_mesh_update_tx);
 
 
         //physics loop

@@ -1,6 +1,6 @@
 use std::sync::mpsc::Receiver;
 
-use crate::{game::{InputEvent, pixel::PixelTypes, world::{self, WorldData}}, utils::{Vec3, raycast_test}};
+use crate::{game::{Game, InputEvent, pixel::PixelTypes, world::{self, WorldData}}, utils::{Vec3, raycast_test}};
 
 pub fn handle_user_inputs(world : &mut WorldData, player_position : &mut Vec3, input_event_rx : &mut Receiver<InputEvent>) {
     loop {

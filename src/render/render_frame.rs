@@ -64,7 +64,7 @@ impl RenderState {
         #[cfg(feature = "perf_logs")]
         let setup_start = Instant::now();
 
-
+        //render the terrain.
 
         //setup opaque
         let mut opaque_indirect_draw_calls = Vec::new();
@@ -150,7 +150,8 @@ impl RenderState {
             1000000
         );
 
-
+        //render the entities
+        
 
 
 
