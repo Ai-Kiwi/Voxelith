@@ -47,7 +47,7 @@ impl Game {
 
 
 
-pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_render_tx : Sender<EntityRenderData>, input_event_rx : &mut Receiver<InputEvent>) {
+pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_render_tx : Sender<EntityRenderData>, input_event_rx : &mut Receiver<InputEvent>, game_snapshot_update_tx : Sender<Arc<GameSnapshot>>) {
     let _ = entity_render_tx;
     let mut game = Game {
         world : WorldData {
@@ -96,7 +96,11 @@ pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_
 
         handle_entity_update();
 
-        let snapshot = game.create_snapshot();
+        let snapshot: Arc<GameSnapshot> = game.create_snapshot();
+        match game_snapshot_update_tx.send(snapshot) {
+            Ok(_) => (),
+            Err(_) => break, //game must have stopped so close loop
+        }
 
         //60tps
         let sleep_time = Duration::from_millis(((1.0 / 60.0) - last_tick_time.elapsed().as_secs_f32()) as u64);

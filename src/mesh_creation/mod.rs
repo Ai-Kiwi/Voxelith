@@ -51,7 +51,9 @@ pub async fn chunk_mesh_creation_thread(chunk_mesh_update_tx : Sender<ChunkMeshU
                     transparent: true,
                 });
             },
-            Err(_) => {},
+            Err(_) => {
+                return; //must mean that channel has been dropped
+            },
         }
 
     }

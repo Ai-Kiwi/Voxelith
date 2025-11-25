@@ -4,7 +4,7 @@ use pollster::block_on;
 use ::wgpu::Buffer;
 use winit::event_loop::EventLoop;
 
-use crate::{game::{InputEvent, game_thread}, render::{app::App, handle_input::handle_user_input, mesh::{GpuMeshReference, mesh_buffer_cleanup, update_chunk_meshs}, types::{ChunkMeshUpdate, EntityRenderData}, wgpu::RenderState}, utils::{Mesh, Vec2, Vec3}};
+use crate::{game::{GameSnapshot, InputEvent, game_thread}, render::{app::App, handle_input::handle_user_input, mesh::{GpuMeshReference, mesh_buffer_cleanup, update_chunk_meshs}, types::{ChunkMeshUpdate, EntityRenderData}, wgpu::RenderState}, utils::{Mesh, Vec2, Vec3}};
 
 
 //mod entities;
@@ -44,7 +44,8 @@ impl GameData {
 pub struct RenderThreadChannels {
     chunk_mesh_update_rx : Receiver<ChunkMeshUpdate>, 
     entity_render_rx : Receiver<EntityRenderData>, 
-    input_event_tx: Sender<InputEvent>
+    input_event_tx: Sender<InputEvent>,
+    game_snapshot_update_rx : Receiver<Arc<GameSnapshot>>
 }
 
 pub struct ChunkInfo {
@@ -104,10 +105,11 @@ pub async fn render_thread() {
     let (chunk_mesh_update_tx, chunk_mesh_update_rx) = channel::<ChunkMeshUpdate>();
     let (entity_render_tx, entity_render_rx) = channel::<EntityRenderData>();
     let (input_event_tx, mut input_event_rx) = channel::<InputEvent>();
+    let (game_snapshot_update_tx, mut game_snapshot_update_rx) =  channel::<Arc<GameSnapshot>>();
     
     //game loop thread start
     let _ = thread::spawn(move || {
-        block_on(game_thread(chunk_mesh_update_tx, entity_render_tx, &mut input_event_rx));
+        block_on(game_thread(chunk_mesh_update_tx, entity_render_tx, &mut input_event_rx, game_snapshot_update_tx));
     });
 
     let game_state = GameData {
@@ -120,6 +122,7 @@ pub async fn render_thread() {
             chunk_mesh_update_rx,
             entity_render_rx,
             input_event_tx,
+            game_snapshot_update_rx: todo!(),
         },
     };
 

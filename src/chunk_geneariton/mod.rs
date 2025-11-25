@@ -299,10 +299,22 @@ pub async fn chunk_generation_thread(chunk_generation_request_rx : &mut Receiver
     loop {
         let mut requests: Vec<_> = Vec::new();
 
-        while let Ok(req) = chunk_generation_request_rx.try_recv() {
-            requests.push(req);
-            if requests.len() > 4 {
-                break;
+        for _ in 0..5 {
+            match chunk_generation_request_rx.try_recv() {
+                Ok(req) => {
+                    requests.push(req);
+                    if requests.len() > 4 {
+                        break;
+                    }
+                },
+                Err(err) => {
+                    match err {
+                        std::sync::mpsc::TryRecvError::Empty => (),
+                        std::sync::mpsc::TryRecvError::Disconnected => {
+                            return //must have been dropped so close
+                        },
+                    }
+                },
             }
         }
 
