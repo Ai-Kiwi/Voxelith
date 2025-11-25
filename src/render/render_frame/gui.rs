@@ -7,9 +7,7 @@ impl RenderState {
     pub fn render_gui(&mut self, encoder : &mut wgpu::CommandEncoder, view : &mut wgpu::TextureView) {
         let input = self.egui_winit.take_egui_input(&self.window);
         let egui_output = self.egui_context.run(input, |ctx| {
-            egui::Window::new("debug").show(&ctx, |ui| {
-                ui.label("Hello egui!");
-            });
+            self.create_gui(ctx);
         });
 
         self.egui_winit.handle_platform_output(&self.window, egui_output.platform_output);
@@ -57,6 +55,34 @@ impl RenderState {
         //cleanup textures
         for id in &tdelta.free {
             self.egui_renderer.free_texture(id);
+        }
+    }
+
+    pub fn create_gui(&self, egui_context : &egui::Context) {
+        egui::Window::new("Hierarchy").show(&egui_context, |ui| {
+            ui.vertical(|ui| {
+                
+                ui.label("text");
+                ui.label("text");
+                ui.label("text");
+                ui.label("text");
+            })
+        });
+
+        egui::Window::new("debug").show(&egui_context, |ui| {
+            ui.label("Hello egui!");
+        });
+    }
+}
+
+pub struct GuiInfo {
+    
+}
+
+impl GuiInfo {
+    pub fn new() -> GuiInfo {
+        GuiInfo {
+
         }
     }
 }

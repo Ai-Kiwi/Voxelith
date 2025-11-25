@@ -1,11 +1,12 @@
-use std::{collections::HashMap, sync::Arc, time::Instant};
+use std::{collections::HashMap, rc::Weak, sync::Arc, time::Instant};
 
 use bytemuck::{Pod, Zeroable};
+use egui::Mesh;
 use egui_wgpu::Renderer;
 use wgpu::{Texture, TextureView};
 use winit::{event_loop::ActiveEventLoop, keyboard::KeyCode, monitor, window::Window};
 
-use crate::{render::{FreeBufferSpace, RenderData, RenderThreadChannels, camera::{Camera, CameraUniform}, init_frame_render}, utils::Vec2};
+use crate::{render::{GameData, RenderThreadChannels, camera::{Camera, CameraUniform}, init_frame_render, mesh::{FreeBufferSpace, MeshBufferReference}, render_frame::gui::GuiInfo}, utils::Vec2};
 
 pub fn get_distance_to_camera_unsquared(render_state : &RenderState, x : f32, y : f32, z : f32) -> f32 {
     let dx = render_state.camera.eye.x - x;
@@ -38,6 +39,7 @@ pub fn create_depth_texture(device: &wgpu::Device, width: u32, height: u32) -> w
 
 
 pub struct RenderState {
+    //gpu related data
     pub surface: wgpu::Surface<'static>,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
@@ -45,41 +47,43 @@ pub struct RenderState {
     pub is_surface_configured: bool,
     pub opaque_render_pipeline: wgpu::RenderPipeline,
     pub transparent_render_pipeline: wgpu::RenderPipeline,
-    pub camera: Camera,
     pub camera_uniform: CameraUniform,
     pub camera_buffer: wgpu::Buffer,
     pub camera_bind_group: wgpu::BindGroup,
     pub window: Arc<Window>,
-    pub data: RenderData,
-    pub render_channels : RenderThreadChannels,
     pub depth_texture: Texture,
     pub depth_view: TextureView,
-
+    pub camera: Camera, //most data stored in game_data that is used
+    
+    //other stuff that is just helped for engine itself
     pub last_frame_time : Instant,
+    pub start_time : Instant,
     pub delta_time : f32,
-
     pub keys_down : HashMap<KeyCode,()>,
     pub keys_pressed : HashMap<KeyCode,()>,
     pub keys_released : HashMap<KeyCode,()>,
-
-    pub chunk_mesh_buffer: wgpu::Buffer,
-    pub free_mesh_buffer_ranges : Vec<FreeBufferSpace>,
+    pub mouse_position_delta: Vec2,
+    //buffers used, although store game data they are overridden and temporary.
     pub opaque_indirect_buffer: wgpu::Buffer,
     pub transparent_indirect_buffer: wgpu::Buffer,
     pub opaque_count_buffer: wgpu::Buffer,
     pub transparent_count_buffer: wgpu::Buffer,
     pub temporary_move_buffer: wgpu::Buffer,
+    pub mesh_buffer: wgpu::Buffer,
+    pub free_mesh_buffer_ranges : Vec<FreeBufferSpace>,
+    pub meshs : HashMap<u64,MeshBufferReference>,
+    pub mesh_id_upto : u64,
 
-    pub mouse_position_delta: Vec2,
 
+    //gui related stuff. Also engine
     pub egui_renderer : Renderer,
     pub egui_context : egui::Context,
     pub egui_winit : egui_winit::State,
 
+    //window state
     pub game_selected : bool,
     pub fullscreen : bool,
-
-    pub start_time : Instant,
+    pub gui_info : GuiInfo,
 }
 
 impl<'a> RenderState {
@@ -133,10 +137,6 @@ impl<'a> RenderState {
                 }
             }
         }
-    }
-
-    pub fn update(&mut self) {
-        init_frame_render(self);
     }
 
 }

@@ -3,19 +3,19 @@ use std::sync::Arc;
 use egui::ViewportId;
 use winit::{application::ApplicationHandler, event::{DeviceEvent, DeviceId, KeyEvent, WindowEvent}, event_loop::ActiveEventLoop, keyboard::PhysicalKey, platform, window::{Theme, Window}};
 
-use crate::render::{RenderThreadChannels, wgpu::RenderState};
+use crate::render::{GameData, RenderThreadChannels, init_frame_render, wgpu::RenderState};
 
 
 pub struct App {
-    state: Option<RenderState>,
-    render_channels : Option<RenderThreadChannels>,
+    pub state: Option<RenderState>,
+    pub game_data: Option<GameData>,
 }
 
 impl App {
-    pub fn new(render_channel : RenderThreadChannels) -> Self {
+    pub fn new() -> Self {
         Self {
             state: None,
-            render_channels : Some(render_channel)
+            game_data: None
         }
     }
 }
@@ -30,12 +30,8 @@ impl ApplicationHandler<RenderState> for App {
         window.set_cursor_visible(false);
         window.set_title("Voxelith");
 
-        match self.render_channels.take() {
-            Some(channels) => {
-                self.state = Some(pollster::block_on(RenderState::new(window,channels)).unwrap());
-            },
-            None => panic!("Channels has already been sent to render state so can't resend"),
-        }
+
+        self.state = Some(pollster::block_on(RenderState::new(window)).unwrap());
 
     }
 
@@ -64,8 +60,16 @@ impl ApplicationHandler<RenderState> for App {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(size) => state.resize(size.width, size.height),
             WindowEvent::RedrawRequested => {
-                state.update();
-                match state.render() {
+                match &mut self.game_data {
+                    Some(game_data) => {
+                        init_frame_render(state, Some(game_data));
+                    },
+                    None => {
+                        init_frame_render(state, None);
+                    },
+                }
+                
+                match state.render(&mut self.game_data) {
                     Ok(_) => {}
                     // Reconfigure the surface if it's lost or outdated
                     Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {

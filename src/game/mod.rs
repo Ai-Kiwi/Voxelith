@@ -1,7 +1,7 @@
-use std::{collections::HashMap, sync::mpsc::{Receiver, Sender, channel}, thread, time::{Duration, Instant}};
+use std::{collections::HashMap, sync::{Arc, mpsc::{Receiver, Sender, channel}}, thread, time::{Duration, Instant}};
 use futures::executor::block_on;
 use egui::{CentralPanel};
-use crate::{chunk_geneariton::{NewChunkInfo, chunk_generation_thread}, entity::Entity, game::{chunk::handle_chunk_loaded, entity::{Entities, handle_entity_update}, handle_inputs::handle_user_inputs, mesh_updates::handle_chunk_mesh_updates, pixel_updates::handle_pixel_updates, world::WorldData}, mesh_creation::{ChunkMeshCreateRequest, chunk_mesh_creation_thread}, render::types::{ChunkMeshUpdate, EntityRenderData}, utils::{Vec2, Vec3, raycast_test}};
+use crate::{chunk_geneariton::{NewChunkInfo, chunk_generation_thread}, entity::Entity, game::{chunk::{Chunk, handle_chunk_loaded}, entity::{Entities, handle_entity_update}, handle_inputs::handle_user_inputs, mesh_updates::handle_chunk_mesh_updates, pixel_updates::handle_pixel_updates, world::WorldData}, mesh_creation::{ChunkMeshCreateRequest, chunk_mesh_creation_thread}, render::types::{ChunkMeshUpdate, EntityRenderData}, utils::{Vec2, Vec3, raycast_test}};
 
 pub mod world;
 pub mod chunk;
@@ -29,6 +29,21 @@ pub struct Game {
     world : WorldData,
     entities : Entities,
 }
+
+//snapshot system
+struct GameSnapshot {
+    chunks : HashMap<(i32, i32,i32), Arc<Chunk>>,
+}
+
+impl Game {
+    pub fn create_snapshot(&self) -> GameSnapshot {
+        GameSnapshot {
+            chunks: self.world.chunks.clone(),
+        }
+    }
+}
+
+
 
 
 pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_render_tx : Sender<EntityRenderData>, input_event_rx : &mut Receiver<InputEvent>) {
@@ -79,6 +94,8 @@ pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_
         //tick_physics(&mut world);
 
         handle_entity_update();
+
+        let snapshot = game.create_snapshot();
 
         //60tps
         thread::sleep(Duration::from_millis(((1.0 / 60.0) - last_tick_time.elapsed().as_secs_f32()) as u64));

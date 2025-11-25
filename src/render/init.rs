@@ -2,15 +2,16 @@ use std::{collections::HashMap, sync::Arc, time::Instant};
 
 use egui::ViewportId;
 use egui_wgpu::{Renderer, RendererOptions};
+use rayon::vec;
 use wgpu::{ExperimentalFeatures, RenderPass, util::DeviceExt};
 use winit::window::{Theme, Window};
 
-use crate::{render::{FreeBufferSpace, MAP_VRAM_SIZE, RenderData, RenderThreadChannels, camera::{Camera, CameraUniform}, wgpu::{RenderState, create_depth_texture}}, utils::{Vec2, Vertex}};
+use crate::{render::{MAP_VRAM_SIZE, RenderThreadChannels, camera::{Camera, CameraUniform}, mesh::FreeBufferSpace, render_frame::gui::GuiInfo, wgpu::{RenderState, create_depth_texture}}, utils::{Vec2, Vertex}};
 
 impl RenderState {
     // We don't need this to be async right now,
     // but we will in the next tutorial
-    pub async fn new(window: Arc<Window>, render_channels : RenderThreadChannels) -> anyhow::Result<RenderState> {
+    pub async fn new(window: Arc<Window>) -> anyhow::Result<RenderState> {
         let size: winit::dpi::PhysicalSize<u32> = window.inner_size();
 
 
@@ -100,7 +101,7 @@ impl RenderState {
             }
         );
         
-        let chunk_mesh_buffer = device.create_buffer( &wgpu::BufferDescriptor {
+        let mesh_buffer = device.create_buffer( &wgpu::BufferDescriptor {
             label: Some("Multi chunk buffer"),
             usage: wgpu::BufferUsages::VERTEX
             | wgpu::BufferUsages::COPY_DST
@@ -311,17 +312,13 @@ impl RenderState {
             camera_uniform,
             camera_buffer,
             camera_bind_group,
-            data : RenderData::new(),
             window,
-            render_channels: render_channels,
             keys_down: HashMap::new(),
             keys_pressed: HashMap::new(),
             keys_released: HashMap::new(),
             last_frame_time: Instant::now(),
             delta_time: 0.0,
             mouse_position_delta: Vec2::new(0.0, 0.0),
-            chunk_mesh_buffer,
-            free_mesh_buffer_ranges,
             opaque_indirect_buffer,
             transparent_indirect_buffer,
             temporary_move_buffer,
@@ -335,6 +332,11 @@ impl RenderState {
             start_time : Instant::now(),
             game_selected: true,
             fullscreen: false,
+            gui_info: GuiInfo::new(),
+            mesh_buffer,
+            free_mesh_buffer_ranges,
+            meshs: HashMap::new(),
+            mesh_id_upto : 1, // start at 1 as 0 means empty data
         })
     }
 }

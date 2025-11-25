@@ -1,10 +1,10 @@
-use crate::render::wgpu::RenderState;
+use crate::render::{GameData, wgpu::RenderState};
 
 mod chunks;
-mod gui;
+pub mod gui;
 
 impl RenderState {
-    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(&mut self, game_data : &mut Option<GameData>) -> Result<(), wgpu::SurfaceError> {
         #[cfg(feature = "perf_logs")]
         let full_screen_draw_start_time = Instant::now();
         self.window.request_redraw();
@@ -52,7 +52,9 @@ impl RenderState {
         self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
 
         //render chunks
-        self.render_chunks(&mut render_pass);
+        if let Some(game_data) = game_data {
+            self.render_chunks(&mut render_pass, game_data);
+        }
 
         //render the entities
 
