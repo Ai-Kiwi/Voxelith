@@ -31,15 +31,16 @@ pub struct Game {
 }
 
 //snapshot system
-struct GameSnapshot {
+pub struct GameSnapshot {
     chunks : HashMap<(i32, i32,i32), Arc<Chunk>>,
 }
 
 impl Game {
-    pub fn create_snapshot(&self) -> GameSnapshot {
-        GameSnapshot {
+    pub fn create_snapshot(&self) -> Arc<GameSnapshot> {
+        let snapshot = GameSnapshot {
             chunks: self.world.chunks.clone(),
-        }
+        };
+        return Arc::new(snapshot)
     }
 }
 
@@ -98,7 +99,11 @@ pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_
         let snapshot = game.create_snapshot();
 
         //60tps
-        thread::sleep(Duration::from_millis(((1.0 / 60.0) - last_tick_time.elapsed().as_secs_f32()) as u64));
+        let sleep_time = Duration::from_millis(((1.0 / 60.0) - last_tick_time.elapsed().as_secs_f32()) as u64);
+        if sleep_time < Duration::from_secs(0) {
+            println!("main game loop is lagging. Took more then needed time")
+        }
+        thread::sleep(sleep_time);
         last_tick_time = Instant::now();
     }
 }
