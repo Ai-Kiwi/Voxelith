@@ -1,7 +1,9 @@
 use std::{collections::HashMap, sync::Arc, time::Instant};
 
-use wgpu::util::DeviceExt;
-use winit::window::Window;
+use egui::ViewportId;
+use egui_wgpu::{Renderer, RendererOptions};
+use wgpu::{ExperimentalFeatures, RenderPass, util::DeviceExt};
+use winit::window::{Theme, Window};
 
 use crate::{render::{FreeBufferSpace, MAP_VRAM_SIZE, RenderData, RenderThreadChannels, camera::{Camera, CameraUniform}, wgpu::{RenderState, create_depth_texture}}, utils::{Vec2, Vertex}};
 
@@ -21,6 +23,7 @@ impl RenderState {
 
         let surface = instance.create_surface(window.clone()).unwrap();
 
+        //setup gpu
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::default(),
@@ -43,6 +46,7 @@ impl RenderState {
                 },
                 memory_hints: Default::default(),
                 trace: wgpu::Trace::Off,
+                experimental_features: ExperimentalFeatures::default(),
             })
             .await?;
 
@@ -87,6 +91,7 @@ impl RenderState {
         let mut camera_uniform = CameraUniform::new();
         camera_uniform.update_view_proj(&camera);
 
+        //setup needed buffers and info for them
         let camera_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Camera Buffer"),
@@ -144,6 +149,7 @@ impl RenderState {
             usage: wgpu::BufferUsages::INDIRECT | wgpu::BufferUsages::COPY_DST,
         });
 
+        //setup render info
         let camera_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
                 wgpu::BindGroupLayoutEntry {
@@ -279,9 +285,19 @@ impl RenderState {
             cache: None,
         });
 
-
         let depth_texture = create_depth_texture(&device,size.width,size.height);
         let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        //setup egui
+        let mut egui_renderer = Renderer::new(&device, surface_format, RendererOptions { 
+            msaa_samples: 1, 
+            depth_stencil_format: None, 
+            dithering: false, 
+            predictable_texture_filtering: false 
+        });
+
+        let egui_context: egui::Context = egui::Context::default();
+        let egui_winit: egui_winit::State = egui_winit::State::new(egui_context.clone(), ViewportId::ROOT, &window, Some(1.0), Some(Theme::Dark), Some(4096));
 
         Ok(Self {
             surface,
@@ -313,7 +329,12 @@ impl RenderState {
             transparent_count_buffer,
             depth_texture,
             depth_view,
-
+            egui_renderer,
+            egui_context,
+            egui_winit,
+            start_time : Instant::now(),
+            game_selected: true,
+            fullscreen: false,
         })
     }
 }

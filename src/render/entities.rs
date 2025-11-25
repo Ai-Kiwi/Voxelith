@@ -23,6 +23,3 @@ pub fn render_entites() {
     //    }
     //}
 }
-
-
-pub fn static 

@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
-use winit::{application::ApplicationHandler, event::{DeviceEvent, DeviceId, KeyEvent, WindowEvent}, event_loop::ActiveEventLoop, keyboard::PhysicalKey, window::Window};
+use egui::ViewportId;
+use winit::{application::ApplicationHandler, event::{DeviceEvent, DeviceId, KeyEvent, WindowEvent}, event_loop::ActiveEventLoop, keyboard::PhysicalKey, platform, window::{Theme, Window}};
 
 use crate::render::{RenderThreadChannels, wgpu::RenderState};
 
 
 pub struct App {
     state: Option<RenderState>,
-    render_channels : Option<RenderThreadChannels>
+    render_channels : Option<RenderThreadChannels>,
 }
 
 impl App {
@@ -28,10 +29,11 @@ impl ApplicationHandler<RenderState> for App {
         let _ = window.set_cursor_grab(winit::window::CursorGrabMode::Confined).or_else(|_e| window.set_cursor_grab(winit::window::CursorGrabMode::Locked));
         window.set_cursor_visible(false);
         window.set_title("Voxelith");
-        // If we are not on web we can use pollster to
-        // await the 
+
         match self.render_channels.take() {
-            Some(channels) => self.state = Some(pollster::block_on(RenderState::new(window,channels)).unwrap()),
+            Some(channels) => {
+                self.state = Some(pollster::block_on(RenderState::new(window,channels)).unwrap());
+            },
             None => panic!("Channels has already been sent to render state so can't resend"),
         }
 
@@ -52,6 +54,11 @@ impl ApplicationHandler<RenderState> for App {
             Some(canvas) => canvas,
             None => return,
         };
+
+        //update egui update
+        if state.game_selected == false {
+            let _ = state.egui_winit.on_window_event(&state.window, &event);
+        }
 
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
@@ -96,11 +103,13 @@ impl ApplicationHandler<RenderState> for App {
 
         match event {
             DeviceEvent::MouseMotion { delta } => {
-                let screen_size = state.window.inner_size();
-                let mouse_sensitivity = 10.0 / (screen_size.width as f32);
-
-                state.mouse_position_delta.x += delta.0 as f32 * mouse_sensitivity;
-                state.mouse_position_delta.y += delta.1 as f32 * mouse_sensitivity; 
+                if state.game_selected {
+                    let screen_size = state.window.inner_size();
+                    let mouse_sensitivity = 10.0 / (screen_size.width as f32);
+    
+                    state.mouse_position_delta.x += delta.0 as f32 * mouse_sensitivity;
+                    state.mouse_position_delta.y += delta.1 as f32 * mouse_sensitivity; 
+                }
             },
             _ => {}
         }

@@ -1,8 +1,9 @@
 use std::{collections::HashMap, sync::Arc, time::Instant};
 
 use bytemuck::{Pod, Zeroable};
+use egui_wgpu::Renderer;
 use wgpu::{Texture, TextureView};
-use winit::{event_loop::ActiveEventLoop, keyboard::KeyCode, window::Window};
+use winit::{event_loop::ActiveEventLoop, keyboard::KeyCode, monitor, window::Window};
 
 use crate::{render::{FreeBufferSpace, RenderData, RenderThreadChannels, camera::{Camera, CameraUniform}, init_frame_render}, utils::Vec2};
 
@@ -70,6 +71,15 @@ pub struct RenderState {
     pub temporary_move_buffer: wgpu::Buffer,
 
     pub mouse_position_delta: Vec2,
+
+    pub egui_renderer : Renderer,
+    pub egui_context : egui::Context,
+    pub egui_winit : egui_winit::State,
+
+    pub game_selected : bool,
+    pub fullscreen : bool,
+
+    pub start_time : Instant,
 }
 
 impl<'a> RenderState {
@@ -93,6 +103,24 @@ impl<'a> RenderState {
     pub fn handle_key(&mut self, event_loop: &ActiveEventLoop, code: KeyCode, is_pressed: bool) {
         match (code, is_pressed) {
             (KeyCode::Escape, true) => event_loop.exit(),
+            (KeyCode::F11, true) => {
+                self.fullscreen = !self.fullscreen;
+                if self.fullscreen {
+                    self.window.set_fullscreen(Some(winit::window::Fullscreen::Borderless(self.window.current_monitor())));
+                }else{
+                    self.window.set_fullscreen(None);
+                }
+            },
+            (KeyCode::Tab, true) => {
+                self.game_selected = !self.game_selected;
+                if self.game_selected {
+                    let _ = self.window.set_cursor_grab(winit::window::CursorGrabMode::Confined).or_else(|_e| self.window.set_cursor_grab(winit::window::CursorGrabMode::Locked));
+                    self.window.set_cursor_visible(false);
+                }else{
+                    let _ = self.window.set_cursor_grab(winit::window::CursorGrabMode::None);
+                    self.window.set_cursor_visible(true);
+                }
+            },
             _ => {
                 if is_pressed {
                     if !self.keys_down.contains_key(&code) {

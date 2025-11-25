@@ -1,57 +1,9 @@
-use std::time::Instant;
+use wgpu::{RenderPass, wgt::DrawIndirectArgs};
 
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use wgpu::wgt::DrawIndirectArgs;
-
-use crate::{render::{LEVEL_1_LOD_DISTANCE, mesh, wgpu::RenderState}, utils::Vec3};
+use crate::{render::wgpu::RenderState, utils::Vec3};
 
 impl RenderState {
-    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
-        #[cfg(feature = "perf_logs")]
-        let full_screen_draw_start_time = Instant::now();
-        self.window.request_redraw();
-
-        // We can't render unless the surface is configured
-        if !self.is_surface_configured {
-            return Ok(());
-        }
-                
-        let output = self.surface.get_current_texture()?;
-        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Render Encoder"),
-        });
-
-        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("Far Render Pass"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    store: wgpu::StoreOp::Store,
-                    load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: 0.1,
-                        g: 0.2,
-                        b: 0.3,
-                        a: 1.0,
-                    }),
-                },
-                depth_slice: None,
-            })],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment { 
-                view: &self.depth_view, 
-                depth_ops: Some(wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(1.0),
-                    store: wgpu::StoreOp::Store,
-                }), 
-                stencil_ops: None,
-            }),
-            occlusion_query_set: None,
-            timestamp_writes: None,
-        });
-        
-        self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
+    pub fn render_chunks(&mut self, render_pass : &mut RenderPass<'_>) {
         render_pass.set_pipeline(&self.opaque_render_pipeline);
         
 
@@ -115,11 +67,6 @@ impl RenderState {
                 });
             }
         }
-        
-        #[cfg(feature = "perf_logs")]
-        println!("finished render setup {}ms",setup_start.elapsed().as_millis());
-        #[cfg(feature = "perf_logs")]
-        let render_start = Instant::now();
 
         //render opaque
         self.queue.write_buffer(&self.opaque_indirect_buffer, 0, bytemuck::cast_slice(&opaque_indirect_draw_calls));
@@ -149,24 +96,6 @@ impl RenderState {
             0,
             1000000
         );
-
-        //render the entities
-        
-
-
-
-        drop(render_pass);
-
-        #[cfg(feature = "perf_logs")]
-        println!("renderer game {}ms",render_start.elapsed().as_millis());
-
-        // submit will accept anything that implements IntoIter
-        self.queue.submit(std::iter::once(encoder.finish()));
-        output.present();
-
-        #[cfg(feature = "perf_logs")]
-        println!("full screen draw {}ms",full_screen_draw_start_time.elapsed().as_millis());
-
-        Ok(())
     }
 }
+    
