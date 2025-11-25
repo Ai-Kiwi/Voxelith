@@ -5,8 +5,6 @@ pub mod gui;
 
 impl RenderState {
     pub fn render(&mut self, game_data : &mut Option<GameData>) -> Result<(), wgpu::SurfaceError> {
-        #[cfg(feature = "perf_logs")]
-        let full_screen_draw_start_time = Instant::now();
         self.window.request_redraw();
 
         // We can't render unless the surface is configured
@@ -64,17 +62,9 @@ impl RenderState {
         //render gui
         self.render_gui(&mut encoder, &mut view);
 
-
-
-        #[cfg(feature = "perf_logs")]
-        println!("renderer game {}ms",render_start.elapsed().as_millis());
-
         // submit will accept anything that implements IntoIter
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
-
-        #[cfg(feature = "perf_logs")]
-        println!("full screen draw {}ms",full_screen_draw_start_time.elapsed().as_millis());
 
         Ok(())
     }

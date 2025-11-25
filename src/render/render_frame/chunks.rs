@@ -14,9 +14,6 @@ impl RenderState {
             self.camera.target.z - self.camera.eye.z
         ).normalize();
 
-        #[cfg(feature = "perf_logs")]
-        let setup_start = Instant::now();
-
         //render the terrain.
 
         //setup opaque
