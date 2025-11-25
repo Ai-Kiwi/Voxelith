@@ -109,9 +109,6 @@ pub fn update_chunk_meshs(render_state : &mut RenderState, game_data : &mut Game
     let mut mesh_update: Vec<MeshUpdatesToBuffer> = Vec::new();
     for mesh in &game_data.chunk_meshs {        
         let distance = get_distance_to_camera_unsquared(render_state, mesh.0.0 as f32 * 16.0, mesh.0.1 as f32 * 16.0, mesh.0.2 as f32 * 16.0);
-        if mesh.1.size == 0 {
-            continue;
-        }
         if distance > LEVEL_3_LOD_DISTANCE*LEVEL_3_LOD_DISTANCE {
             if mesh.1.lod != 8 {
                 if let Some(mesh_data_obj) = game_data.chunk_mesh_data.get(&mesh.0) {
