@@ -1,21 +1,77 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 
 use egui::ViewportId;
-use winit::{application::ApplicationHandler, event::{DeviceEvent, DeviceId, KeyEvent, WindowEvent}, event_loop::ActiveEventLoop, keyboard::PhysicalKey, platform, window::{Theme, Window}};
+use winit::{application::ApplicationHandler, event::{DeviceEvent, DeviceId, KeyEvent, WindowEvent}, event_loop::ActiveEventLoop, keyboard::{KeyCode, PhysicalKey}, platform, window::{Theme, Window}};
 
-use crate::render::{GameData, init_frame_render, wgpu::RenderState};
+use crate::{mesh_creator::{MeshCreator, init_mesh_creator}, render::{GameData, mesh::mesh_buffer_cleanup, wgpu::RenderState}, render_game::tick_game_render_logic, utils::Vec2};
 
+enum PageOpen {
+    Game,
+    TitleScreen,
+}
 
 pub struct App {
     pub state: Option<RenderState>,
     pub game_data: Option<GameData>,
+    pub mesh_creator : Option<MeshCreator>,
+    pub page_open: PageOpen,
 }
 
 impl App {
     pub fn new() -> Self {
         Self {
             state: None,
-            game_data: None
+            game_data: None,
+            page_open : PageOpen::Game,
+            mesh_creator: None,
+        }
+    }
+
+    fn update_cursor_lock(render_state : &mut RenderState, locked : bool) {
+        if locked {
+            let _ = render_state.window.set_cursor_grab(winit::window::CursorGrabMode::Confined).or_else(|_e| render_state.window.set_cursor_grab(winit::window::CursorGrabMode::Locked));
+            render_state.window.set_cursor_visible(false);
+        }else{
+            let _ = render_state.window.set_cursor_grab(winit::window::CursorGrabMode::None);
+            render_state.window.set_cursor_visible(true);
+        }
+    }
+        
+    pub fn handle_key(&mut self, event_loop: &ActiveEventLoop, code: KeyCode, is_pressed: bool) {
+        let state = match &mut self.state {
+            Some(canvas) => canvas,
+            None => return,
+        };
+
+        match (code, is_pressed) {
+            (KeyCode::Escape, true) => event_loop.exit(),
+            (KeyCode::F11, true) => {
+                state.fullscreen = !state.fullscreen;
+                if state.fullscreen {
+                    state.window.set_fullscreen(Some(winit::window::Fullscreen::Borderless(state.window.current_monitor())));
+                }else{
+                    state.window.set_fullscreen(None);
+                }
+            },
+            (KeyCode::Tab, true) => {
+                state.game_selected = !state.game_selected;
+                match self.page_open {
+                    PageOpen::Game => {App::update_cursor_lock(state, state.game_selected)},
+                    PageOpen::TitleScreen => {App::update_cursor_lock(state, false);},
+                }
+            },
+            //update the keys that are are pressed in the render state
+            _ => {
+                if is_pressed {
+                    if !state.keys_down.contains_key(&code) {
+                        state.keys_down.insert(code, ());
+                        state.keys_pressed.insert(code, ());
+                    }
+                }else{
+                    state.keys_down.remove(&code);
+                    state.keys_released.insert(code, ());
+                }
+            }
         }
     }
 }
@@ -60,14 +116,27 @@ impl ApplicationHandler<RenderState> for App {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(size) => state.resize(size.width, size.height),
             WindowEvent::RedrawRequested => {
-                match &mut self.game_data {
-                    Some(game_data) => {
-                        init_frame_render(state, Some(game_data));
-                    },
-                    None => {
-                        init_frame_render(state, None);
-                    },
+                //tick game render logic
+                if let Some(game_data) = &mut self.game_data {
+                    tick_game_render_logic(state, game_data);
                 }
+
+                //tick mesh creator
+                if let Some(mesh_creator) = &mut self.mesh_creator {
+                    init_mesh_creator(state, mesh_creator);
+                }
+
+                //clean up mesh buffers
+                mesh_buffer_cleanup(state);
+
+                //cleanup data now that frame info has been processed
+                state.keys_released.clear();
+                state.keys_pressed.clear();
+                state.mouse_position_delta = Vec2::new(0.0,0.0);
+                let now = Instant::now();
+                state.delta_time = (now - state.last_frame_time).as_secs_f32();
+                state.last_frame_time = now;
+
                 
                 match state.render(&mut self.game_data) {
                     Ok(_) => {}
@@ -89,7 +158,7 @@ impl ApplicationHandler<RenderState> for App {
                         ..
                     },
                 ..
-            } => state.handle_key(event_loop, code, key_state.is_pressed()),
+            } => self.handle_key(event_loop, code, key_state.is_pressed()),
             _ => {}
         }
     }
@@ -118,8 +187,5 @@ impl ApplicationHandler<RenderState> for App {
             _ => {}
         }
     }
-
-    
-
 }
 

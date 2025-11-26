@@ -6,7 +6,7 @@ use egui_wgpu::Renderer;
 use wgpu::{Texture, TextureView};
 use winit::{event_loop::ActiveEventLoop, keyboard::KeyCode, monitor, window::Window};
 
-use crate::{render::{GameData, camera::{self, Camera, CameraUniform}, init_frame_render, mesh::{FreeBufferSpace, MeshBufferReference}, render_frame::gui::GuiInfo}, utils::Vec2};
+use crate::{render::{GameData, camera::{self, Camera, CameraUniform}, mesh::{FreeBufferSpace, MeshBufferReference}, render_frame::gui::GuiInfo}, utils::Vec2};
 
 pub fn get_distance_to_camera_unsquared(camera : &Camera, x : f32, y : f32, z : f32) -> f32 {
     let dx = camera.position.x - x;
@@ -100,41 +100,6 @@ impl<'a> RenderState {
             self.depth_view = depth_view;
             self.is_surface_configured = true;
         }    
-    }
-    
-    pub fn handle_key(&mut self, event_loop: &ActiveEventLoop, code: KeyCode, is_pressed: bool) {
-        match (code, is_pressed) {
-            (KeyCode::Escape, true) => event_loop.exit(),
-            (KeyCode::F11, true) => {
-                self.fullscreen = !self.fullscreen;
-                if self.fullscreen {
-                    self.window.set_fullscreen(Some(winit::window::Fullscreen::Borderless(self.window.current_monitor())));
-                }else{
-                    self.window.set_fullscreen(None);
-                }
-            },
-            (KeyCode::Tab, true) => {
-                self.game_selected = !self.game_selected;
-                if self.game_selected {
-                    let _ = self.window.set_cursor_grab(winit::window::CursorGrabMode::Confined).or_else(|_e| self.window.set_cursor_grab(winit::window::CursorGrabMode::Locked));
-                    self.window.set_cursor_visible(false);
-                }else{
-                    let _ = self.window.set_cursor_grab(winit::window::CursorGrabMode::None);
-                    self.window.set_cursor_visible(true);
-                }
-            },
-            _ => {
-                if is_pressed {
-                    if !self.keys_down.contains_key(&code) {
-                        self.keys_down.insert(code, ());
-                        self.keys_pressed.insert(code, ());
-                    }
-                }else{
-                    self.keys_down.remove(&code);
-                    self.keys_released.insert(code, ());
-                }
-            }
-        }
     }
 
 }

@@ -13,6 +13,7 @@ mod chunk_geneariton;
 mod entity;
 mod physics;
 mod utils;
+pub mod mesh_creator;
     
 fn main() {
     env_logger::init();

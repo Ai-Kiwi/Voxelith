@@ -19,31 +19,6 @@ pub mod mesh;
 //pub const LEVEL_1_LOD_DISTANCE: f32 = 640.0;
 
 
-pub fn init_frame_render(render_state : &mut RenderState, game_data : Option<&mut GameData>) {
-    //game logic stuff
-    if let Some(game_data) = game_data {
-        tick_game_render_logic(render_state, game_data);
-    }
-
-    mesh_buffer_cleanup(render_state);
-
-
-
-    //cleanup data now that frame has happened
-    render_state.keys_released.clear();
-    render_state.keys_pressed.clear();
-    render_state.mouse_position_delta = Vec2::new(0.0,0.0);
-    let now = Instant::now();
-    render_state.delta_time = (now - render_state.last_frame_time).as_secs_f32();
-    render_state.last_frame_time = now;
-}
-
-
-
-
-
-
-
 pub async fn render_thread() {
     let event_loop = EventLoop::with_user_event().build().expect("failed to create event loop");
     let mut app: App = App::new();
