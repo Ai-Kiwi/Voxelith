@@ -298,6 +298,11 @@ impl RenderState {
             main_content_render_time: 0.0,
             render_gui_time: 0.0,
             finish_render_time: 0.0,
+            percent_mesh_buffer_use: 0.0,
+            percent_mesh_buffer_usable: 0.0,
+            fragments_mesh_buffer: 0,
+            bad_fragments_mesh_buffer: 0,
+            buffer_defragmentation: false,
         };
 
         Ok(Self {

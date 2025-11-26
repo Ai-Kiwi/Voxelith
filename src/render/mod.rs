@@ -29,6 +29,11 @@ pub struct RenderFrameThreadPerformanceInfo {
     main_content_render_time : f32, 
     render_gui_time : f32,
     finish_render_time : f32,
+    percent_mesh_buffer_use : f32,
+    percent_mesh_buffer_usable : f32,
+    fragments_mesh_buffer : i32,
+    bad_fragments_mesh_buffer : i32,
+    buffer_defragmentation : bool
 }
 
 pub async fn render_thread() {

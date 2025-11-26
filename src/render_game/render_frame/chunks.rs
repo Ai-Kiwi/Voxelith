@@ -8,11 +8,11 @@ pub fn render_chunks(render_state : &RenderState, render_pass : &mut RenderPass<
     render_pass.set_pipeline(&render_state.opaque_render_pipeline);
     
 
-    let camera_direction_normal = Vec3::new(
-        game_data.camera.target.x - game_data.camera.position.x, 
-        game_data.camera.target.y - game_data.camera.position.y, 
-        game_data.camera.target.z - game_data.camera.position.z
-    ).normalize();
+    //let camera_direction_normal = Vec3::new(
+    //    game_data.camera.target.x - game_data.camera.position.x, 
+    //    game_data.camera.target.y - game_data.camera.position.y, 
+    //    game_data.camera.target.z - game_data.camera.position.z
+    //).normalize();
 
     //render the terrain.
 
@@ -20,22 +20,6 @@ pub fn render_chunks(render_state : &RenderState, render_pass : &mut RenderPass<
     let opaque_indirect_draw_calls: Vec<DrawIndirectArgs> = game_data.chunk_meshs
     .iter()
     .filter(|mesh| mesh.0.3 == false && mesh.1.size > 0)
-    .filter(|chunk| {
-        let camera_chunk_normal = Vec3::new(
-            (chunk.0.0 * 16 + 8) as f32 - game_data.camera.position.x,
-            (chunk.0.1 * 16 + 8) as f32 - game_data.camera.position.y, 
-            (chunk.0.2 * 16 + 8) as f32 - game_data.camera.position.z
-        );
-        let length = camera_chunk_normal.length();
-        let camera_chunk_normal = camera_chunk_normal / length;
-
-        if length < 64.0 { //if close to then make sure to always accept
-            return  true;
-        }
-
-        let cos_angle = camera_chunk_normal.dot(&camera_direction_normal);
-        return cos_angle > 0.707 //if in 45 degrees
-    })
     .map(|chunk| {
         let id = chunk.1.pointer.id;
         let mesh_info = render_state.meshs.get(&id).unwrap();

@@ -56,65 +56,65 @@ pub fn update_chunk_meshs(render_state : &mut RenderState, game_data : &mut Game
     }
 
     //convert meshs to lod
-    let mut mesh_update: Vec<MeshUpdatesToBuffer> = Vec::new();
-    for mesh in &game_data.chunk_meshs {        
-        let distance = get_distance_to_camera_unsquared(&game_data.camera, mesh.0.0 as f32 * 16.0, mesh.0.1 as f32 * 16.0, mesh.0.2 as f32 * 16.0);
-        if distance > LEVEL_3_LOD_DISTANCE*LEVEL_3_LOD_DISTANCE {
-            if mesh.1.lod != 8 {
-                if let Some(mesh_data_obj) = game_data.chunk_mesh_data.get(&mesh.0) {
-                    if let Some(mesh_data) = &mesh_data_obj.mesh_l8 {
-                        mesh_update.push(MeshUpdatesToBuffer { 
-                            mesh: mesh_data.clone(), 
-                            chunk_pos: (mesh.0.0,mesh.0.1,mesh.0.2),
-                            lod: 8,
-                            transparent: mesh.0.3, 
-                        });
-                    }
-                }
-            }
-        }else if distance > LEVEL_2_LOD_DISTANCE*LEVEL_2_LOD_DISTANCE {
-            if mesh.1.lod != 4 {
-                if let Some(mesh_data_obj) = game_data.chunk_mesh_data.get(&mesh.0) {
-                    if let Some(mesh_data) = &mesh_data_obj.mesh_l4 {
-                        mesh_update.push(MeshUpdatesToBuffer { 
-                            mesh: mesh_data.clone(), 
-                            chunk_pos: (mesh.0.0,mesh.0.1,mesh.0.2),
-                            lod: 4,
-                            transparent: mesh.0.3,
-                        });
-                    }
-                }
-            }
-        }else if distance > LEVEL_1_LOD_DISTANCE*LEVEL_1_LOD_DISTANCE {
-            if mesh.1.lod != 2 {
-                if let Some(mesh_data_obj) = game_data.chunk_mesh_data.get(&mesh.0) {
-                    if let Some(mesh_data) = &mesh_data_obj.mesh_l2 {
-                        mesh_update.push(MeshUpdatesToBuffer { 
-                            mesh: mesh_data.clone(), 
-                            chunk_pos: (mesh.0.0,mesh.0.1,mesh.0.2),
-                            lod: 2,
-                            transparent: mesh.0.3,
-                        });
-                    }
-                }
-            }
-        }else {
-            if mesh.1.lod != 1 {
-                if let Some(mesh_data_obj) = game_data.chunk_mesh_data.get(&mesh.0) {
-                    if let Some(mesh_data) = &mesh_data_obj.mesh {
-                        mesh_update.push(MeshUpdatesToBuffer { 
-                            mesh: mesh_data.clone(), 
-                            chunk_pos: (mesh.0.0,mesh.0.1,mesh.0.2),
-                            lod: 1,
-                            transparent: mesh.0.3,
-                        });
-                    }
-                }
-            }
-        }
-    }
-    for mesh in mesh_update {
-        update_render_chunk_mesh(render_state, game_data, mesh.chunk_pos, Some(&mesh.mesh), mesh.lod, mesh.transparent);
-    }
+    //let mut mesh_update: Vec<MeshUpdatesToBuffer> = Vec::new();
+    //for mesh in &game_data.chunk_meshs {        
+    //    let distance = get_distance_to_camera_unsquared(&game_data.camera, mesh.0.0 as f32 * 16.0, mesh.0.1 as f32 * 16.0, mesh.0.2 as f32 * 16.0);
+    //    if distance > LEVEL_3_LOD_DISTANCE*LEVEL_3_LOD_DISTANCE {
+    //        if mesh.1.lod != 8 {
+    //            if let Some(mesh_data_obj) = game_data.chunk_mesh_data.get(&mesh.0) {
+    //                if let Some(mesh_data) = &mesh_data_obj.mesh_l8 {
+    //                    mesh_update.push(MeshUpdatesToBuffer { 
+    //                        mesh: mesh_data.clone(), 
+    //                        chunk_pos: (mesh.0.0,mesh.0.1,mesh.0.2),
+    //                        lod: 8,
+    //                        transparent: mesh.0.3, 
+    //                    });
+    //                }
+    //            }
+    //        }
+    //    }else if distance > LEVEL_2_LOD_DISTANCE*LEVEL_2_LOD_DISTANCE {
+    //        if mesh.1.lod != 4 {
+    //            if let Some(mesh_data_obj) = game_data.chunk_mesh_data.get(&mesh.0) {
+    //                if let Some(mesh_data) = &mesh_data_obj.mesh_l4 {
+    //                    mesh_update.push(MeshUpdatesToBuffer { 
+    //                        mesh: mesh_data.clone(), 
+    //                        chunk_pos: (mesh.0.0,mesh.0.1,mesh.0.2),
+    //                        lod: 4,
+    //                        transparent: mesh.0.3,
+    //                    });
+    //                }
+    //            }
+    //        }
+    //    }else if distance > LEVEL_1_LOD_DISTANCE*LEVEL_1_LOD_DISTANCE {
+    //        if mesh.1.lod != 2 {
+    //            if let Some(mesh_data_obj) = game_data.chunk_mesh_data.get(&mesh.0) {
+    //                if let Some(mesh_data) = &mesh_data_obj.mesh_l2 {
+    //                    mesh_update.push(MeshUpdatesToBuffer { 
+    //                        mesh: mesh_data.clone(), 
+    //                        chunk_pos: (mesh.0.0,mesh.0.1,mesh.0.2),
+    //                        lod: 2,
+    //                        transparent: mesh.0.3,
+    //                    });
+    //                }
+    //            }
+    //        }
+    //    }else {
+    //        if mesh.1.lod != 1 {
+    //            if let Some(mesh_data_obj) = game_data.chunk_mesh_data.get(&mesh.0) {
+    //                if let Some(mesh_data) = &mesh_data_obj.mesh {
+    //                    mesh_update.push(MeshUpdatesToBuffer { 
+    //                        mesh: mesh_data.clone(), 
+    //                        chunk_pos: (mesh.0.0,mesh.0.1,mesh.0.2),
+    //                        lod: 1,
+    //                        transparent: mesh.0.3,
+    //                    });
+    //                }
+    //            }
+    //        }
+    //    }
+    //}
+    //for mesh in mesh_update {
+    //    update_render_chunk_mesh(render_state, game_data, mesh.chunk_pos, Some(&mesh.mesh), mesh.lod, mesh.transparent);
+    //}
 
 }

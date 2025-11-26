@@ -1,4 +1,4 @@
-use std::{mem, sync::{Arc, Weak}};
+use std::{mem, sync::{Arc, Weak}, time::Instant};
 
 use log::set_boxed_logger;
 use wgpu::CommandEncoderDescriptor;
@@ -69,6 +69,7 @@ const MIN_FREE_SPACE_SIZE: u32 =  (0.5 * 1024.0 * 1024.0) as u32;
 
 
 pub fn mesh_buffer_cleanup(render_state : &mut RenderState) {
+    let chunk_cleanup_started = Instant::now();
     //delete dead meshs
     render_state.meshs.retain(|key, mesh| {
         let alive = mesh.alive_pointer.strong_count() > 0;
@@ -112,15 +113,19 @@ pub fn mesh_buffer_cleanup(render_state : &mut RenderState) {
         }
     };
 
-    
+    //update specs
+    render_state.performance_info.percent_mesh_buffer_use = free_space as f32 / MAP_VRAM_SIZE as f32;
+    render_state.performance_info.percent_mesh_buffer_usable = real_free_space as f32 / MAP_VRAM_SIZE as f32;
+    render_state.performance_info.fragments_mesh_buffer = fragments;
+    render_state.performance_info.bad_fragments_mesh_buffer = need_resizing_fragments;
+    render_state.performance_info.buffer_defragmentation = false;
+
     //not critical so don't bother
     //leaving till later lets huge areas build up as well which can be skipped
-    if need_resizing_fragments < 60000 || (real_free_space as f32 / MAP_VRAM_SIZE as f32) < 0.25 {
+    if need_resizing_fragments < 20000 && (real_free_space as f32 / MAP_VRAM_SIZE as f32) > 0.25 {
         return;
     }
-    if (real_free_space as f32 / MAP_VRAM_SIZE as f32) < 0.2 {
-        println!("free space {}% usable {}% across {} fragments {} need resizing", ((free_space as f32 / MAP_VRAM_SIZE as f32) * 100.0).round(), ((real_free_space as f32 / MAP_VRAM_SIZE as f32) * 100.0).round(), fragments, need_resizing_fragments);
-    }
+    render_state.performance_info.buffer_defragmentation = true;
 
     //move items to clean up gaps
     let mut mesh_list: Vec<_> = render_state.meshs.iter_mut().collect();
@@ -135,18 +140,20 @@ pub fn mesh_buffer_cleanup(render_state : &mut RenderState) {
 
     let mut next_mesh_pos = 0;
     for mesh in mesh_list {
-        if next_mesh_pos != mesh.1.byte_vertex_position {
+        //println!("{} {}", next_mesh_pos, mesh.1.byte_vertex_position);
+        if next_mesh_pos == mesh.1.byte_vertex_position {
+            next_mesh_pos = mesh.1.byte_vertex_length + mesh.1.byte_vertex_position;
             continue;
         }
 
         //find the free spot for this
         let mut i = 0;
         'space_test : for free_space in &mut free_spaces {
-            if free_space.byte_start != next_mesh_pos || free_space.byte_len > MIN_FREE_SPACE_SIZE {
+            if free_space.byte_start != next_mesh_pos {
                 i+=1;
                 continue;
             }
-            
+            println!("move mesh in buffer happening from {} to {}", mesh.1.byte_vertex_position as u64, free_space.byte_start as u64);
             //write data to temp buffer
             command_encoder.copy_buffer_to_buffer(
                 &render_state.mesh_buffer, 
@@ -186,9 +193,9 @@ pub fn mesh_buffer_cleanup(render_state : &mut RenderState) {
 
         next_mesh_pos = mesh.1.byte_vertex_length + mesh.1.byte_vertex_position; //will go 1 larger then te amount which is expected. As it is 0 based
 
-        //if chunk_cleanup_started.elapsed().as_millis() > 3 {
-        //    break;
-        //}
+        if chunk_cleanup_started.elapsed().as_millis() > 6 {
+            break;
+        }
     }
 
     let command_buffer = command_encoder.finish();

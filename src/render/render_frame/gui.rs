@@ -1,6 +1,6 @@
 use std::fmt::format;
 
-use egui::{RichText, color_picker::Alpha};
+use egui::{Color32, RichText, color_picker::Alpha};
 use egui_wgpu::ScreenDescriptor;
 use wgpu::RenderPassColorAttachment;
 
@@ -12,6 +12,10 @@ impl RenderState {
         let egui_output = self.egui_context.run(input, |ctx| {
             egui::Window::new("Performance").show(&ctx, |ui| {
                 ui.vertical(|ui| {
+                    ui.label(RichText::new("Render Thread info").strong().size(20.0));
+
+                    ui.add_space(2.5);
+
                     ui.label(RichText::new("Render init").strong());
                     ui.label(format!("main game tick : {}ms", (self.performance_info.main_game_tick * 1000.0)));
                     ui.label(format!("mesh creator tick : {}ms", (self.performance_info.mesh_creator_tick * 1000.0)));
@@ -26,6 +30,22 @@ impl RenderState {
                     ui.label(format!("render gui : {}ms", (self.performance_info.render_gui_time * 1000.0)));
                     ui.label(format!("finish render : {}ms", (self.performance_info.finish_render_time * 1000.0)));
                     ui.label(format!("total : {}ms", (self.performance_info.total_render_time * 1000.0)));
+
+                    ui.add_space(10.0);
+
+                    ui.label(RichText::new(format!("FPS : {}", (1.0 / (self.performance_info.total_render_time + self.performance_info.total_tick_time)))).strong().size(15.0));
+
+                    ui.add_space(10.0);
+
+                    ui.label(RichText::new("Buffer Info").strong());
+                    ui.label(format!("fragments : {}", self.performance_info.fragments_mesh_buffer));
+                    ui.label(format!("bad fragments : {}", self.performance_info.bad_fragments_mesh_buffer));
+                    ui.label(format!("Percent free : {}%", (self.performance_info.percent_mesh_buffer_use * 100.0)));
+                    ui.label(format!("Percent free usable : {}%", (self.performance_info.percent_mesh_buffer_usable * 100.0)));
+                    if self.performance_info.buffer_defragmentation == true {
+                        ui.label(RichText::new("Currently running defragmentation").strong().color(Color32::from_rgb(255, 0, 0)).size(15.0));
+                    }
+
                 })
             });
 
