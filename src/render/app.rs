@@ -3,7 +3,7 @@ use std::sync::Arc;
 use egui::ViewportId;
 use winit::{application::ApplicationHandler, event::{DeviceEvent, DeviceId, KeyEvent, WindowEvent}, event_loop::ActiveEventLoop, keyboard::PhysicalKey, platform, window::{Theme, Window}};
 
-use crate::render::{GameData, RenderThreadChannels, init_frame_render, wgpu::RenderState};
+use crate::render::{GameData, init_frame_render, wgpu::RenderState};
 
 
 pub struct App {

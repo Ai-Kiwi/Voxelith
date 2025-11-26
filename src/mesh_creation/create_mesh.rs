@@ -1,4 +1,4 @@
-use crate::{game::{pixel::PixelTypes}, mesh_creation::{ChunkMeshCreateRequest, create_triangles::{TriangleSide, add_triangle}, pix_colors::calculate_pix_color}, utils::{Mesh, Vertex}};
+use crate::{game::pixel::PixelTypes, mesh_creation::{ChunkMeshCreateRequest, create_triangles::{TriangleSide, add_triangle}, pix_colors::calculate_pix_color}, utils::{Color, Mesh, Vertex}};
 
 
 
@@ -26,7 +26,6 @@ pub fn create_chunk_mesh(request : &ChunkMeshCreateRequest, lod: i32, transparen
                 let world_pixel_z = local_z + (request.position.2 * 16);
                 //println!("{}",world_pixel_x);
                 let color = calculate_pix_color(pixel_value, world_pixel_x as i32, world_pixel_y as i32, world_pixel_z as i32);
-
                 
 
                 if local_x == 0 {

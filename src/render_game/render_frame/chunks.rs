@@ -1,0 +1,98 @@
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use wgpu::{RenderPass, wgt::DrawIndirectArgs};
+
+use crate::{render::{camera, mesh, wgpu::RenderState}, render_game::GameData, utils::Vec3};
+
+
+pub fn render_chunks(render_state : &RenderState, render_pass : &mut RenderPass<'_>, game_data : &mut GameData) {
+    render_pass.set_pipeline(&render_state.opaque_render_pipeline);
+    
+
+    let camera_direction_normal = Vec3::new(
+        game_data.camera.target.x - game_data.camera.position.x, 
+        game_data.camera.target.y - game_data.camera.position.y, 
+        game_data.camera.target.z - game_data.camera.position.z
+    ).normalize();
+
+    //render the terrain.
+
+    //setup opaque
+    let opaque_indirect_draw_calls: Vec<DrawIndirectArgs> = game_data.chunk_meshs
+    .iter()
+    .filter(|mesh| mesh.0.3 == false && mesh.1.size > 0)
+    .filter(|chunk| {
+        let camera_chunk_normal = Vec3::new(
+            (chunk.0.0 * 16 + 8) as f32 - game_data.camera.position.x,
+            (chunk.0.1 * 16 + 8) as f32 - game_data.camera.position.y, 
+            (chunk.0.2 * 16 + 8) as f32 - game_data.camera.position.z
+        );
+        let length = camera_chunk_normal.length();
+        let camera_chunk_normal = camera_chunk_normal / length;
+
+        if length < 64.0 { //if close to then make sure to always accept
+            return  true;
+        }
+
+        let cos_angle = camera_chunk_normal.dot(&camera_direction_normal);
+        return cos_angle > 0.707 //if in 45 degrees
+    })
+    .map(|chunk| {
+        let id = chunk.1.pointer.id;
+        let mesh_info = render_state.meshs.get(&id).unwrap();
+        DrawIndirectArgs {
+            vertex_count: mesh_info.vertex_length,
+            instance_count: 1,
+            first_vertex: mesh_info.vertex_position,
+            first_instance: 0,
+        }
+    })
+    .collect();
+
+    //setup transparent
+    let transparent_indirect_draw_calls: Vec<DrawIndirectArgs> = game_data.chunk_meshs
+    .iter()
+    .filter(|mesh| mesh.0.3 == true && mesh.1.size > 0)
+    .map(|chunk| {
+        let id = chunk.1.pointer.id;
+        let mesh_info = render_state.meshs.get(&id).unwrap();
+        DrawIndirectArgs {
+            vertex_count: mesh_info.vertex_length,
+            instance_count: 1,
+            first_vertex: mesh_info.vertex_position,
+            first_instance: 0,
+        }
+    })
+    .collect();
+
+
+    //render opaque
+    render_state.queue.write_buffer(&render_state.opaque_indirect_buffer, 0, bytemuck::cast_slice(&opaque_indirect_draw_calls));
+    render_state.queue.write_buffer(&render_state.opaque_count_buffer, 0, bytemuck::cast_slice(&[opaque_indirect_draw_calls.len() as u32]));
+    render_pass.set_vertex_buffer(0, render_state.mesh_buffer.slice(..));
+    render_pass.set_bind_group(0, &render_state.camera_bind_group, &[]);
+
+    render_pass.multi_draw_indirect_count(
+        &render_state.opaque_indirect_buffer, 
+        0, 
+        &render_state.opaque_count_buffer,
+        0,
+        1000000
+    );
+
+    //render transparent
+    render_pass.set_pipeline(&render_state.transparent_render_pipeline);
+    render_state.queue.write_buffer(&render_state.transparent_indirect_buffer, 0, bytemuck::cast_slice(&transparent_indirect_draw_calls));
+    render_state.queue.write_buffer(&render_state.transparent_count_buffer, 0, bytemuck::cast_slice(&[transparent_indirect_draw_calls.len() as u32]));
+    render_pass.set_vertex_buffer(0, render_state.mesh_buffer.slice(..));
+    render_pass.set_bind_group(0, &render_state.camera_bind_group, &[]);
+    
+    render_pass.multi_draw_indirect_count(
+        &render_state.transparent_indirect_buffer, 
+        0, 
+        &render_state.transparent_count_buffer,
+        0,
+        1000000
+    );
+}
+
+    

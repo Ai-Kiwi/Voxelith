@@ -2,8 +2,6 @@ use std::{ops::{Add, AddAssign, Div, Mul, Sub}, thread::sleep, time::Duration};
 
 use bytemuck::{Pod, Zeroable};
 
-use crate::render::types;
-
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 pub struct Vertex {

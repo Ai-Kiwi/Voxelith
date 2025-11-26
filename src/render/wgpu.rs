@@ -6,12 +6,12 @@ use egui_wgpu::Renderer;
 use wgpu::{Texture, TextureView};
 use winit::{event_loop::ActiveEventLoop, keyboard::KeyCode, monitor, window::Window};
 
-use crate::{render::{GameData, RenderThreadChannels, camera::{Camera, CameraUniform}, init_frame_render, mesh::{FreeBufferSpace, MeshBufferReference}, render_frame::gui::GuiInfo}, utils::Vec2};
+use crate::{render::{GameData, camera::{self, Camera, CameraUniform}, init_frame_render, mesh::{FreeBufferSpace, MeshBufferReference}, render_frame::gui::GuiInfo}, utils::Vec2};
 
-pub fn get_distance_to_camera_unsquared(render_state : &RenderState, x : f32, y : f32, z : f32) -> f32 {
-    let dx = render_state.camera.eye.x - x;
-    let dy = render_state.camera.eye.y - y;
-    let dz = render_state.camera.eye.z - z;
+pub fn get_distance_to_camera_unsquared(camera : &Camera, x : f32, y : f32, z : f32) -> f32 {
+    let dx = camera.position.x - x;
+    let dy = camera.position.y - y;
+    let dz = camera.position.z - z;
 
     return dx*dx + dy*dy + dz*dz;
 }
@@ -53,7 +53,6 @@ pub struct RenderState {
     pub window: Arc<Window>,
     pub depth_texture: Texture,
     pub depth_view: TextureView,
-    pub camera: Camera, //most data stored in game_data that is used
     
     //other stuff that is just helped for engine itself
     pub last_frame_time : Instant,
@@ -95,7 +94,6 @@ impl<'a> RenderState {
             self.surface.configure(&self.device, &self.config);
             let depth_texture = create_depth_texture(&self.device,width,height);
             let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
-            self.camera.aspect = self.config.width as f32 / self.config.height as f32;
 
 
             self.depth_texture = depth_texture;

@@ -1,6 +1,5 @@
-use crate::render::{GameData, wgpu::RenderState};
+use crate::{render::wgpu::RenderState, render_game::{GameData, render_frame::chunks::render_chunks}};
 
-mod chunks;
 pub mod gui;
 
 impl RenderState {
@@ -51,7 +50,7 @@ impl RenderState {
 
         //render chunks
         if let Some(game_data) = game_data {
-            self.render_chunks(&mut render_pass, game_data);
+            render_chunks(self, &mut render_pass, game_data);
         }
 
         //render the entities

@@ -2,17 +2,17 @@ use std::thread;
 
 use futures::executor::block_on;
 
-use crate::{game::{InputEvent, game_thread}, render::{render_thread, types::{ChunkMeshUpdate, EntityRenderData}}, utils::{Vec3, raycast_test}};
+use crate::{game::{InputEvent, game_thread}, render::render_thread};
 use std::sync::mpsc::channel;
 
-mod render;
+pub mod render;
+pub mod render_game;
 mod game;
 mod mesh_creation;
 mod chunk_geneariton;
-mod utils;
 mod entity;
 mod physics;
-mod lighting_updates;
+mod utils;
     
 fn main() {
     env_logger::init();

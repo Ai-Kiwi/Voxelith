@@ -4,78 +4,25 @@ use pollster::block_on;
 use ::wgpu::Buffer;
 use winit::event_loop::EventLoop;
 
-use crate::{game::{GameSnapshot, InputEvent, game_thread}, render::{app::App, handle_input::handle_user_input, mesh::{GpuMeshReference, mesh_buffer_cleanup, update_chunk_meshs}, types::{ChunkMeshUpdate, EntityRenderData}, wgpu::RenderState}, utils::{Mesh, Vec2, Vec3}};
+use crate::{game::{GameSnapshot, InputEvent, game_thread}, render::{app::App, camera::Camera, mesh::{GpuMeshReference, mesh_buffer_cleanup}, wgpu::RenderState}, render_game::{GameData, RenderThreadChannels, chunk::{ChunkMeshUpdate, EntityRenderData}, tick_game_render_logic}, utils::{Mesh, Vec2, Vec3}};
 
 
-//mod entities;
-mod mesh;
-mod handle_input;
-//mod gui;
-pub mod types;
-mod camera;
-mod wgpu;
+pub mod camera;
+pub mod wgpu;
 mod app;
 mod init;
 mod render_frame;
-mod debug_gui;
+pub mod mesh;
 
 //pub const LEVEL_3_LOD_DISTANCE: f32 = 2560.0;
 //pub const LEVEL_2_LOD_DISTANCE: f32 = 1280.0;
 //pub const LEVEL_1_LOD_DISTANCE: f32 = 640.0;
 
-pub const LEVEL_1_LOD_DISTANCE: f32 = 480.0;
-pub const LEVEL_2_LOD_DISTANCE: f32 = LEVEL_1_LOD_DISTANCE * 2.0;
-pub const LEVEL_3_LOD_DISTANCE: f32 = LEVEL_2_LOD_DISTANCE * 2.0;
-pub const LEVEL_4_LOD_DISTANCE: f32 = LEVEL_3_LOD_DISTANCE * 2.0;
-pub const MAP_VRAM_SIZE: u64 = 3 * 1024 * 1024 * 1024;
-
-impl GameData {
-    pub fn new() -> GameData {
-        GameData {
-            camera_yaw: 0.0,
-            camera_pitch: 0.0,
-            camera_position: Vec3::new(0.0, 0.0, 0.0),
-            chunk_meshs: HashMap::new(),
-            chunk_mesh_data: HashMap::new(),
-            render_channels: todo!(),
-        }
-    }
-}
-
-pub struct RenderThreadChannels {
-    chunk_mesh_update_rx : Receiver<ChunkMeshUpdate>, 
-    entity_render_rx : Receiver<EntityRenderData>, 
-    input_event_tx: Sender<InputEvent>,
-}
-
-pub struct ChunkInfo {
-    pointer : Arc<GpuMeshReference>,
-    lod : u8,
-    size : usize
-}
-
-pub struct GameData {
-    pub camera_yaw : f32,
-    pub camera_pitch : f32,
-    pub camera_position : Vec3,
-    pub chunk_meshs : HashMap<(i32,i32,i32,bool),ChunkInfo>,
-    pub chunk_mesh_data : HashMap<(i32,i32,i32,bool),ChunkMeshUpdate>,
-    pub render_channels : RenderThreadChannels,
-    //let mut entities_to_render: HashMap<u64,EntityRenderData> = HashMap::new();
-}
-
 
 pub fn init_frame_render(render_state : &mut RenderState, game_data : Option<&mut GameData>) {
+    //game logic stuff
     if let Some(game_data) = game_data {
-        handle_user_input(render_state, game_data);
-        update_chunk_meshs(render_state, game_data);
-
-        //update player pos
-        let _ = game_data.render_channels.input_event_tx.send(InputEvent::CameraPositionUpdate(Vec3::new(
-            render_state.camera.eye.x, 
-            render_state.camera.eye.y, 
-            render_state.camera.eye.z
-        )));
+        tick_game_render_logic(render_state, game_data);
     }
 
     mesh_buffer_cleanup(render_state);
@@ -112,9 +59,6 @@ pub async fn render_thread() {
     });
 
     let game_state = GameData {
-        camera_yaw: 0.0,
-        camera_pitch: 0.0,
-        camera_position: Vec3::new(0.0, 0.0, 0.0),
         chunk_meshs: HashMap::new(),
         chunk_mesh_data: HashMap::new(),
         render_channels: RenderThreadChannels {
@@ -122,6 +66,7 @@ pub async fn render_thread() {
             entity_render_rx,
             input_event_tx,
         },
+        camera: Camera::new(),
     };
 
     app.game_data = Some(game_state);

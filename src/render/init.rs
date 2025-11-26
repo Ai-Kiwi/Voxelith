@@ -6,7 +6,7 @@ use rayon::vec;
 use wgpu::{ExperimentalFeatures, RenderPass, util::DeviceExt};
 use winit::window::{Theme, Window};
 
-use crate::{render::{MAP_VRAM_SIZE, RenderThreadChannels, camera::{Camera, CameraUniform}, mesh::FreeBufferSpace, render_frame::gui::GuiInfo, wgpu::{RenderState, create_depth_texture}}, utils::{Vec2, Vertex}};
+use crate::{render::{camera::{Camera, CameraUniform}, mesh::FreeBufferSpace, render_frame::gui::GuiInfo, wgpu::{RenderState, create_depth_texture}}, render_game::MAP_VRAM_SIZE, utils::{Vec2, Vertex}};
 
 impl RenderState {
     // We don't need this to be async right now,
@@ -75,22 +75,10 @@ impl RenderState {
             source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
         });
 
-        let camera = Camera {
-            // position the camera 1 unit up and 2 units back
-            // +z is out of the screen
-            eye: (0.0, 1.0, 2.0).into(),
-            // have it look at the origin
-            target: (0.0, 0.0, 0.0).into(),
-            // which way is "up"
-            up: cgmath::Vector3::unit_y(),
-            aspect: config.width as f32 / config.height as f32,
-            fovy: 45.0,
-            znear: 0.1,
-            zfar: 10000.0,
-        };
+        let mut camera = Camera::new();
 
         let mut camera_uniform = CameraUniform::new();
-        camera_uniform.update_view_proj(&camera);
+        camera_uniform.update_view_proj(&mut camera, config.width, config.height);
 
         //setup needed buffers and info for them
         let camera_buffer = device.create_buffer_init(
@@ -308,7 +296,6 @@ impl RenderState {
             is_surface_configured: false,
             opaque_render_pipeline,
             transparent_render_pipeline,
-            camera,
             camera_uniform,
             camera_buffer,
             camera_bind_group,
