@@ -6,7 +6,7 @@ use rayon::vec;
 use wgpu::{ExperimentalFeatures, RenderPass, util::DeviceExt};
 use winit::window::{Theme, Window};
 
-use crate::{render::{camera::{Camera, CameraUniform}, mesh::FreeBufferSpace, render_frame::gui::GuiInfo, wgpu::{RenderState, create_depth_texture}}, render_game::MAP_VRAM_SIZE, utils::{Vec2, Vertex}};
+use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{Camera, CameraUniform}, mesh::FreeBufferSpace, render_frame::gui::GuiInfo, wgpu::{RenderState, create_depth_texture}}, render_game::MAP_VRAM_SIZE, utils::{Vec2, Vertex}};
 
 impl RenderState {
     // We don't need this to be async right now,
@@ -288,6 +288,18 @@ impl RenderState {
         let egui_context: egui::Context = egui::Context::default();
         let egui_winit: egui_winit::State = egui_winit::State::new(egui_context.clone(), ViewportId::ROOT, &window, Some(1.0), Some(Theme::Dark), Some(4096));
 
+        let performance_info = RenderFrameThreadPerformanceInfo {
+            total_tick_time: 0.0,
+            total_render_time: 0.0,
+            main_game_tick: 0.0,
+            mesh_creator_tick: 0.0,
+            update_mesh_buffer: 0.0,
+            start_render_time: 0.0,
+            main_content_render_time: 0.0,
+            render_gui_time: 0.0,
+            finish_render_time: 0.0,
+        };
+
         Ok(Self {
             surface,
             device,
@@ -324,6 +336,7 @@ impl RenderState {
             free_mesh_buffer_ranges,
             meshs: HashMap::new(),
             mesh_id_upto : 1, // start at 1 as 0 means empty data
+            performance_info,
         })
     }
 }

@@ -119,19 +119,29 @@ impl ApplicationHandler<RenderState> for App {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(size) => state.resize(size.width, size.height),
             WindowEvent::RedrawRequested => {
+                let tick_time_start = Instant::now();
+                
                 //tick game render logic
+                let main_game_tick_start = Instant::now();
                 if let Some(game_data) = &mut self.game_data {
                     tick_game_render_logic(state, game_data, self.page_open == PageOpen::Game);
                 }
+                state.performance_info.main_game_tick = main_game_tick_start.elapsed().as_secs_f32();
+
 
                 //tick mesh creator
+                let main_mesh_creator_tick = Instant::now();
                 if let Some(mesh_creator) = &mut self.mesh_creator {
                     tick_mesh_creator(state, mesh_creator, self.page_open == PageOpen::MeshCreator);
                 }
+                state.performance_info.mesh_creator_tick = main_mesh_creator_tick.elapsed().as_secs_f32();
+                
 
                 //clean up mesh buffers
+                let update_mesh_buffer_tick = Instant::now();
                 mesh_buffer_cleanup(state);
-
+                state.performance_info.update_mesh_buffer = update_mesh_buffer_tick.elapsed().as_secs_f32();
+                
                 //cleanup data now that frame info has been processed
                 state.keys_released.clear();
                 state.keys_pressed.clear();
@@ -139,7 +149,9 @@ impl ApplicationHandler<RenderState> for App {
                 let now = Instant::now();
                 state.delta_time = (now - state.last_frame_time).as_secs_f32();
                 state.last_frame_time = now;
-
+                
+                state.performance_info.total_tick_time = tick_time_start.elapsed().as_secs_f32();
+                let render_time_start = Instant::now();
                 
                 match state.render(&self.page_open, &mut self.game_data, &mut self.mesh_creator) {
                     Ok(_) => {}
@@ -152,6 +164,7 @@ impl ApplicationHandler<RenderState> for App {
                         log::error!("Unable to render {}", e);
                     }
                 }
+                state.performance_info.total_render_time = render_time_start.elapsed().as_secs_f32();
             },
             WindowEvent::KeyboardInput {
                 event:

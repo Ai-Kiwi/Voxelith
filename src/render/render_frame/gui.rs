@@ -1,13 +1,34 @@
-use egui::color_picker::Alpha;
+use std::fmt::format;
+
+use egui::{RichText, color_picker::Alpha};
 use egui_wgpu::ScreenDescriptor;
 use wgpu::RenderPassColorAttachment;
 
-use crate::{mesh_creator::MeshCreator, render::{app::PageOpen, wgpu::RenderState}, render_game::GameData};
+use crate::{mesh_creator::MeshCreator, render::{RenderFrameThreadPerformanceInfo, app::PageOpen, wgpu::RenderState}, render_game::GameData};
 
 impl RenderState {
     pub fn render_gui(&mut self, encoder : &mut wgpu::CommandEncoder, view : &mut wgpu::TextureView, page_open : &PageOpen, game_data : &mut Option<GameData>, mesh_creator : &mut Option<MeshCreator>) {
         let input = self.egui_winit.take_egui_input(&self.window);
         let egui_output = self.egui_context.run(input, |ctx| {
+            egui::Window::new("Performance").show(&ctx, |ui| {
+                ui.vertical(|ui| {
+                    ui.label(RichText::new("Render init").strong());
+                    ui.label(format!("main game tick : {}ms", (self.performance_info.main_game_tick * 1000.0)));
+                    ui.label(format!("mesh creator tick : {}ms", (self.performance_info.mesh_creator_tick * 1000.0)));
+                    ui.label(format!("update mesh buffer : {}ms", (self.performance_info.update_mesh_buffer * 1000.0)));
+                    ui.label(format!("total : {}ms", (self.performance_info.total_tick_time * 1000.0)));
+
+                    ui.add_space(10.0);
+
+                    ui.label(RichText::new("render").strong());
+                    ui.label(format!("start render : {}ms", (self.performance_info.start_render_time * 1000.0)));
+                    ui.label(format!("main content render : {}ms", (self.performance_info.main_content_render_time * 1000.0)));
+                    ui.label(format!("render gui : {}ms", (self.performance_info.render_gui_time * 1000.0)));
+                    ui.label(format!("finish render : {}ms", (self.performance_info.finish_render_time * 1000.0)));
+                    ui.label(format!("total : {}ms", (self.performance_info.total_render_time * 1000.0)));
+                })
+            });
+
             match page_open {
                 PageOpen::Game => {
                     

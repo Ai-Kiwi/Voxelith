@@ -19,6 +19,18 @@ pub mod mesh;
 //pub const LEVEL_1_LOD_DISTANCE: f32 = 640.0;
 
 
+pub struct RenderFrameThreadPerformanceInfo {
+    total_tick_time : f32, 
+    main_game_tick : f32, 
+    mesh_creator_tick : f32, 
+    update_mesh_buffer : f32, 
+    total_render_time : f32, 
+    start_render_time : f32, 
+    main_content_render_time : f32, 
+    render_gui_time : f32,
+    finish_render_time : f32,
+}
+
 pub async fn render_thread() {
     let event_loop = EventLoop::with_user_event().build().expect("failed to create event loop");
     let mut app: App = App::new();

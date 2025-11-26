@@ -6,7 +6,7 @@ use egui_wgpu::Renderer;
 use wgpu::{Texture, TextureView};
 use winit::{event_loop::ActiveEventLoop, keyboard::KeyCode, monitor, window::Window};
 
-use crate::{render::{GameData, camera::{self, Camera, CameraUniform}, mesh::{FreeBufferSpace, MeshBufferReference}, render_frame::gui::GuiInfo}, utils::Vec2};
+use crate::{render::{GameData, RenderFrameThreadPerformanceInfo, camera::{self, Camera, CameraUniform}, mesh::{FreeBufferSpace, MeshBufferReference}, render_frame::gui::GuiInfo}, utils::Vec2};
 
 pub fn get_distance_to_camera_unsquared(camera : &Camera, x : f32, y : f32, z : f32) -> f32 {
     let dx = camera.position.x - x;
@@ -83,6 +83,8 @@ pub struct RenderState {
     pub game_selected : bool,
     pub fullscreen : bool,
     pub gui_info : GuiInfo,
+
+    pub performance_info : RenderFrameThreadPerformanceInfo,
 }
 
 impl<'a> RenderState {
