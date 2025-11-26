@@ -17,6 +17,8 @@ pub struct CameraUniform {
     // We can't use cgmath with bytemuck directly, so we'll have
     // to convert the Matrix4 into a 4x4 f32 array
     view_proj: [[f32; 4]; 4],
+    position: [f32; 3],
+    _padding: f32,
 }
 
 impl CameraUniform {
@@ -24,11 +26,14 @@ impl CameraUniform {
         use cgmath::SquareMatrix;
         Self {
             view_proj: cgmath::Matrix4::identity().into(),
+            position: [0.0,0.0,0.0],
+            _padding: 0.0,
         }
     }
 
     pub fn update_view_proj(&mut self, camera: &mut Camera, width : u32, height : u32) {
         self.view_proj = camera.build_view_projection_matrix(width as f32, height as f32).into();
+        self.position = [camera.position.x, camera.position.y, camera.position.z]
     }
 }
 
@@ -61,7 +66,7 @@ impl Camera {
 
 
     fn build_view_projection_matrix(&mut self, width : f32, height : f32) -> cgmath::Matrix4<f32> {
-    let front = Vec3::new(
+    let front: Vec3 = Vec3::new(
         self.yaw.cos() * self.pitch.cos(),
         self.pitch.sin(),
         self.yaw.sin() * self.pitch.cos()

@@ -3,7 +3,7 @@ use crate::{game::{GameSnapshot, chunk::Chunk, pixel::PixelTypes, world::WorldDa
 use std::{collections::HashMap, sync::{Arc, mpsc::{Receiver, Sender}}};
 
 mod create_mesh;
-mod create_triangles;
+pub mod create_triangles;
 mod pix_colors;
 
 pub struct ChunkMeshCreateRequest {

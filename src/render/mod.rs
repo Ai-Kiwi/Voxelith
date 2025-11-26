@@ -4,7 +4,7 @@ use pollster::block_on;
 use ::wgpu::Buffer;
 use winit::event_loop::EventLoop;
 
-use crate::{game::{GameSnapshot, InputEvent, game_thread}, render::{app::App, camera::Camera, mesh::{GpuMeshReference, mesh_buffer_cleanup}, wgpu::RenderState}, render_game::{GameData, RenderThreadChannels, chunk::{ChunkMeshUpdate, EntityRenderData}, tick_game_render_logic}, utils::{Mesh, Vec2, Vec3}};
+use crate::{game::{GameSnapshot, InputEvent, game_thread}, mesh_creator::MeshCreator, render::{app::App, camera::Camera, mesh::{GpuMeshReference, mesh_buffer_cleanup}, wgpu::RenderState}, render_game::{GameData, RenderThreadChannels, chunk::{ChunkMeshUpdate, EntityRenderData}, tick_game_render_logic}, utils::{Mesh, Vec2, Vec3}};
 
 
 pub mod camera;
@@ -45,6 +45,10 @@ pub async fn render_thread() {
     };
 
     app.game_data = Some(game_state);
+
+    app.page_open = app::PageOpen::Game;
+    app.mesh_creator = Some(MeshCreator::new());
+    
 
     event_loop.run_app(&mut app).expect("failed to run app");
     

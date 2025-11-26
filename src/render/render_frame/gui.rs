@@ -1,13 +1,34 @@
+use egui::color_picker::Alpha;
 use egui_wgpu::ScreenDescriptor;
 use wgpu::RenderPassColorAttachment;
 
-use crate::render::wgpu::RenderState;
+use crate::{mesh_creator::MeshCreator, render::{app::PageOpen, wgpu::RenderState}, render_game::GameData};
 
 impl RenderState {
-    pub fn render_gui(&mut self, encoder : &mut wgpu::CommandEncoder, view : &mut wgpu::TextureView) {
+    pub fn render_gui(&mut self, encoder : &mut wgpu::CommandEncoder, view : &mut wgpu::TextureView, page_open : &PageOpen, game_data : &mut Option<GameData>, mesh_creator : &mut Option<MeshCreator>) {
         let input = self.egui_winit.take_egui_input(&self.window);
         let egui_output = self.egui_context.run(input, |ctx| {
-            self.create_gui(ctx);
+            match page_open {
+                PageOpen::Game => {
+                    
+                },
+                PageOpen::TitleScreen => {
+
+                },
+                PageOpen::MeshCreator => {
+                    if let Some(mesh_creator) = mesh_creator {
+                        egui::Window::new("Hierarchy").show(&ctx, |ui| {
+                            ui.vertical(|ui| {
+                                ui.color_edit_button_srgb(&mut mesh_creator.selected_color);
+                                ui.label("text");
+                                ui.label("text");
+                                ui.label("text");
+                                ui.label("text");
+                            })
+                        });
+                    }
+                },
+            }
         });
 
         self.egui_winit.handle_platform_output(&self.window, egui_output.platform_output);
@@ -56,34 +77,6 @@ impl RenderState {
         for id in &tdelta.free {
             self.egui_renderer.free_texture(id);
         }
-    }
-
-    pub fn create_gui(&self, egui_context : &egui::Context) {
-        //egui::CentralPanel::default().show(&egui_context, |ui| {
-        //    ui.vertical(|ui| {
-        //        
-        //        ui.label("text");
-        //        ui.label("text");
-        //        ui.label("text");
-        //        ui.label("text");
-        //    })
-        //});
-        
-
-        
-        egui::Window::new("Hierarchy").show(&egui_context, |ui| {
-            ui.vertical(|ui| {
-                
-                ui.label("text");
-                ui.label("text");
-                ui.label("text");
-                ui.label("text");
-            })
-        });
-
-        egui::Window::new("debug").show(&egui_context, |ui| {
-            ui.label("Hello egui!");
-        });
     }
 }
 

@@ -3,11 +3,13 @@ use std::{sync::Arc, time::Instant};
 use egui::ViewportId;
 use winit::{application::ApplicationHandler, event::{DeviceEvent, DeviceId, KeyEvent, WindowEvent}, event_loop::ActiveEventLoop, keyboard::{KeyCode, PhysicalKey}, platform, window::{Theme, Window}};
 
-use crate::{mesh_creator::{MeshCreator, init_mesh_creator}, render::{GameData, mesh::mesh_buffer_cleanup, wgpu::RenderState}, render_game::tick_game_render_logic, utils::Vec2};
+use crate::{mesh_creator::{MeshCreator, tick_mesh_creator}, render::{GameData, mesh::mesh_buffer_cleanup, wgpu::RenderState}, render_game::tick_game_render_logic, utils::Vec2};
 
-enum PageOpen {
+#[derive(PartialEq, PartialOrd)]
+pub enum PageOpen {
     Game,
     TitleScreen,
+    MeshCreator,
 }
 
 pub struct App {
@@ -58,6 +60,7 @@ impl App {
                 match self.page_open {
                     PageOpen::Game => {App::update_cursor_lock(state, state.game_selected)},
                     PageOpen::TitleScreen => {App::update_cursor_lock(state, false);},
+                    PageOpen::MeshCreator => {App::update_cursor_lock(state, false);},
                 }
             },
             //update the keys that are are pressed in the render state
@@ -118,12 +121,12 @@ impl ApplicationHandler<RenderState> for App {
             WindowEvent::RedrawRequested => {
                 //tick game render logic
                 if let Some(game_data) = &mut self.game_data {
-                    tick_game_render_logic(state, game_data);
+                    tick_game_render_logic(state, game_data, self.page_open == PageOpen::Game);
                 }
 
                 //tick mesh creator
                 if let Some(mesh_creator) = &mut self.mesh_creator {
-                    init_mesh_creator(state, mesh_creator);
+                    tick_mesh_creator(state, mesh_creator, self.page_open == PageOpen::MeshCreator);
                 }
 
                 //clean up mesh buffers
@@ -138,7 +141,7 @@ impl ApplicationHandler<RenderState> for App {
                 state.last_frame_time = now;
 
                 
-                match state.render(&mut self.game_data) {
+                match state.render(&self.page_open, &mut self.game_data, &mut self.mesh_creator) {
                     Ok(_) => {}
                     // Reconfigure the surface if it's lost or outdated
                     Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {

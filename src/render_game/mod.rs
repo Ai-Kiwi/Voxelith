@@ -45,8 +45,10 @@ pub struct GameData {
     //let mut entities_to_render: HashMap<u64,EntityRenderData> = HashMap::new();
 }
 
-pub fn tick_game_render_logic(render_state : &mut RenderState, game_data : &mut GameData) {
-    handle_user_input(render_state, game_data);
+pub fn tick_game_render_logic(render_state : &mut RenderState, game_data : &mut GameData, open : bool) {
+    if open {
+        handle_user_input(render_state, game_data);
+    }
     update_chunk_meshs(render_state, game_data);
 
     //update player pos

@@ -1,9 +1,9 @@
-use crate::{render::wgpu::RenderState, render_game::{GameData, render_frame::chunks::render_chunks}};
+use crate::{mesh_creator::{MeshCreator, render_mesh_creator}, render::{app::PageOpen, wgpu::RenderState}, render_game::{GameData, render_frame::chunks::render_chunks}};
 
 pub mod gui;
 
 impl RenderState {
-    pub fn render(&mut self, game_data : &mut Option<GameData>) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(&mut self, page_open : &PageOpen, game_data : &mut Option<GameData>, mesh_creator : &mut Option<MeshCreator>) -> Result<(), wgpu::SurfaceError> {
         self.window.request_redraw();
 
         // We can't render unless the surface is configured
@@ -49,8 +49,20 @@ impl RenderState {
         self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
 
         //render chunks
-        if let Some(game_data) = game_data {
-            render_chunks(self, &mut render_pass, game_data);
+        match page_open {
+            PageOpen::Game => {
+                if let Some(game_data) = game_data {
+                    render_chunks(self, &mut render_pass, game_data);
+                }
+            },
+            PageOpen::TitleScreen => {
+
+            },
+            PageOpen::MeshCreator => {
+                if let Some(mesh_creator) = mesh_creator {
+                    render_mesh_creator(self,&mut render_pass, mesh_creator);
+                }
+            },
         }
 
         //render the entities
@@ -59,7 +71,7 @@ impl RenderState {
         drop(render_pass);
 
         //render gui
-        self.render_gui(&mut encoder, &mut view);
+        self.render_gui(&mut encoder, &mut view, page_open,  game_data, mesh_creator);
 
         // submit will accept anything that implements IntoIter
         self.queue.submit(std::iter::once(encoder.finish()));
