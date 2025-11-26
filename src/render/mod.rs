@@ -17,6 +17,7 @@ mod wgpu;
 mod app;
 mod init;
 mod render_frame;
+mod debug_gui;
 
 //pub const LEVEL_3_LOD_DISTANCE: f32 = 2560.0;
 //pub const LEVEL_2_LOD_DISTANCE: f32 = 1280.0;
@@ -45,7 +46,6 @@ pub struct RenderThreadChannels {
     chunk_mesh_update_rx : Receiver<ChunkMeshUpdate>, 
     entity_render_rx : Receiver<EntityRenderData>, 
     input_event_tx: Sender<InputEvent>,
-    game_snapshot_update_rx : Receiver<Arc<GameSnapshot>>
 }
 
 pub struct ChunkInfo {
@@ -105,11 +105,10 @@ pub async fn render_thread() {
     let (chunk_mesh_update_tx, chunk_mesh_update_rx) = channel::<ChunkMeshUpdate>();
     let (entity_render_tx, entity_render_rx) = channel::<EntityRenderData>();
     let (input_event_tx, mut input_event_rx) = channel::<InputEvent>();
-    let (game_snapshot_update_tx, mut game_snapshot_update_rx) =  channel::<Arc<GameSnapshot>>();
     
     //game loop thread start
     let _ = thread::spawn(move || {
-        block_on(game_thread(chunk_mesh_update_tx, entity_render_tx, &mut input_event_rx, game_snapshot_update_tx));
+        block_on(game_thread(chunk_mesh_update_tx, entity_render_tx, &mut input_event_rx));
     });
 
     let game_state = GameData {
@@ -122,11 +121,14 @@ pub async fn render_thread() {
             chunk_mesh_update_rx,
             entity_render_rx,
             input_event_tx,
-            game_snapshot_update_rx: todo!(),
         },
     };
 
     app.game_data = Some(game_state);
 
     event_loop.run_app(&mut app).expect("failed to run app");
+    
+    //drop everything. This allows for a clean shutdown
+    app.game_data = None;
+    app.state = None;
 }

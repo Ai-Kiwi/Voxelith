@@ -6,7 +6,8 @@ pub struct WorldData {
     pub chunks : HashMap<(i32, i32,i32), Arc<Chunk>>,
     pub pixel_edit_queue : Vec<(i32,i32,i32,PixelTypes)>,
     pub chunk_mesh_updates_needed : HashMap<(i32,i32,i32),()>,
-    pub chunks_loading : HashMap<(i32,i32,i32),()>
+    pub chunks_loading : HashMap<(i32,i32,i32),()>,
+    pub chunk_shadows : HashMap<(i32,i32,i32), Vec<u8>>,
 }
 
 

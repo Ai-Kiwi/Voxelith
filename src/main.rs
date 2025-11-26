@@ -12,6 +12,7 @@ mod chunk_geneariton;
 mod utils;
 mod entity;
 mod physics;
+mod lighting_updates;
     
 fn main() {
     env_logger::init();
