@@ -158,7 +158,6 @@ pub fn mesh_buffer_cleanup(render_state : &mut RenderState) {
                 i+=1;
                 continue;
             }
-            println!("move mesh in buffer happening from {} to {}", mesh.1.byte_vertex_position as u64, free_space.byte_start as u64);
             //write data to temp buffer
             command_encoder.copy_buffer_to_buffer(
                 &render_state.mesh_buffer, 
@@ -202,7 +201,8 @@ pub fn mesh_buffer_cleanup(render_state : &mut RenderState) {
 
         next_mesh_pos = mesh.1.byte_vertex_length + mesh.1.byte_vertex_position; //will go 1 larger then te amount which is expected. As it is 0 based
 
-        if chunk_cleanup_started.elapsed().as_millis() > 6 {
+        //base the limit by how much free room is left in vram
+        if chunk_cleanup_started.elapsed().as_secs_f32() > 0.03 / ((real_free_space as f32 / MAP_VRAM_SIZE as f32) * 10.0) {
             break;
         }
     }
