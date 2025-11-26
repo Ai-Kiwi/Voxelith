@@ -122,7 +122,7 @@ pub fn mesh_buffer_cleanup(render_state : &mut RenderState) {
 
     //not critical so don't bother
     //leaving till later lets huge areas build up as well which can be skipped
-    if need_resizing_fragments < 20000 && (real_free_space as f32 / MAP_VRAM_SIZE as f32) > 0.25 {
+    if need_resizing_fragments < 20000 && (real_free_space as f32 / MAP_VRAM_SIZE as f32) > 0.10 {
         return;
     }
     render_state.performance_info.buffer_defragmentation = true;
