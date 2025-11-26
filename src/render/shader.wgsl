@@ -30,7 +30,7 @@ fn vs_main(
     let diff = vec2<f32>(position.x - camera.position.x, position.z - camera.position.z);
     let distance = length(diff);
     
-    //position.y = position.y - (distance / 2);
+    position.y = position.y - (distance / 5);
 
     let pos_f32: vec3<f32> = vec3<f32>(position); 
     out.clip_position = camera.view_proj * vec4<f32>(pos_f32, 1.0);

@@ -27,29 +27,29 @@ pub async fn chunk_mesh_creation_thread(chunk_mesh_update_tx : Sender<ChunkMeshU
             Ok(request) => {
                 //non transparent
                 let mesh = create_chunk_mesh(&request, 1, false);
-                let mesh_l2 = create_chunk_mesh(&request, 2, false);
-                let mesh_l4 = create_chunk_mesh(&request, 4, false);
-                let mesh_l8 = create_chunk_mesh(&request, 8, false);
+                //let mesh_l2 = create_chunk_mesh(&request, 2, false);
+                //let mesh_l4 = create_chunk_mesh(&request, 4, false);
+                //let mesh_l8 = create_chunk_mesh(&request, 8, false);
                 let _ = chunk_mesh_update_tx.send(ChunkMeshUpdate { 
                     chunk_pos: request.position, 
                     mesh: Some(mesh),
-                    mesh_l2: Some(mesh_l2),
-                    mesh_l4: Some(mesh_l4),
-                    mesh_l8: Some(mesh_l8),
+                    mesh_l2: None,
+                    mesh_l4: None,
+                    mesh_l8: None,
                     transparent: false,
                 });
 
                 //transparent
                 let mesh = create_chunk_mesh(&request, 1, true);
-                let mesh_l2 = create_chunk_mesh(&request, 2, true);
-                let mesh_l4 = create_chunk_mesh(&request, 4, true);
-                let mesh_l8 = create_chunk_mesh(&request, 8, true);
+                //let mesh_l2 = create_chunk_mesh(&request, 2, true);
+                //let mesh_l4 = create_chunk_mesh(&request, 4, true);
+                //let mesh_l8 = create_chunk_mesh(&request, 8, true);
                 let _ = chunk_mesh_update_tx.send(ChunkMeshUpdate { 
                     chunk_pos: request.position, 
                     mesh: Some(mesh),
-                    mesh_l2: Some(mesh_l2),
-                    mesh_l4: Some(mesh_l4),
-                    mesh_l8: Some(mesh_l8), 
+                    mesh_l2: None,
+                    mesh_l4: None,
+                    mesh_l8: None, 
                     transparent: true,
                 });
             },
