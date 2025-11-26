@@ -215,8 +215,6 @@ fn create_chunk(noise : &FastNoiseLite, chunk_pos : (i32, i32, i32)) -> Chunk {
                     Biome::Desert => {
                         if (world_y as f32) < elevation - 4.0 {
                             pixel_block = PixelTypes::Stone
-                        }else if (world_y as f32) < elevation - 1.0 {
-                            pixel_block = PixelTypes::Dirt
                         }else if (world_y as f32) < elevation {
                             pixel_block = PixelTypes::Sand
                         }

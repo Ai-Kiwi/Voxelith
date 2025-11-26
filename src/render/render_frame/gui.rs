@@ -59,6 +59,18 @@ impl RenderState {
     }
 
     pub fn create_gui(&self, egui_context : &egui::Context) {
+        //egui::CentralPanel::default().show(&egui_context, |ui| {
+        //    ui.vertical(|ui| {
+        //        
+        //        ui.label("text");
+        //        ui.label("text");
+        //        ui.label("text");
+        //        ui.label("text");
+        //    })
+        //});
+        
+
+        
         egui::Window::new("Hierarchy").show(&egui_context, |ui| {
             ui.vertical(|ui| {
                 
