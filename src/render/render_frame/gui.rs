@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use egui::{Color32, RichText, color_picker::Alpha};
 use egui_wgpu::ScreenDescriptor;
 use wgpu::RenderPassColorAttachment;
@@ -45,7 +43,6 @@ impl RenderState {
                     if self.performance_info.buffer_defragmentation == true {
                         ui.label(RichText::new("Currently running defragmentation").strong().color(Color32::from_rgb(255, 0, 0)).size(15.0));
                     }
-
                 })
             });
 

@@ -82,22 +82,27 @@ pub fn mesh_buffer_cleanup(render_state : &mut RenderState) {
         }
         alive
     });
+
+    //delete from actual free spaces anything that has no size
+    render_state.free_mesh_buffer_ranges.retain(|fs| fs.byte_len > 0);
     
     //setup free space info
     let mut free_spaces: Vec<_> = render_state.free_mesh_buffer_ranges.iter_mut().collect();
     free_spaces.sort_by(|a, b|  a.byte_start.cmp(&b.byte_start));
     
     //delete next to each other and merge into one
-    for i in 0..free_spaces.len() {
-        if free_spaces.len() > i + 1 {
-            //run merge test for free space
-            if free_spaces[i].byte_start + free_spaces[i].byte_len == free_spaces[i + 1].byte_start {
-                free_spaces[i].byte_len += free_spaces[i + 1].byte_len;
-                free_spaces[i + 1].byte_len = 0;
-            }
+    let mut i = 0;
+    while i + 1 < free_spaces.len() {
+        if free_spaces[i].byte_start + free_spaces[i].byte_len == free_spaces[i + 1].byte_start {
+            free_spaces[i].byte_len += free_spaces[i + 1].byte_len;
+            free_spaces[i + 1].byte_len = 0;
+            free_spaces[i + 1].byte_start = 0;
+            free_spaces.remove(i + 1);
+        } else {
+            i += 1;
         }
     }
-    
+
     let mut free_space = 0;
     let mut real_free_space = 0;
     let mut fragments = 0;
@@ -141,7 +146,7 @@ pub fn mesh_buffer_cleanup(render_state : &mut RenderState) {
     let mut next_mesh_pos = 0;
     for mesh in mesh_list {
         //println!("{} {}", next_mesh_pos, mesh.1.byte_vertex_position);
-        if next_mesh_pos == mesh.1.byte_vertex_position {
+        if next_mesh_pos == mesh.1.byte_vertex_position || mesh.1.byte_vertex_position - next_mesh_pos > MIN_FREE_SPACE_SIZE {
             next_mesh_pos = mesh.1.byte_vertex_length + mesh.1.byte_vertex_position;
             continue;
         }
@@ -182,12 +187,16 @@ pub fn mesh_buffer_cleanup(render_state : &mut RenderState) {
             break 'space_test;
         }
 
-        //test if need to extend the free buffer to another one if one is in front of block
-        if free_spaces.len() > i + 1 {
-            //run merge test for free space
+        //merge all free spaces
+        let mut i = 0;
+        while i + 1 < free_spaces.len() {
             if free_spaces[i].byte_start + free_spaces[i].byte_len == free_spaces[i + 1].byte_start {
                 free_spaces[i].byte_len += free_spaces[i + 1].byte_len;
-                free_spaces.remove(i+1);
+                free_spaces[i + 1].byte_len = 0;
+                free_spaces[i + 1].byte_start = 0;
+                free_spaces.remove(i + 1);
+            } else {
+                i += 1;
             }
         }
 
