@@ -1,7 +1,6 @@
 use std::collections::HashMap;
-use egui::Color32;
 use wgpu::{Buffer, RenderPass};
-use crate::{render::{camera::Camera, mesh, wgpu::RenderState}, utils::{Color, Vec3}};
+use crate::{render::{camera::Camera, wgpu::RenderState}, utils::{Color, Vec3}};
 
 mod create_mesh;
 mod files;

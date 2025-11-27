@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{entity::Entity, game::{chunk::Chunk, pixel::PixelTypes}};
+use crate::game::{chunk::Chunk, pixel::PixelTypes};
 
 pub struct WorldData {
     pub chunks : HashMap<(i32, i32,i32), Arc<Chunk>>,

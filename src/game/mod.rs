@@ -1,7 +1,6 @@
-use std::{collections::HashMap, sync::{Arc, mpsc::{Receiver, Sender, channel}}, thread, time::{Duration, Instant}};
+use std::{collections::HashMap, sync::{mpsc::{Receiver, Sender, channel}}, thread, time::{Duration, Instant}};
 use futures::executor::block_on;
-use egui::{CentralPanel};
-use crate::{chunk_geneariton::{NewChunkInfo, chunk_generation_thread}, entity::Entity, game::{chunk::{Chunk, handle_chunk_loaded}, entity::{Entities, handle_entity_update}, handle_inputs::handle_user_inputs, mesh_updates::handle_chunk_mesh_updates, pixel_updates::handle_pixel_updates, world::WorldData}, mesh_creation::{ChunkMeshCreateRequest, chunk_mesh_creation_thread}, render_game::chunk::{ChunkMeshUpdate, EntityRenderData}, utils::{Vec2, Vec3, raycast_test}};
+use crate::{chunk_geneariton::{NewChunkInfo, chunk_generation_thread}, game::{chunk::handle_chunk_loaded, entity::{Entities, handle_entity_update}, handle_inputs::handle_user_inputs, mesh_updates::handle_chunk_mesh_updates, pixel_updates::handle_pixel_updates, world::WorldData}, mesh_creation::{ChunkMeshCreateRequest, chunk_mesh_creation_thread}, render_game::chunk::{ChunkMeshUpdate, EntityRenderData}, utils::{Vec2, Vec3}};
 
 pub mod world;
 pub mod chunk;
@@ -29,22 +28,6 @@ pub struct Game {
     world : WorldData,
     entities : Entities,
 }
-
-//snapshot system
-pub struct GameSnapshot {
-    pub chunks : HashMap<(i32, i32,i32), Arc<Chunk>>,
-}
-
-impl Game {
-    pub fn create_snapshot(&self) -> Arc<GameSnapshot> {
-        let snapshot = GameSnapshot {
-            chunks: self.world.chunks.clone(),
-        };
-        return Arc::new(snapshot)
-    }
-}
-
-
 
 
 pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_render_tx : Sender<EntityRenderData>, input_event_rx : &mut Receiver<InputEvent>) {

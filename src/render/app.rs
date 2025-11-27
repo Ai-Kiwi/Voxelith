@@ -1,7 +1,6 @@
 use std::{sync::Arc, time::Instant};
 
-use egui::ViewportId;
-use winit::{application::ApplicationHandler, dpi::PhysicalPosition, event::{DeviceEvent, DeviceId, KeyEvent, WindowEvent}, event_loop::ActiveEventLoop, keyboard::{KeyCode, PhysicalKey}, platform, window::{Theme, Window}};
+use winit::{application::ApplicationHandler, event::{DeviceEvent, DeviceId, KeyEvent, WindowEvent}, event_loop::ActiveEventLoop, keyboard::{KeyCode, PhysicalKey}, window::Window};
 
 use crate::{mesh_creator::{MeshCreator, tick_mesh_creator}, render::{GameData, mesh::mesh_buffer_cleanup, wgpu::RenderState}, render_game::tick_game_render_logic, utils::Vec2};
 

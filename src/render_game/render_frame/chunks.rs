@@ -1,7 +1,7 @@
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use wgpu::{RenderPass, wgt::DrawIndirectArgs};
 
-use crate::{render::{camera, mesh, wgpu::RenderState}, render_game::GameData, utils::Vec3};
+use crate::{render::wgpu::RenderState, render_game::GameData};
 
 
 pub fn render_chunks(render_state : &RenderState, render_pass : &mut RenderPass<'_>, game_data : &mut GameData) {

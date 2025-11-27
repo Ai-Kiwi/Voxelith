@@ -1,6 +1,4 @@
-use cgmath::num_traits::{Float, float};
-
-use crate::{entity, game::{entity::Entities, pixel::PixelTypes, world::WorldData}};
+use crate::{game::{entity::Entities, pixel::PixelTypes, world::WorldData}};
 
 
 pub struct PhysicsObject {
@@ -36,7 +34,7 @@ pub fn tick_physics(world : &mut WorldData, entities : &mut Entities) {
 
 
     //run for all entities;
-    for (id, entity) in &mut entities.entities {
+    for (_, entity) in &mut entities.entities {
         if entity.physics.velocity.0 != 0.0 {
             let start_testing_x = entity.position.0 + (entity.physics.hitbox.0 * entity.physics.velocity.0.signum());
             let end_testing_x = start_testing_x + entity.physics.velocity.0;

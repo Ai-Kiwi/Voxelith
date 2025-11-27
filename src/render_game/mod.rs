@@ -22,7 +22,6 @@ pub struct RenderThreadChannels {
 
 pub struct ChunkInfo {
     pointer : Arc<GpuMeshReference>,
-    lod : u8,
     buffer_number : usize,
     size : usize
 }

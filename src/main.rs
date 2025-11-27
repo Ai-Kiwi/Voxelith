@@ -1,11 +1,5 @@
 #![windows_subsystem = "windows"]
-
-use std::thread;
-
-use futures::executor::block_on;
-
-use crate::{game::{InputEvent, game_thread}, render::render_thread};
-use std::sync::mpsc::channel;
+use crate::{render::render_thread};
 
 pub mod render;
 pub mod render_game;

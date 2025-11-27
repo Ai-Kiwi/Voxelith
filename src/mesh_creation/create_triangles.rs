@@ -1,4 +1,4 @@
-use crate::utils::{Color, Vec3, Vertex, VoxelPosition};
+use crate::utils::{Color, Vertex, VoxelPosition};
 
 pub enum TriangleSide {
     Top,

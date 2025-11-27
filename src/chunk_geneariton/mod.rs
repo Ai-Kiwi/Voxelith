@@ -1,32 +1,13 @@
 use core::f32;
-use std::{sync::mpsc::{Receiver, Sender}, thread::sleep, time::Instant};
+use std::{sync::mpsc::{Receiver, Sender}, thread::sleep};
 use fastnoise_lite::{FastNoiseLite, NoiseType};
-use rayon::{ThreadPoolBuilder, iter::{IntoParallelRefIterator, ParallelIterator}};
-use crate::{game::{chunk::{self, Chunk}, pixel::PixelTypes}, utils::VoxelPosition};
+use crate::{game::{chunk::Chunk, pixel::PixelTypes}, utils::VoxelPosition};
 
 pub struct NewChunkInfo {
     pub position : (i32, i32, i32),
     pub chunk : Chunk,
 }
 
-fn steepen_keep_range(v: f64, power: f64) -> f64 {
-    if power == 1.0 {
-        return v
-    }
-    let sign = v.signum();
-    let n = v.abs().powf(power);
-    let max = 1.0_f64.powf(power);
-    sign * (n / max)
-}
-
-
-
-//fn get_height(power : f64, frequency : f64, height : f64, random : f64, block_pos : VoxelPosition,  noise: &Simplex) -> f64 {
-    //    let value =  noise.get([(block_pos.x as f64  * (frequency / 1000.0) * WORLD_SCALE) + random, 0.0, (block_pos.z as f64 * (frequency / 1000.0) * WORLD_SCALE) + random]);
-    //
-    //    steepen_keep_range(value, power) * (height / WORLD_SCALE)
-    //}
-    
 fn get_multi_octave_map( frequency : f32, block_pos : VoxelPosition, random : f32, noise: &FastNoiseLite) -> f32 {
     let mut value =  noise.get_noise_2d((block_pos.x as f32  * frequency * WORLD_SCALE) + (random * 4.0), (block_pos.z as f32 * frequency * WORLD_SCALE) + (random * 4.0));
     value += noise.get_noise_2d((block_pos.x as f32  * frequency * WORLD_SCALE * 2.0) + (random * 2.0), (block_pos.z as f32 * frequency * WORLD_SCALE * 2.0) + (random * 2.0)) * 2.0;
@@ -120,7 +101,7 @@ fn create_chunk(noise : &FastNoiseLite, chunk_pos : (i32, i32, i32)) -> Chunk {
     for z in 0..16 {
         for x in 0..16 {
             let world_x = x + (16 * chunk_pos.0);
-            let world_y = 16 * chunk_pos.1;
+            let _world_y = 16 * chunk_pos.1;
             let world_z = z + (16 * chunk_pos.2);
             let voxel_position = VoxelPosition {
                 x: world_x,
@@ -189,9 +170,9 @@ fn create_chunk(noise : &FastNoiseLite, chunk_pos : (i32, i32, i32)) -> Chunk {
                 let data = biome_and_voxel_data.get((x + (16 * z)) as usize).unwrap();
                 let mut pixel_block = PixelTypes::Air;
                 let elevation = data.0;
-                let world_x  = x + (16 * chunk_pos.0) as i32;
+                let _world_x  = x + (16 * chunk_pos.0) as i32;
                 let world_y  = y + (16 * chunk_pos.1) as i32;
-                let world_z  = z + (16 * chunk_pos.2) as i32;
+                let _world_z  = z + (16 * chunk_pos.2) as i32;
                 match data.1 {
                     Biome::Plains => {
                         if (world_y as f32) < elevation - 4.0 {

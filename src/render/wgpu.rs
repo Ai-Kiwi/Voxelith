@@ -1,13 +1,10 @@
-use std::{collections::HashMap, rc::Weak, sync::Arc, time::Instant};
+use std::{collections::HashMap, sync::Arc, time::Instant};
 
-use bytemuck::{Pod, Zeroable};
-use dashmap::DashMap;
-use egui::Mesh;
 use egui_wgpu::Renderer;
 use wgpu::{Buffer, Texture, TextureView};
-use winit::{event_loop::ActiveEventLoop, keyboard::KeyCode, monitor, window::Window};
+use winit::{keyboard::KeyCode, window::Window};
 
-use crate::{render::{GameData, RenderFrameThreadPerformanceInfo, camera::{self, Camera, CameraUniform}, mesh::{FreeBufferSpace, MeshBuffer, MeshBufferReference}, render_frame::gui::GuiInfo}, utils::Vec2};
+use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{Camera, CameraUniform}, mesh::MeshBuffer, render_frame::gui::GuiInfo}, utils::Vec2};
 
 pub fn get_distance_to_camera_unsquared(camera : &Camera, x : f32, y : f32, z : f32) -> f32 {
     let dx = camera.position.x - x;

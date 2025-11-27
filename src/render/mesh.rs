@@ -1,10 +1,9 @@
 use std::{mem, sync::{Arc, Weak}, time::Instant};
 
 use dashmap::DashMap;
-use log::set_boxed_logger;
 use wgpu::{CommandEncoderDescriptor, util::DeviceExt};
 
-use crate::{render::{mesh, wgpu::{RenderState, get_distance_to_camera_unsquared}}, render_game::MAP_VRAM_SIZE, utils::{Mesh, Vertex}};
+use crate::{render::wgpu::RenderState, render_game::MAP_VRAM_SIZE, utils::{Mesh, Vertex}};
 
 pub struct MeshBufferReference {
     pub id : u64,
@@ -249,10 +248,8 @@ pub fn mesh_buffer_cleanup(render_state : &mut RenderState, buffer_number : usiz
         }
 
         //find the free spot for this
-        let mut i = 0;
         'space_test : for free_space in &mut free_spaces {
             if free_space.byte_start != next_mesh_pos {
-                i+=1;
                 continue;
             }
             //write data to temp buffer

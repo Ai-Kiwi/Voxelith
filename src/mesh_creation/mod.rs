@@ -1,6 +1,6 @@
-use crate::{game::{GameSnapshot, chunk::Chunk, pixel::PixelTypes, world::WorldData}, mesh_creation::create_mesh::create_chunk_mesh, render_game::chunk::ChunkMeshUpdate, utils::{Vec3, raycast_test}};
+use crate::{game::chunk::Chunk, mesh_creation::create_mesh::create_chunk_mesh, render_game::chunk::ChunkMeshUpdate};
 
-use std::{collections::HashMap, sync::{Arc, mpsc::{Receiver, Sender}}};
+use std::sync::{Arc, mpsc::{Receiver, Sender}};
 
 mod create_mesh;
 pub mod create_triangles;
@@ -19,9 +19,7 @@ pub struct ChunkMeshCreateRequest {
 }
 
 pub async fn chunk_mesh_creation_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, request_chunk_mesh_update_rx : &mut Receiver<ChunkMeshCreateRequest>)  {
-    loop {
-        let sun_direction = Vec3::new(0.3, 1.0, 0.5).normalize();
-        
+    loop {        
         let chunk_mesh_create_request = request_chunk_mesh_update_rx.recv();
         match chunk_mesh_create_request {
             Ok(request) => {

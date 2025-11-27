@@ -1,4 +1,4 @@
-use crate::{game::pixel::PixelTypes, mesh_creation::{ChunkMeshCreateRequest, create_triangles::{TriangleSide, add_triangle}, pix_colors::calculate_pix_color}, utils::{Color, Mesh, Vertex}};
+use crate::{game::pixel::PixelTypes, mesh_creation::{ChunkMeshCreateRequest, create_triangles::{TriangleSide, add_triangle}, pix_colors::calculate_pix_color}, utils::{Mesh, Vertex}};
 
 
 

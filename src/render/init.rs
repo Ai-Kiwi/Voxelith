@@ -1,13 +1,11 @@
 use std::{collections::HashMap, sync::Arc, time::Instant};
 
-use dashmap::DashMap;
 use egui::ViewportId;
 use egui_wgpu::{Renderer, RendererOptions};
-use rayon::vec;
-use wgpu::{ExperimentalFeatures, RenderPass, util::DeviceExt};
+use wgpu::{ExperimentalFeatures, util::DeviceExt};
 use winit::window::{Theme, Window};
 
-use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{Camera, CameraUniform}, mesh::FreeBufferSpace, render_frame::gui::GuiInfo, wgpu::{RenderState, create_depth_texture}}, render_game::MAP_VRAM_SIZE, utils::{Vec2, Vertex}};
+use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{Camera, CameraUniform}, render_frame::gui::GuiInfo, wgpu::{RenderState, create_depth_texture}}, render_game::MAP_VRAM_SIZE, utils::{Vec2, Vertex}};
 
 impl RenderState {
     // We don't need this to be async right now,
@@ -238,7 +236,7 @@ impl RenderState {
         let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         //setup egui
-        let mut egui_renderer = Renderer::new(&device, surface_format, RendererOptions { 
+        let egui_renderer = Renderer::new(&device, surface_format, RendererOptions { 
             msaa_samples: 1, 
             depth_stencil_format: None, 
             dithering: false, 

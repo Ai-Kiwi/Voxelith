@@ -1,5 +1,3 @@
-use cgmath::Point3;
-
 use crate::{game::InputEvent, render::wgpu::RenderState, render_game::GameData, utils::Vec3};
 
 pub fn handle_user_input(render_state : &mut RenderState, game_data : &mut GameData) {
