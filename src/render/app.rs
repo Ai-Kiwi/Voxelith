@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Instant};
 
 use egui::ViewportId;
-use winit::{application::ApplicationHandler, event::{DeviceEvent, DeviceId, KeyEvent, WindowEvent}, event_loop::ActiveEventLoop, keyboard::{KeyCode, PhysicalKey}, platform, window::{Theme, Window}};
+use winit::{application::ApplicationHandler, dpi::PhysicalPosition, event::{DeviceEvent, DeviceId, KeyEvent, WindowEvent}, event_loop::ActiveEventLoop, keyboard::{KeyCode, PhysicalKey}, platform, window::{Theme, Window}};
 
 use crate::{mesh_creator::{MeshCreator, tick_mesh_creator}, render::{GameData, mesh::mesh_buffer_cleanup, wgpu::RenderState}, render_game::tick_game_render_logic, utils::Vec2};
 
@@ -167,6 +167,10 @@ impl ApplicationHandler<RenderState> for App {
                     }
                 }
                 state.performance_info.total_render_time = render_time_start.elapsed().as_secs_f32();
+            },
+            WindowEvent::CursorMoved { device_id: _device_id, position } => { 
+                state.mouse_position.x = position.x as f32;
+                state.mouse_position.y = position.y as f32;
             },
             WindowEvent::KeyboardInput {
                 event:

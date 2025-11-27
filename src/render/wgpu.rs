@@ -63,6 +63,7 @@ pub struct RenderState {
     pub keys_pressed : HashMap<KeyCode,()>,
     pub keys_released : HashMap<KeyCode,()>,
     pub mouse_position_delta: Vec2,
+    pub mouse_position: Vec2,
     //buffers used, although store game data they are overridden and temporary.
     pub temporary_move_buffer : Buffer, 
     pub mesh_id_upto : u64,

@@ -278,6 +278,7 @@ impl RenderState {
             last_frame_time: Instant::now(),
             delta_time: 0.0,
             mouse_position_delta: Vec2::new(0.0, 0.0),
+            mouse_position: Vec2::new(0.0, 0.0),
             depth_texture,
             depth_view,
             egui_renderer,

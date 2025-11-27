@@ -59,7 +59,7 @@ pub async fn render_thread() {
 
     app.game_data = Some(game_state);
 
-    app.page_open = app::PageOpen::Game;
+    app.page_open = app::PageOpen::MeshCreator;
     app.mesh_creator = Some(MeshCreator::new());
     
 
