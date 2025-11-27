@@ -134,8 +134,8 @@ pub fn mesh_buffer_cleanup(render_state : &mut RenderState) {
 
     //move items to clean up gaps
     let mut mesh_list: Vec<_> = render_state.meshs.iter_mut().collect();
-    mesh_list.retain(|mesh| mesh.1.byte_vertex_length != 0);
-    mesh_list.sort_by_key(|mesh| mesh.1.byte_vertex_position);
+    mesh_list.retain(|mesh| mesh.value().byte_vertex_length != 0);
+    mesh_list.sort_by_key(|mesh| mesh.value().byte_vertex_position);
 
     let mut command_encoder = render_state.device.create_command_encoder(&CommandEncoderDescriptor {
         label: Some("Chunk buffer defrag"),
@@ -144,10 +144,10 @@ pub fn mesh_buffer_cleanup(render_state : &mut RenderState) {
 
 
     let mut next_mesh_pos = 0;
-    for mesh in mesh_list {
+    for mut mesh in mesh_list {
         //println!("{} {}", next_mesh_pos, mesh.1.byte_vertex_position);
-        if next_mesh_pos == mesh.1.byte_vertex_position || mesh.1.byte_vertex_position - next_mesh_pos > MIN_FREE_SPACE_SIZE {
-            next_mesh_pos = mesh.1.byte_vertex_length + mesh.1.byte_vertex_position;
+        if next_mesh_pos == mesh.value().byte_vertex_position || mesh.value().byte_vertex_position - next_mesh_pos > MIN_FREE_SPACE_SIZE {
+            next_mesh_pos = mesh.value().byte_vertex_length + mesh.value().byte_vertex_position;
             continue;
         }
 
@@ -161,10 +161,10 @@ pub fn mesh_buffer_cleanup(render_state : &mut RenderState) {
             //write data to temp buffer
             command_encoder.copy_buffer_to_buffer(
                 &render_state.mesh_buffer, 
-                    mesh.1.byte_vertex_position as u64, 
+                    mesh.value().byte_vertex_position as u64, 
                 &render_state.temporary_move_buffer, 
                 0, 
-                Some(mesh.1.byte_vertex_length as u64),
+                Some(mesh.value().byte_vertex_length as u64),
             );
             //write data back in new place
             command_encoder.copy_buffer_to_buffer(
@@ -172,16 +172,16 @@ pub fn mesh_buffer_cleanup(render_state : &mut RenderState) {
                     0, 
                 &render_state.mesh_buffer, 
                 free_space.byte_start as u64, 
-                Some(mesh.1.byte_vertex_length as u64),
+                Some(mesh.value().byte_vertex_length as u64),
             );
 
 
             //save changes to mesh info
-            mesh.1.byte_vertex_position = free_space.byte_start;
-            mesh.1.vertex_position = free_space.byte_start / mem::size_of::<Vertex>() as u32;
+            mesh.value_mut().byte_vertex_position = free_space.byte_start;
+            mesh.value_mut().vertex_position = free_space.byte_start / mem::size_of::<Vertex>() as u32;
 
             //save changes to byte info
-            free_space.byte_start += mesh.1.byte_vertex_length;
+            free_space.byte_start += mesh.value().byte_vertex_length;
 
             break 'space_test;
         }
@@ -199,7 +199,7 @@ pub fn mesh_buffer_cleanup(render_state : &mut RenderState) {
             }
         }
 
-        next_mesh_pos = mesh.1.byte_vertex_length + mesh.1.byte_vertex_position; //will go 1 larger then te amount which is expected. As it is 0 based
+        next_mesh_pos = mesh.value().byte_vertex_length + mesh.value().byte_vertex_position; //will go 1 larger then te amount which is expected. As it is 0 based
 
         //base the limit by how much free room is left in vram
         if chunk_cleanup_started.elapsed().as_secs_f32() > 0.03 / ((real_free_space as f32 / MAP_VRAM_SIZE as f32) * 10.0) {

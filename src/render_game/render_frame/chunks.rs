@@ -16,13 +16,15 @@ pub fn render_chunks(render_state : &RenderState, render_pass : &mut RenderPass<
 
     //render the terrain.
 
+    let meshs = &render_state.meshs;
+
     //setup opaque
     let opaque_indirect_draw_calls: Vec<DrawIndirectArgs> = game_data.chunk_meshs
-    .iter()
+    .par_iter()
     .filter(|mesh| mesh.0.3 == false && mesh.1.size > 0)
     .map(|chunk| {
         let id = chunk.1.pointer.id;
-        let mesh_info = render_state.meshs.get(&id).unwrap();
+        let mesh_info = meshs.get(&id).unwrap();
         DrawIndirectArgs {
             vertex_count: mesh_info.vertex_length,
             instance_count: 1,
@@ -34,11 +36,11 @@ pub fn render_chunks(render_state : &RenderState, render_pass : &mut RenderPass<
 
     //setup transparent
     let transparent_indirect_draw_calls: Vec<DrawIndirectArgs> = game_data.chunk_meshs
-    .iter()
+    .par_iter()
     .filter(|mesh| mesh.0.3 == true && mesh.1.size > 0)
     .map(|chunk| {
         let id = chunk.1.pointer.id;
-        let mesh_info = render_state.meshs.get(&id).unwrap();
+        let mesh_info = meshs.get(&id).unwrap();
         DrawIndirectArgs {
             vertex_count: mesh_info.vertex_length,
             instance_count: 1,

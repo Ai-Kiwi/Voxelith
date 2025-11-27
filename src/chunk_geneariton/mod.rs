@@ -1,5 +1,5 @@
 use core::f32;
-use std::{os::unix::thread, sync::mpsc::{Receiver, Sender}, thread::sleep, time::Instant};
+use std::{sync::mpsc::{Receiver, Sender}, thread::sleep, time::Instant};
 use fastnoise_lite::{FastNoiseLite, NoiseType};
 use rayon::{ThreadPoolBuilder, iter::{IntoParallelRefIterator, ParallelIterator}};
 use crate::{game::{chunk::{self, Chunk}, pixel::PixelTypes}, utils::VoxelPosition};

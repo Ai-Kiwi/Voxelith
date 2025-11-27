@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc, time::Instant};
 
+use dashmap::DashMap;
 use egui::ViewportId;
 use egui_wgpu::{Renderer, RendererOptions};
 use rayon::vec;
@@ -339,7 +340,7 @@ impl RenderState {
             gui_info: GuiInfo::new(),
             mesh_buffer,
             free_mesh_buffer_ranges,
-            meshs: HashMap::new(),
+            meshs: DashMap::new(),
             mesh_id_upto : 1, // start at 1 as 0 means empty data
             performance_info,
         })

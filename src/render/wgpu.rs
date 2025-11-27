@@ -1,6 +1,7 @@
 use std::{collections::HashMap, rc::Weak, sync::Arc, time::Instant};
 
 use bytemuck::{Pod, Zeroable};
+use dashmap::DashMap;
 use egui::Mesh;
 use egui_wgpu::Renderer;
 use wgpu::{Texture, TextureView};
@@ -70,7 +71,7 @@ pub struct RenderState {
     pub temporary_move_buffer: wgpu::Buffer,
     pub mesh_buffer: wgpu::Buffer,
     pub free_mesh_buffer_ranges : Vec<FreeBufferSpace>,
-    pub meshs : HashMap<u64,MeshBufferReference>,
+    pub meshs : DashMap<u64,MeshBufferReference>,
     pub mesh_id_upto : u64,
 
 
