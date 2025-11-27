@@ -11,7 +11,9 @@ pub struct MeshCreator {
     pub mesh_buffer_size : u32,
     pub camera : Camera,
     pub camera_distance : f32,
-    pub selected_color : [u8; 3]
+    pub selected_color : [u8; 3],
+    pub file_editing : String,
+    pub update_due : bool
 }
 
 impl MeshCreator {
@@ -23,6 +25,8 @@ impl MeshCreator {
             camera: Camera::new(),
             camera_distance: 10.0,
             selected_color: [255,255,255],
+            file_editing: "basic".to_string(),
+            update_due: true,
         }
     }
 }
@@ -51,19 +55,20 @@ pub fn tick_mesh_creator(render_state : &mut RenderState, mesh_creator : &mut Me
 
     render_state.camera_uniform.update_view_proj(&mut mesh_creator.camera, render_state.config.width, render_state.config.height);
 
-    mesh_creator.mesh_voxels.insert((0,0,0), Color ::new(255, 255, 255, 255));
-
-    mesh_creator.update_mesh(render_state);
-
-
+    if mesh_creator.update_due {
+        mesh_creator.update_mesh(render_state);
+        mesh_creator.update_due = false;
+    }
 }
 
 pub fn render_mesh_creator(render_state : &mut RenderState, render_pass : &mut RenderPass<'_>, mesh_creator : &mut MeshCreator) {
     render_pass.set_pipeline(&render_state.opaque_render_pipeline);
     render_pass.set_bind_group(0, &render_state.camera_bind_group, &[]);
 
-    if let Some(mesh_buffer) = &mesh_creator.mesh_buffer {
-        render_pass.set_vertex_buffer(0, mesh_buffer.slice(..));
-        render_pass.draw(0..mesh_creator.mesh_buffer_size, 0..1);
+    if mesh_creator.mesh_buffer_size > 0 {
+        if let Some(mesh_buffer) = &mesh_creator.mesh_buffer {
+            render_pass.set_vertex_buffer(0, mesh_buffer.slice(..));
+            render_pass.draw(0..mesh_creator.mesh_buffer_size, 0..1);
+        }
     }
 }

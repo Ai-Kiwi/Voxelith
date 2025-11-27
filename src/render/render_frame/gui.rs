@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use egui::{Color32, RichText};
 use egui_wgpu::ScreenDescriptor;
 use wgpu::RenderPassColorAttachment;
@@ -72,10 +74,19 @@ impl RenderState {
                         egui::Window::new("Edit Picker").show(&ctx, |ui| {
                             ui.vertical(|ui| {
                                 ui.color_edit_button_srgb(&mut mesh_creator.selected_color);
-                                ui.label("text");
-                                ui.label("text");
-                                ui.label("text");
-                                ui.label("text");
+                                ui.text_edit_singleline(&mut mesh_creator.file_editing);
+                                ui.horizontal(|ui| {
+                                    if ui.button("Load").clicked() {
+                                        let hashmap = MeshCreator::load_mesh_file_to_hashmap(&mesh_creator.file_editing);
+                                        if let Some(hashmap) = hashmap {
+                                            mesh_creator.mesh_voxels = hashmap;
+                                            mesh_creator.update_due = true;
+                                        }
+                                    }
+                                    if ui.button("Save").clicked() {
+                                        let _ = MeshCreator::save_mesh_hashmap_to_file(&mesh_creator.file_editing,&mesh_creator.mesh_voxels);
+                                    }
+                                })
                             })
                         });
                     }
