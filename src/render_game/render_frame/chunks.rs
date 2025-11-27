@@ -7,10 +7,8 @@ use crate::{render::{camera, mesh, wgpu::RenderState}, render_game::GameData, ut
 pub fn render_chunks(render_state : &RenderState, render_pass : &mut RenderPass<'_>, game_data : &mut GameData) {
     render_pass.set_pipeline(&render_state.opaque_render_pipeline);
     
-    let chunks : Vec<_> = game_data.chunk_meshs.iter().map(|chunk | {
-        chunk
-    }).collect();
-    
+    let chunks = &game_data.cache_chunk_meshs;
+
     //let camera_direction_normal = Vec3::new(
     //    game_data.camera.target.x - game_data.camera.position.x, 
     //    game_data.camera.target.y - game_data.camera.position.y, 

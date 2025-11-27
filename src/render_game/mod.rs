@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::{Arc, mpsc::{Receiver, Sender}}};
+use std::{collections::{BTreeMap, HashMap}, sync::{Arc, mpsc::{Receiver, Sender}}};
 
 use crate::{game::InputEvent, render::{camera::Camera, mesh::GpuMeshReference, wgpu::RenderState}, render_game::{chunk::{ChunkMeshUpdate, EntityRenderData, update_chunk_meshs}, handle_input::handle_user_input}, utils::Vec3};
 
@@ -13,17 +13,6 @@ pub mod chunk;
 pub mod entities;
 mod handle_input;
 pub mod render_frame;
-
-impl GameData {
-    pub fn new() -> GameData {
-        GameData {
-            camera : Camera::new(),
-            chunk_meshs: HashMap::new(),
-            chunk_mesh_data: HashMap::new(),
-            render_channels: todo!(),
-        }
-    }
-}
 
 pub struct RenderThreadChannels {
     pub chunk_mesh_update_rx : Receiver<ChunkMeshUpdate>, 
@@ -41,6 +30,7 @@ pub struct ChunkInfo {
 pub struct GameData {
     pub camera : Camera,
     pub chunk_meshs : HashMap<(i32,i32,i32,bool),ChunkInfo>,
+    pub cache_chunk_meshs : BTreeMap<(i32,i32,i32,bool),ChunkInfo>,
     pub chunk_mesh_data : HashMap<(i32,i32,i32,bool),ChunkMeshUpdate>,
     pub render_channels : RenderThreadChannels,
     //let mut entities_to_render: HashMap<u64,EntityRenderData> = HashMap::new();

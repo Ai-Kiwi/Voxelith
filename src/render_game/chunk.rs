@@ -22,14 +22,24 @@ pub fn update_render_chunk_mesh(render_state : &mut RenderState, game_data : &mu
         let reference = create_gpu_mesh(render_state, &mesh_data);
         game_data.chunk_meshs.insert(key,ChunkInfo {
             buffer_number: reference.buffer_number.clone(),
-            pointer: reference,
+            pointer: reference.clone(),
             lod : lod,
             size : mesh_data.vertices.len(),
         });
-        
+        if mesh_data.vertices.len() > 0 {
+            game_data.cache_chunk_meshs.insert(key,ChunkInfo {
+                buffer_number: reference.buffer_number.clone(),
+                pointer: reference,
+                lod : lod,
+                size : mesh_data.vertices.len(),
+            });        
+        }else{
+            game_data.cache_chunk_meshs.remove(&key);
+        }
     }else{
         game_data.chunk_meshs.remove(&key);
-        
+        game_data.cache_chunk_meshs.remove(&key);
+
     }
 }
 

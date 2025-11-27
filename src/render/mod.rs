@@ -1,4 +1,4 @@
-use std::{collections::HashMap, hash::Hash, rc::Weak, sync::{Arc, mpsc::{Receiver, Sender, channel}}, thread, time::Instant};
+use std::{collections::{BTreeMap, HashMap}, hash::Hash, rc::Weak, sync::{Arc, mpsc::{Receiver, Sender, channel}}, thread, time::Instant};
 
 use pollster::block_on;
 use ::wgpu::Buffer;
@@ -54,6 +54,7 @@ pub async fn render_thread() {
             input_event_tx,
         },
         camera: Camera::new(),
+        cache_chunk_meshs: BTreeMap::new(),
     };
 
     app.game_data = Some(game_state);
