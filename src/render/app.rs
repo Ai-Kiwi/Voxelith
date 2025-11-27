@@ -139,7 +139,9 @@ impl ApplicationHandler<RenderState> for App {
 
                 //clean up mesh buffers
                 let update_mesh_buffer_tick = Instant::now();
-                mesh_buffer_cleanup(state);
+                for i in 0..state.mesh_buffers.len() {
+                    mesh_buffer_cleanup(state, i);
+                }
                 state.performance_info.update_mesh_buffer = update_mesh_buffer_tick.elapsed().as_secs_f32();
                 
                 //cleanup data now that frame info has been processed

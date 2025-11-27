@@ -7,7 +7,7 @@ pub const LEVEL_1_LOD_DISTANCE: f32 = 480.0;
 pub const LEVEL_2_LOD_DISTANCE: f32 = LEVEL_1_LOD_DISTANCE * 2.0;
 pub const LEVEL_3_LOD_DISTANCE: f32 = LEVEL_2_LOD_DISTANCE * 2.0;
 pub const LEVEL_4_LOD_DISTANCE: f32 = LEVEL_3_LOD_DISTANCE * 2.0;
-pub const MAP_VRAM_SIZE: u64 = 3 * 1024 * 1024 * 1024;
+pub const MAP_VRAM_SIZE: u64 = 256 * 1024 * 1024; //256mb
 
 pub mod chunk;
 pub mod entities;
@@ -34,6 +34,7 @@ pub struct RenderThreadChannels {
 pub struct ChunkInfo {
     pointer : Arc<GpuMeshReference>,
     lod : u8,
+    buffer_number : usize,
     size : usize
 }
 

@@ -89,36 +89,6 @@ impl RenderState {
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             }
         );
-        
-        let mesh_buffer = device.create_buffer( &wgpu::BufferDescriptor {
-            label: Some("Multi chunk buffer"),
-            usage: wgpu::BufferUsages::VERTEX
-            | wgpu::BufferUsages::COPY_DST
-            | wgpu::BufferUsages::STORAGE
-            | wgpu::BufferUsages::INDIRECT
-            | wgpu::BufferUsages::COPY_SRC,
-            size: MAP_VRAM_SIZE,
-            mapped_at_creation: false, 
-        });
-        let mut free_mesh_buffer_ranges = Vec::new();
-        free_mesh_buffer_ranges.push(FreeBufferSpace {
-            byte_start: 0,
-            byte_len: (MAP_VRAM_SIZE as u32) - 1,
-        });
-
-        let opaque_indirect_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Indirect Buffer"),
-            size: 16 * 1024 * 1024, // 16 MB
-            usage: wgpu::BufferUsages::INDIRECT | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-        let transparent_indirect_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Indirect Buffer"),
-            size: 16 * 1024 * 1024, // 16 MB
-            usage: wgpu::BufferUsages::INDIRECT | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
 
         let temporary_move_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Temporary Move Buffer"),
@@ -126,18 +96,7 @@ impl RenderState {
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
-
-        let opaque_count_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Opaque Count Buffer"),
-            contents: bytemuck::cast_slice(&[0 as u32]),
-            usage: wgpu::BufferUsages::INDIRECT | wgpu::BufferUsages::COPY_DST,
-        });
-
-        let transparent_count_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Transparent Count Buffer"),
-            contents: bytemuck::cast_slice(&[0 as u32]),
-            usage: wgpu::BufferUsages::INDIRECT | wgpu::BufferUsages::COPY_DST,
-        });
+        
 
         //setup render info
         let camera_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -299,11 +258,6 @@ impl RenderState {
             main_content_render_time: 0.0,
             render_gui_time: 0.0,
             finish_render_time: 0.0,
-            percent_mesh_buffer_use: 0.0,
-            percent_mesh_buffer_usable: 0.0,
-            fragments_mesh_buffer: 0,
-            bad_fragments_mesh_buffer: 0,
-            buffer_defragmentation: false,
         };
 
         Ok(Self {
@@ -324,11 +278,6 @@ impl RenderState {
             last_frame_time: Instant::now(),
             delta_time: 0.0,
             mouse_position_delta: Vec2::new(0.0, 0.0),
-            opaque_indirect_buffer,
-            transparent_indirect_buffer,
-            temporary_move_buffer,
-            opaque_count_buffer,
-            transparent_count_buffer,
             depth_texture,
             depth_view,
             egui_renderer,
@@ -338,11 +287,10 @@ impl RenderState {
             game_selected: true,
             fullscreen: false,
             gui_info: GuiInfo::new(),
-            mesh_buffer,
-            free_mesh_buffer_ranges,
-            meshs: DashMap::new(),
             mesh_id_upto : 1, // start at 1 as 0 means empty data
             performance_info,
+            mesh_buffers: Vec::new(),
+            temporary_move_buffer,
         })
     }
 }

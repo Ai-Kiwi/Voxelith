@@ -4,10 +4,10 @@ use bytemuck::{Pod, Zeroable};
 use dashmap::DashMap;
 use egui::Mesh;
 use egui_wgpu::Renderer;
-use wgpu::{Texture, TextureView};
+use wgpu::{Buffer, Texture, TextureView};
 use winit::{event_loop::ActiveEventLoop, keyboard::KeyCode, monitor, window::Window};
 
-use crate::{render::{GameData, RenderFrameThreadPerformanceInfo, camera::{self, Camera, CameraUniform}, mesh::{FreeBufferSpace, MeshBufferReference}, render_frame::gui::GuiInfo}, utils::Vec2};
+use crate::{render::{GameData, RenderFrameThreadPerformanceInfo, camera::{self, Camera, CameraUniform}, mesh::{FreeBufferSpace, MeshBuffer, MeshBufferReference}, render_frame::gui::GuiInfo}, utils::Vec2};
 
 pub fn get_distance_to_camera_unsquared(camera : &Camera, x : f32, y : f32, z : f32) -> f32 {
     let dx = camera.position.x - x;
@@ -64,15 +64,9 @@ pub struct RenderState {
     pub keys_released : HashMap<KeyCode,()>,
     pub mouse_position_delta: Vec2,
     //buffers used, although store game data they are overridden and temporary.
-    pub opaque_indirect_buffer: wgpu::Buffer,
-    pub transparent_indirect_buffer: wgpu::Buffer,
-    pub opaque_count_buffer: wgpu::Buffer,
-    pub transparent_count_buffer: wgpu::Buffer,
-    pub temporary_move_buffer: wgpu::Buffer,
-    pub mesh_buffer: wgpu::Buffer,
-    pub free_mesh_buffer_ranges : Vec<FreeBufferSpace>,
-    pub meshs : DashMap<u64,MeshBufferReference>,
+    pub temporary_move_buffer : Buffer, 
     pub mesh_id_upto : u64,
+    pub mesh_buffers : Vec<MeshBuffer>,
 
 
     //gui related stuff. Also engine

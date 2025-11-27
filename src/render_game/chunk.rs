@@ -21,9 +21,10 @@ pub fn update_render_chunk_mesh(render_state : &mut RenderState, game_data : &mu
     if let Some(mesh_data) = mesh {
         let reference = create_gpu_mesh(render_state, &mesh_data);
         game_data.chunk_meshs.insert(key,ChunkInfo {
+            buffer_number: reference.buffer_number.clone(),
             pointer: reference,
             lod : lod,
-            size : mesh_data.vertices.len()
+            size : mesh_data.vertices.len(),
         });
         
     }else{
