@@ -55,7 +55,7 @@ impl RenderState {
                 },
                 PageOpen::MeshCreator => {
                     if let Some(mesh_creator) = mesh_creator {
-                        egui::Window::new("Hierarchy").show(&ctx, |ui| {
+                        egui::Window::new("Edit Picker").show(&ctx, |ui| {
                             ui.vertical(|ui| {
                                 ui.color_edit_button_srgb(&mut mesh_creator.selected_color);
                                 ui.label("text");
