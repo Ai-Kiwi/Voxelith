@@ -1,6 +1,8 @@
 use std::{ops::{Add, AddAssign, Div, Mul, Sub}, thread::sleep, time::Duration};
 
+use bincode::{Decode, Encode};
 use bytemuck::{Pod, Zeroable};
+use serde::{Deserialize, Serialize};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
@@ -223,7 +225,7 @@ impl Vec4 {
 
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+#[derive(Clone, Copy, Debug, Pod, Zeroable, Serialize, Deserialize, Decode, Encode)]
 pub struct Color {
     pub r : u8,
     pub g : u8,

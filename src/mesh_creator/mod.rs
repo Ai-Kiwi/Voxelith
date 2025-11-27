@@ -4,6 +4,7 @@ use wgpu::{Buffer, RenderPass};
 use crate::{render::{camera::Camera, mesh, wgpu::RenderState}, utils::{Color, Vec3}};
 
 mod create_mesh;
+mod files;
 
 pub struct MeshCreator {
     pub mesh_voxels : HashMap<(i32,i32,i32),Color>,
