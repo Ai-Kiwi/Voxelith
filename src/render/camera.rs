@@ -44,7 +44,7 @@ pub struct Camera {
     pub target: cgmath::Point3<f32>,
     up: cgmath::Vector3<f32>,
     pub aspect: f32,
-    fovy: f32,
+    pub fovy: f32,
     znear: f32,
     zfar: f32,
 }

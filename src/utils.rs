@@ -303,3 +303,64 @@ pub fn raycast_test(start_position : Vec3, direction_normal : Vec3) -> impl Iter
         Some(current_position)
     })
 }
+
+
+
+pub fn voxel_raycast_test(start_position : Vec3, direction_normal : Vec3) -> impl Iterator<Item = Vec3> {
+
+    let mut current_position : Vec3 = start_position;
+
+    std::iter::from_fn(move || {
+        let mut next_x = if current_position.x - start_position.x > 0.0 {
+            current_position.x.ceil()
+        }else{
+            current_position.x.floor()
+        };
+        if next_x.fract() == 0.0 {
+            if direction_normal.x > 0.0 {
+                next_x += 1.0;
+            }else{
+                next_x -= 1.0;
+            }
+        }
+
+        let mut next_y = if current_position.y - start_position.y > 0.0 {
+            current_position.y.ceil()
+        }else{
+            current_position.y.floor()
+        };
+        if next_y.fract() == 0.0 {
+            if direction_normal.y > 0.0 {
+                next_y += 1.0;
+            }else{
+                next_y -= 1.0;
+            }
+        }
+
+        let mut next_z = if current_position.z - start_position.z > 0.0 {
+            current_position.z.ceil()
+        }else{
+            current_position.z.floor()
+        };
+        if next_z.fract() == 0.0 {
+            if direction_normal.z > 0.0 {
+                next_z += 1.0;
+            }else{
+                next_z -= 1.0;
+            }
+        }
+
+        let dist_x = (next_x - current_position.x) / direction_normal.x;
+        let dist_y = (next_y - current_position.y) / direction_normal.y;
+        let dist_z = (next_z - current_position.z) / direction_normal.z;
+
+        if dist_x <= dist_y && dist_x <= dist_z {
+            current_position += direction_normal * dist_x;
+        }else if dist_y <= dist_x && dist_y <= dist_z {
+            current_position += direction_normal * dist_y;
+        }else if dist_z <= dist_y && dist_z <= dist_x {
+            current_position += direction_normal * dist_z;
+        } 
+        Some(Vec3::new(current_position.x, current_position.y, current_position.z))
+    })
+}
