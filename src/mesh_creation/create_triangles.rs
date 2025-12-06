@@ -1,4 +1,4 @@
-use crate::utils::{Color, Vertex, VoxelPosition};
+use crate::utils::{Color, Material, Vertex, VoxelPosition};
 
 pub enum TriangleSide {
     Top,
@@ -9,9 +9,9 @@ pub enum TriangleSide {
     Back,
 }
 
-pub fn add_triangle(vertices : &mut Vec<Vertex>, side : TriangleSide, x_position : i32, y_position : i32, z_position : i32, lod : i32, color : Color) {
+pub fn add_triangle(vertices : &mut Vec<Vertex>, side : TriangleSide, x_position : i32, y_position : i32, z_position : i32, lod : i32, color : &Color, material : &Material) {
     let x_offset = x_position;
-    let y_offset = y_position - lod;
+    let y_offset = y_position;
     let z_offset = z_position;
 
     let x0: i32 = x_offset;
@@ -74,12 +74,21 @@ pub fn add_triangle(vertices : &mut Vec<Vertex>, side : TriangleSide, x_position
             ],
     };
 
+    let side_value = match side {
+        TriangleSide::Top => 0,
+        TriangleSide::Bottom => 1,
+        TriangleSide::Left => 2,
+        TriangleSide::Right => 3,
+        TriangleSide::Front => 4,
+        TriangleSide::Back => 5,
+    };
+
     // Push vertices with color & normal
     for &pos in &positions {
         vertices.push(Vertex {
             position: pos,
-            color: color.into(),
-            extra: [255,0,0,0],           // or any color per face
+            color: color.clone(),
+            extra: [material.reflectiveness,material.roughness,material.metallicness,side_value],           // or any color per face
         });
     }
 }

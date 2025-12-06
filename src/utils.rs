@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 pub struct Vertex {
     pub position :  VoxelPosition,
     pub color : Color,
-    pub extra : [u8; 4],
+    pub extra : [u8; 4], //reflectiveness, roughness, metalic. Normal
 }
 
 impl Vertex {
@@ -233,9 +233,25 @@ pub struct Color {
     pub a : u8
 }
 
+pub struct Material {
+    pub reflectiveness : u8,
+    pub roughness : u8,
+    pub metallicness : u8,
+}
+
 impl Color {
     pub const fn new(r : u8, g : u8, b : u8, a : u8) -> Color {
         Color { r, g, b, a }
+    }
+}
+
+impl Material {
+    pub const fn new(reflectiveness : u8, roughness : u8, metallicness : u8) -> Material {
+        Material {
+            reflectiveness : reflectiveness,
+            roughness : roughness,
+            metallicness : metallicness,
+        }
     }
 }
 

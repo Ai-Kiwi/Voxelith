@@ -58,7 +58,7 @@ pub async fn render_thread() {
 
     app.game_data = Some(game_state);
 
-    app.page_open = app::PageOpen::MeshCreator;
+    app.page_open = app::PageOpen::Game;
     app.mesh_creator = Some(MeshCreator::new());
     
 
@@ -68,3 +68,5 @@ pub async fn render_thread() {
     app.game_data = None;
     app.state = None;
 }
+
+// https://acko.net/blog/teardown-frame-teardown/

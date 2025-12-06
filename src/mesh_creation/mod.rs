@@ -35,6 +35,7 @@ pub async fn chunk_mesh_creation_thread(chunk_mesh_update_tx : Sender<ChunkMeshU
                     mesh_l4: None,
                     mesh_l8: None,
                     transparent: false,
+                    data: request.chunk.clone(),
                 });
 
                 //transparent
@@ -49,6 +50,7 @@ pub async fn chunk_mesh_creation_thread(chunk_mesh_update_tx : Sender<ChunkMeshU
                     mesh_l4: None,
                     mesh_l8: None, 
                     transparent: true,
+                    data: request.chunk.clone(),
                 });
             },
             Err(_) => {

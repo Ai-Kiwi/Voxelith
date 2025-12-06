@@ -20,34 +20,6 @@ impl RenderState {
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Render Encoder"),
         });
-
-        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("Render Pass"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    store: wgpu::StoreOp::Store,
-                    load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: 0.1,
-                        g: 0.2,
-                        b: 0.3,
-                        a: 1.0,
-                    }),
-                },
-                depth_slice: None,
-            })],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment { 
-                view: &self.depth_view, 
-                depth_ops: Some(wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(1.0),
-                    store: wgpu::StoreOp::Store,
-                }), 
-                stencil_ops: None,
-            }),
-            occlusion_query_set: None,
-            timestamp_writes: None,
-        });
         
         self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
 
@@ -58,7 +30,7 @@ impl RenderState {
         match page_open {
             PageOpen::Game => {
                 if let Some(game_data) = game_data {
-                    render_chunks(self, &mut render_pass, game_data);
+                    render_chunks(self, game_data, &view, &mut encoder);
                 }
             },
             PageOpen::TitleScreen => {
@@ -66,7 +38,7 @@ impl RenderState {
             },
             PageOpen::MeshCreator => {
                 if let Some(mesh_creator) = mesh_creator {
-                    render_mesh_creator(self,&mut render_pass, mesh_creator);
+                    render_mesh_creator(self, mesh_creator, &view, &mut encoder);
                 }
             },
         }
@@ -75,9 +47,6 @@ impl RenderState {
 
 
         //render the entities
-
-
-        drop(render_pass);
 
         //render gui
         let render_gui_start = Instant::now();

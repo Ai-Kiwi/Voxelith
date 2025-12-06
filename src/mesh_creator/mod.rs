@@ -1,5 +1,5 @@
 use std::{collections::HashMap, f32::consts::PI};
-use wgpu::{Buffer, RenderPass};
+use wgpu::{Buffer, CommandEncoder, RenderPass};
 use crate::{render::{camera::Camera, wgpu::RenderState}, utils::{Color, Vec3, raycast_test, voxel_raycast_test}};
 
 mod create_mesh;
@@ -110,8 +110,37 @@ pub fn tick_mesh_creator(render_state : &mut RenderState, mesh_creator : &mut Me
     }
 }
 
-pub fn render_mesh_creator(render_state : &mut RenderState, render_pass : &mut RenderPass<'_>, mesh_creator : &mut MeshCreator) {
-    render_pass.set_pipeline(&render_state.opaque_render_pipeline);
+pub fn render_mesh_creator(render_state : &mut RenderState, mesh_creator : &mut MeshCreator, view: &wgpu::TextureView, encoder : &mut CommandEncoder) {
+    let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("Render Pass"),
+        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+            view: &view,
+            resolve_target: None,
+            ops: wgpu::Operations {
+                store: wgpu::StoreOp::Store,
+                load: wgpu::LoadOp::Clear(wgpu::Color {
+                    r: 0.1,
+                    g: 0.2,
+                    b: 0.3,
+                    a: 1.0,
+                }),
+            },
+            depth_slice: None,
+        })],
+        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment { 
+            view: &render_state.depth_view, 
+            depth_ops: Some(wgpu::Operations {
+                load: wgpu::LoadOp::Clear(1.0),
+                store: wgpu::StoreOp::Store,
+            }), 
+            stencil_ops: None,
+        }),
+        occlusion_query_set: None,
+        timestamp_writes: None,
+    });
+
+
+    render_pass.set_pipeline(&render_state.basic_mesh_render_pipeline);
     render_pass.set_bind_group(0, &render_state.camera_bind_group, &[]);
 
     if mesh_creator.mesh_buffer_size > 0 {
