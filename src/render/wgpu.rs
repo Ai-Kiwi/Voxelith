@@ -1,12 +1,13 @@
 use std::{collections::HashMap, sync::Arc, time::Instant};
 
+use cgmath::Point3;
 use egui_wgpu::Renderer;
-use wgpu::{Buffer, Texture, TextureView};
+use wgpu::{BindGroupLayout, Buffer, Device, Texture, TextureView, util::DeviceExt};
 use winit::{keyboard::KeyCode, window::Window};
 
-use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{Camera, CameraUniform}, mesh::MeshBuffer, render_frame::gui::GuiInfo}, utils::Vec2};
+use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{CameraUniform, OrthographicCamera, PerspectiveCamera}, mesh::MeshBuffer, render_frame::gui::GuiInfo}, utils::Vec2};
 
-pub fn get_distance_to_camera_unsquared(camera : &Camera, x : f32, y : f32, z : f32) -> f32 {
+pub fn get_distance_to_camera_unsquared(camera : &PerspectiveCamera, x : f32, y : f32, z : f32) -> f32 {
     let dx = camera.position.x - x;
     let dy = camera.position.y - y;
     let dz = camera.position.z - z;
@@ -165,15 +166,87 @@ pub struct RenderState {
     pub gbuffers_bind_group_layout: wgpu::BindGroupLayout,
     pub composition_pipeline_layout: wgpu::PipelineLayout,
     pub composition_render_pipeline: wgpu::RenderPipeline,
-    pub voxel_buffer_info_bind_group: wgpu::BindGroup,
-    pub voxel_buffer_info_bind_group_layout: wgpu::BindGroupLayout,
-    pub voxel_map_texture_view: TextureView,
-    pub voxel_map_texture : Texture,
     pub material_gbuffer_sampler: wgpu::Sampler,
     pub normal_gbuffer_sampler: wgpu::Sampler,
     pub normal_gbuffer_view: TextureView,
-    pub material_gbuffer_view: TextureView, 
+    pub material_gbuffer_view: TextureView,
+
+    pub sun_shadow_lod_0 : SunShadow,
+    pub sun_shadow_lod_1 : SunShadow,
+    pub sun_shadow_lod_2 : SunShadow,
+    pub sun_shadow_lod_3 : SunShadow,
+    pub sun_shadow_render_pipeline: wgpu::RenderPipeline,
+    pub sun_shadow_textures_bind_group: wgpu::BindGroup,
 }
+
+pub struct SunShadow {
+    pub camera : OrthographicCamera,
+    pub camera_uniform : CameraUniform,
+    pub camera_buffer: Buffer,
+    pub texture_view: TextureView,
+    pub texture_sampler: wgpu::Sampler,
+    pub bind_group: wgpu::BindGroup,
+}
+
+impl SunShadow {
+    pub fn new(device: &Device, lod_level : u32, layout : &BindGroupLayout) -> SunShadow {
+        let mut sun_shadows_lod_camera = OrthographicCamera::new();
+        sun_shadows_lod_camera.width = 128.0 * (lod_level as f32);
+        sun_shadows_lod_camera.height = 128.0 * (lod_level as f32);
+        let mut sun_shadows_lod_camera_uniform = CameraUniform::new();
+        sun_shadows_lod_camera_uniform.update_view_proj_ortho(&mut sun_shadows_lod_camera);
+        let sun_shadows_lod_camera_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Light Shadow Camera Buffer"),
+                contents: bytemuck::cast_slice(&[sun_shadows_lod_camera_uniform]),
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            }
+        );
+        let sun_shadow_texture_lod = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("Lod 0 Shadow Texture"),
+            size: wgpu::Extent3d { width : 1024 / lod_level, height : 1024 / lod_level, depth_or_array_layers : 1 },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Depth32Float,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+                | wgpu::TextureUsages::TEXTURE_BINDING,
+            view_formats: &[wgpu::TextureFormat::Depth32Float],
+        });
+        let sun_shadow_texture_lod_view = sun_shadow_texture_lod.create_view(&wgpu::TextureViewDescriptor::default());
+        let sun_shadow_texture_lod_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("Shadow Sampler"),
+            compare: Some(wgpu::CompareFunction::Less),
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            ..Default::default()
+        });
+
+        let sun_shadow_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: sun_shadows_lod_camera_buffer.as_entire_binding(),
+                }
+            ],
+            label: Some("sun_shadow_bind_group"),
+        });
+
+        SunShadow {
+            camera: sun_shadows_lod_camera,
+            camera_uniform: sun_shadows_lod_camera_uniform,
+            camera_buffer: sun_shadows_lod_camera_buffer,
+            texture_view: sun_shadow_texture_lod_view,
+            texture_sampler: sun_shadow_texture_lod_sampler,
+            bind_group: sun_shadow_bind_group,
+        }
+    }
+}
+
+
 
 impl<'a> RenderState {
 

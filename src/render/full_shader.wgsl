@@ -6,12 +6,26 @@ struct CameraUniform {
 @group(0) @binding(0) // 1.
 var<uniform> camera: CameraUniform;
 
-@group(1) @binding(0) var voxel_map_texture: texture_3d<u32>;
+@group(1) @binding(0) var depth_texture_lod0_view: texture_depth_2d;
+@group(1) @binding(1) var depth_texture_lod0_samplier: sampler_comparison;
+@group(1) @binding(2) var<uniform> depth_texture_lod0_camera: CameraUniform;
+
+@group(1) @binding(3) var depth_texture_lod1_view: texture_depth_2d;
+@group(1) @binding(4) var depth_texture_lod1_samplier: sampler_comparison;
+@group(1) @binding(5) var<uniform> depth_texture_lod1_camera: CameraUniform;
+
+@group(1) @binding(6) var depth_texture_lod2_view: texture_depth_2d;
+@group(1) @binding(7) var depth_texture_lod2_samplier: sampler_comparison;
+@group(1) @binding(8) var<uniform> depth_texture_lod2_camera: CameraUniform;
+
+@group(1) @binding(9) var depth_texture_lod3_view: texture_depth_2d;
+@group(1) @binding(10) var depth_texture_lod3_samplier: sampler_comparison;
+@group(1) @binding(11) var<uniform> depth_texture_lod3_camera: CameraUniform;
 
 struct VertexInput {
     @location(0) position: vec3<i32>,
     @location(1) color: vec4<f32>,
-    @location(2) extra: vec4<f32>,
+    @location(2) extra: vec4<f32>, //reflectiveness, roughness, metalic. Normal
 };
 
 struct VertexOutput {
@@ -19,6 +33,7 @@ struct VertexOutput {
     @location(0) color: vec4<f32>,
     @location(1) world_pos: vec4<f32>,
     @location(2) normal: vec3<f32>,
+    @location(3) extra: vec4<f32>,
 };
 
 struct GbufferOutput {
@@ -33,6 +48,7 @@ fn vs_main(
     model: VertexInput,
 ) -> VertexOutput {
     var out: VertexOutput;
+    out.extra = model.extra;
     out.color = model.color;
     var position = vec3<f32>(model.position);
     //out.position = vec4<f32>(position, 1.0);
@@ -116,26 +132,6 @@ fn next_ray_position(ray : vec3<f32>, direction : vec3<f32>) -> vec3<f32> {
     return ray + (direction * distance_z);
 }
 
-fn test_raycast(origin : vec3<f32>, direction : vec3<f32>, final_distance : u32) -> u32 {
-    var distance: u32 = 0;
-    var ray_position = origin;
-    ray_position = ray_position + (direction / 100);
-    for (var i: u32 = 0; i < final_distance; i = i + 1) {
-        let ray_voxel_x = i32(trunc(ray_position.x));
-        let ray_voxel_y = i32(trunc(ray_position.y));
-        let ray_voxel_z = i32(trunc(ray_position.z));
-        
-        let value = textureLoad(voxel_map_texture, vec3<i32>(ray_voxel_x, ray_voxel_y, ray_voxel_z), 0);
-        if value.r != 0 {
-            distance = i + 1;
-            break;
-        }
-        ray_position = next_ray_position(ray_position, direction);
-    };
-    return distance;
-}   
-
-
 
 @fragment
 fn fs_main(in: VertexOutput) -> GbufferOutput {
@@ -143,10 +139,13 @@ fn fs_main(in: VertexOutput) -> GbufferOutput {
     var gbuffers = GbufferOutput();
     gbuffers.base_color = in.color;
     gbuffers.normal = vec4<f32>(in.normal, 0.0);
-    gbuffers.material = vec4<f32>(gbuffers.material.r, gbuffers.material.g, gbuffers.material.b, 0.0);
+    gbuffers.material = vec4<f32>(in.extra.r, in.extra.g, in.extra.b, 0.0);//reflectiveness, roughness, metallicness. Normal
+    let reflectiveness = in.extra.r;
+    let roughness = in.extra.g;
+    let metallicness = in.extra.b;
 
     //distance to origin which we are placing light
-    const light_info = vec4<f32>(0.0,5,0.0,25);
+    const light_info = vec4<f32>(0.0,25,0.0,10000);
 
     let diff = vec3<f32>(light_info.x - in.world_pos.x, light_info.y - in.world_pos.y, light_info.z - in.world_pos.z);
     let distance = length(diff);
@@ -159,26 +158,39 @@ fn fs_main(in: VertexOutput) -> GbufferOutput {
     let camera_relative = normalize(light_info.xyz + camera.position.xyz);
     let merged_relative = normalize(light_relative + camera_relative);
 
-
+    let shininess = mix(256.0, 2.0, roughness);
+    
     let ambient = 0.25;
-    let diffuse = 1.0 * max(dot(in.normal, light_relative), 0.0);
-    let specular = 1.0 * pow(max(dot(in.normal, merged_relative), 0.0), 15.0);
-
-
-
-
+    let diffuse = (1.0 - metallicness) * max(dot(in.normal, light_relative), 0.0);
+    let specular_strength = mix(0.04, 1.0, metallicness);
+    let specular = specular_strength * pow(max(dot(in.normal, merged_relative), 0.0), 15.0);
+    
     gbuffers.lighting.r = (ambient + diffuse + specular) * intensity;
 
     
-    
-    const sun_direction = vec3<f32>(0.1,0.25,0.05);
-    let shadow_distance = test_raycast(vec3<f32>(in.world_pos.x,in.world_pos.y,in.world_pos.z), sun_direction, 25);
-    if shadow_distance == 0 {
-        //gbuffers.lighting.g = 1.0; //sun
-    }else{
-        gbuffers.lighting.g = 0; //sun
-    }
+    //test shadow
 
+    //get camera distnce to point to pick shadow
+    let shadow_camera_diff = vec3<f32>(0 - in.world_pos.x, 0 - in.world_pos.y, 0- in.world_pos.z);
+    let shadow_camera_distance = length(shadow_camera_diff);
+
+    let light_clip_pos = depth_texture_lod0_camera.view_proj * in.world_pos;
+    let light_coords = light_clip_pos.xyz / light_clip_pos.w;
+    let shadow_texture_uv = vec2(light_coords.y, light_clip_pos.x) * 0.5 + 0.5;
+    let depth = light_coords.z;
+    let test = textureSampleCompare(
+        depth_texture_lod0_view,
+        depth_texture_lod0_samplier,
+        shadow_texture_uv,
+        depth
+    );
+    if test < 0.5 {
+        gbuffers.lighting.g = 0;
+    }else{
+        gbuffers.lighting.g = 1;
+    }
+    gbuffers.lighting.g = 1;
+    
     return gbuffers;
 }
 

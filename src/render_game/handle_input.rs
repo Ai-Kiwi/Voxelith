@@ -69,6 +69,6 @@ pub fn handle_user_input(render_state : &mut RenderState, game_data : &mut GameD
     game_data.camera.pitch = if game_data.camera.pitch > 1.5 { 1.5 } else { game_data.camera.pitch };
     game_data.camera.pitch = if game_data.camera.pitch < -1.5 { -1.5 } else { game_data.camera.pitch };
 
-    render_state.camera_uniform.update_view_proj(&mut game_data.camera, render_state.config.width, render_state.config.height);
+    render_state.camera_uniform.update_view_proj_prespec(&mut game_data.camera, render_state.config.width, render_state.config.height);
     render_state.queue.write_buffer(&render_state.camera_buffer, 0, bytemuck::cast_slice(&[render_state.camera_uniform]));
 }

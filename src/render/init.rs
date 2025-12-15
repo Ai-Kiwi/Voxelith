@@ -5,7 +5,7 @@ use egui_wgpu::{Renderer, RendererOptions};
 use wgpu::{ExperimentalFeatures, util::DeviceExt};
 use winit::window::{Theme, Window};
 
-use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{Camera, CameraUniform}, render_frame::gui::GuiInfo, wgpu::{RenderState, create_base_color_gbuffer, create_depth_texture, create_lighting_gbuffer, create_material_gbuffer, create_normal_gbuffer}}, render_game::MAP_VRAM_SIZE, utils::{Vec2, Vertex}};
+use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{CameraUniform, OrthographicCamera, PerspectiveCamera}, render_frame::gui::GuiInfo, wgpu::{RenderState, SunShadow, create_base_color_gbuffer, create_depth_texture, create_lighting_gbuffer, create_material_gbuffer, create_normal_gbuffer}}, render_game::MAP_VRAM_SIZE, utils::{Vec2, Vertex}};
 
 impl RenderState {
     // We don't need this to be async right now,
@@ -84,10 +84,24 @@ impl RenderState {
             source: wgpu::ShaderSource::Wgsl(include_str!("composition_shader.wgsl").into()),
         });
 
-        let mut camera = Camera::new();
+        let light_depth_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("light_depth.wgsl").into()),
+        });
+
+        let temporary_move_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Temporary Move Buffer"),
+            size: 2 * 1024 * 1024, // 1 MB
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+
+        let mut camera = PerspectiveCamera::new();
 
         let mut camera_uniform = CameraUniform::new();
-        camera_uniform.update_view_proj(&mut camera, config.width, config.height);
+        camera_uniform.update_view_proj_prespec(&mut camera, config.width, config.height);
+
+
 
         //setup needed buffers and info for them
         let camera_buffer = device.create_buffer_init(
@@ -98,13 +112,216 @@ impl RenderState {
             }
         );
 
-        let temporary_move_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Temporary Move Buffer"),
-            size: 2 * 1024 * 1024, // 1 MB
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
-            mapped_at_creation: false,
+
+        //sun shadow
+        let sun_shadow_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }
+            ],
+            label: Some("sun_shadow_bind_group_layout"),
         });
-        
+
+        let sun_shadow_lod_0 = SunShadow::new(&device, 1, &sun_shadow_bind_group_layout);
+        let sun_shadow_lod_1 = SunShadow::new(&device, 2, &sun_shadow_bind_group_layout);
+        let sun_shadow_lod_2 = SunShadow::new(&device, 4, &sun_shadow_bind_group_layout);
+        let sun_shadow_lod_3 = SunShadow::new(&device, 8, &sun_shadow_bind_group_layout);
+
+        let sun_shadow_textures_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                //lod0
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Depth, 
+                        view_dimension: wgpu::TextureViewDimension::D2, 
+                        multisampled: false 
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Comparison),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                //lod1
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Depth, 
+                        view_dimension: wgpu::TextureViewDimension::D2, 
+                        multisampled: false 
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 4,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Comparison),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 5,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                //lod2
+                wgpu::BindGroupLayoutEntry {
+                    binding: 6,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Depth, 
+                        view_dimension: wgpu::TextureViewDimension::D2, 
+                        multisampled: false 
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 7,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Comparison),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 8,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                //lod3
+                wgpu::BindGroupLayoutEntry {
+                    binding: 9,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Depth, 
+                        view_dimension: wgpu::TextureViewDimension::D2, 
+                        multisampled: false 
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 10,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Comparison),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 11,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+            ],
+            label: Some("Sun Shadow Textures Bind Group Layout"),
+        });
+
+        //bind group
+        //remember to also update in resize
+        let sun_shadow_textures_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &sun_shadow_textures_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&sun_shadow_lod_0.texture_view)},
+                wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::Sampler(&sun_shadow_lod_0.texture_sampler)},
+                wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::Buffer(sun_shadow_lod_0.camera_buffer.as_entire_buffer_binding())},
+
+                wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::TextureView(&sun_shadow_lod_1.texture_view)},
+                wgpu::BindGroupEntry { binding: 4, resource: wgpu::BindingResource::Sampler(&sun_shadow_lod_1.texture_sampler)},
+                wgpu::BindGroupEntry { binding: 5, resource: wgpu::BindingResource::Buffer(sun_shadow_lod_1.camera_buffer.as_entire_buffer_binding())},
+
+                wgpu::BindGroupEntry { binding: 6, resource: wgpu::BindingResource::TextureView(&sun_shadow_lod_2.texture_view)},
+                wgpu::BindGroupEntry { binding: 7, resource: wgpu::BindingResource::Sampler(&sun_shadow_lod_2.texture_sampler)},
+                wgpu::BindGroupEntry { binding: 8, resource: wgpu::BindingResource::Buffer(sun_shadow_lod_2.camera_buffer.as_entire_buffer_binding())},
+
+                wgpu::BindGroupEntry { binding: 9, resource: wgpu::BindingResource::TextureView(&sun_shadow_lod_3.texture_view)},
+                wgpu::BindGroupEntry { binding: 10, resource: wgpu::BindingResource::Sampler(&sun_shadow_lod_3.texture_sampler)},
+                wgpu::BindGroupEntry { binding: 11, resource: wgpu::BindingResource::Buffer(sun_shadow_lod_3.camera_buffer.as_entire_buffer_binding())},
+
+            ],
+            label: Some("Sun Shadow Textures Bind Group"),
+        });
+
+        let sun_shadow_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Composition Pipeline Layout"),
+                bind_group_layouts: &[
+                    &sun_shadow_bind_group_layout
+                ],
+                push_constant_ranges: &[],
+        });
+
+        let sun_shadow_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Sun Shadow Render Pipeline"),
+            layout: Some(&sun_shadow_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &light_depth_shader,
+                entry_point: Some("vs_main"),
+                buffers: &[
+                    Vertex::desc()
+                ],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            },
+            fragment: None,
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: Some(wgpu::Face::Back),
+                // Setting this to anything other than Fill requires Features::NON_FILL_POLYGON_MODE
+                polygon_mode: wgpu::PolygonMode::Fill,
+                // Requires Features::DEPTH_CLIP_CONTROL
+                unclipped_depth: false,
+                // Requires Features::CONSERVATIVE_RASTERIZATION
+                conservative: false,
+            },
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: wgpu::TextureFormat::Depth32Float,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Less,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
+            multisample: wgpu::MultisampleState {
+                count: 1,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            multiview: None,
+            cache: None,
+        });
 
         //camera bind group
         let camera_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -132,52 +349,6 @@ impl RenderState {
                 }
             ],
             label: Some("camera_bind_group"),
-        });
-
-        //voxel buffer info
-        let voxel_map_size = wgpu::Extent3d {
-            width : 128,
-            height : 128,
-            depth_or_array_layers: 128,
-        };
-
-        let voxel_map_texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("Voxel Map Texture"),
-            size: voxel_map_size,
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D3,
-            format: wgpu::TextureFormat::R8Uint,
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT
-                | wgpu::TextureUsages::TEXTURE_BINDING 
-                | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[wgpu::TextureFormat::R8Uint],
-        });
-
-        let voxel_map_texture_view = voxel_map_texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-        let voxel_buffer_info_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Uint, 
-                        view_dimension: wgpu::TextureViewDimension::D3, 
-                        multisampled: false 
-                    },
-                    count: None,
-                }
-            ],
-            label: Some("Voxel Map Bind Group Layout"),
-        });
-
-        let voxel_buffer_info_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &voxel_buffer_info_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&voxel_map_texture_view)},
-            ],
-            label: Some("Voxel Map Bind Group"),
         });
 
         //create texture infos
@@ -295,7 +466,7 @@ impl RenderState {
                 label: Some("Render Pipeline Layout"),
                 bind_group_layouts: &[
                     &camera_bind_group_layout,
-                    &voxel_buffer_info_bind_group_layout
+                    &sun_shadow_textures_bind_group_layout
                 ],
                 push_constant_ranges: &[],
         });
@@ -391,7 +562,8 @@ impl RenderState {
                 entry_point: Some("fs_main"),
                 targets: &[
                     Some(wgpu::ColorTargetState {
-                        format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                        #[cfg(target_os = "linux")] format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                        #[cfg(target_os = "windows")] format: wgpu::TextureFormat::Bgra8UnormSrgb,
                         blend: Some(wgpu::BlendState::REPLACE),
                         write_mask: wgpu::ColorWrites::ALL,
                     }),
@@ -551,14 +723,16 @@ impl RenderState {
             gbuffers_bind_group_layout,
             composition_pipeline_layout,
             composition_render_pipeline,
-            voxel_map_texture_view,
-            voxel_buffer_info_bind_group,
-            voxel_buffer_info_bind_group_layout,
-            voxel_map_texture,
             normal_gbuffer_view,
             material_gbuffer_view,
             normal_gbuffer_sampler,
-            material_gbuffer_sampler
+            material_gbuffer_sampler,
+            sun_shadow_lod_0,
+            sun_shadow_lod_1,
+            sun_shadow_lod_2,
+            sun_shadow_lod_3,
+            sun_shadow_render_pipeline,
+            sun_shadow_textures_bind_group
         })
     }
 }

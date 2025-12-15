@@ -1,6 +1,6 @@
 use std::{collections::HashMap, f32::consts::PI};
 use wgpu::{Buffer, CommandEncoder, RenderPass};
-use crate::{render::{camera::Camera, wgpu::RenderState}, utils::{Color, Vec3, raycast_test, voxel_raycast_test}};
+use crate::{render::{camera::PerspectiveCamera, wgpu::RenderState}, utils::{Color, Vec3, raycast_test, voxel_raycast_test}};
 
 mod create_mesh;
 mod files;
@@ -9,7 +9,7 @@ pub struct MeshCreator {
     pub mesh_voxels : HashMap<(i32,i32,i32),Color>,
     pub mesh_buffer : Option<Buffer>,
     pub mesh_buffer_size : u32,
-    pub camera : Camera,
+    pub camera : PerspectiveCamera,
     pub camera_distance : f32,
     pub selected_color : [u8; 3],
     pub file_editing : String,
@@ -22,7 +22,7 @@ impl MeshCreator {
             mesh_voxels: HashMap::new(),
             mesh_buffer: None,
             mesh_buffer_size: 0,
-            camera: Camera::new(),
+            camera: PerspectiveCamera::new(),
             camera_distance: 10.0,
             selected_color: [255,255,255],
             file_editing: "basic".to_string(),
@@ -53,7 +53,7 @@ pub fn tick_mesh_creator(render_state : &mut RenderState, mesh_creator : &mut Me
     let camera_position = Vec3::new(0.0, 0.0, 0.0) - (camera_front_norm * mesh_creator.camera_distance);
     mesh_creator.camera.position = camera_position;
 
-    render_state.camera_uniform.update_view_proj(&mut mesh_creator.camera, render_state.config.width, render_state.config.height);
+    render_state.camera_uniform.update_view_proj_prespec(&mut mesh_creator.camera, render_state.config.width, render_state.config.height);
 
 
     if render_state.keys_pressed.contains_key(&winit::keyboard::KeyCode::KeyE) {

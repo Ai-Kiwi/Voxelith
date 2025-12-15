@@ -3,7 +3,7 @@ use std::{collections::{BTreeMap, HashMap}, sync::mpsc::channel, thread};
 use pollster::block_on;
 use winit::event_loop::EventLoop;
 
-use crate::{game::{InputEvent, game_thread}, mesh_creator::MeshCreator, render::{app::App, camera::Camera}, render_game::{GameData, RenderThreadChannels, chunk::{ChunkMeshUpdate, EntityRenderData}}};
+use crate::{game::{InputEvent, game_thread}, mesh_creator::MeshCreator, render::{app::App, camera::PerspectiveCamera}, render_game::{GameData, RenderThreadChannels, chunk::{ChunkMeshUpdate, EntityRenderData}}};
 
 
 pub mod camera;
@@ -52,7 +52,7 @@ pub async fn render_thread() {
             entity_render_rx,
             input_event_tx,
         },
-        camera: Camera::new(),
+        camera: PerspectiveCamera::new(),
         cache_chunk_meshs: BTreeMap::new(),
     };
 
