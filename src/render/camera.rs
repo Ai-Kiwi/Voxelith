@@ -17,7 +17,7 @@ pub struct CameraUniform {
     // We can't use cgmath with bytemuck directly, so we'll have
     // to convert the Matrix4 into a 4x4 f32 array
     view_proj: [[f32; 4]; 4],
-    position: [f32; 3],
+    pub position: [f32; 3],
     _padding: f32,
 }
 
@@ -100,7 +100,7 @@ impl OrthographicCamera {
     pub fn new() -> OrthographicCamera {
         OrthographicCamera {
             target: (0.0, 0.0, 0.0).into(),
-            znear: -1000.0,
+            znear: 0.1,
             zfar: 1000.0,
             position: Vec3::new(0.0, 0.0, 0.0),
             width: 1024.0,

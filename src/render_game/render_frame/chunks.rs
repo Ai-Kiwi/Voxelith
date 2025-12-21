@@ -40,8 +40,8 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
     ]);
 
     for sun_shadow in sun_shadow_items {
-        sun_shadow.camera.target = Point3::new(0.0, 0.0, 0.0);
-        sun_shadow.camera.position = Vec3::new(50.0, 100.0, 50.0);
+        sun_shadow.camera.target = Point3::new(render_state.camera_uniform.position[0], render_state.camera_uniform.position[1], render_state.camera_uniform.position[2]);
+        sun_shadow.camera.position = Vec3::new(50.0 + render_state.camera_uniform.position[0], 500.0 + render_state.camera_uniform.position[1], 150.0 + render_state.camera_uniform.position[2]);
         sun_shadow.camera_uniform.update_view_proj_ortho(&mut sun_shadow.camera);
         render_state.queue.write_buffer(&sun_shadow.camera_buffer, 0, bytemuck::cast_slice(&[sun_shadow.camera_uniform]));
         

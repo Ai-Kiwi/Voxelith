@@ -145,28 +145,30 @@ fn fs_main(in: VertexOutput) -> GbufferOutput {
     let metallicness = in.extra.b;
 
     //distance to origin which we are placing light
-    const light_info = vec4<f32>(0.0,25,0.0,10000);
+    gbuffers.lighting.r = 0;
+    for (var i: i32 = 0; i < 1; i++) {
+        const light_info = vec4<f32>(0.0,25,0.0,10000);
 
-    let diff = vec3<f32>(light_info.x - in.world_pos.x, light_info.y - in.world_pos.y, light_info.z - in.world_pos.z);
-    let distance = length(diff);
-    let intensity = light_info.a / ((distance + 0.01) * (distance + 0.01));
-    gbuffers.lighting = vec4<f32>(0.0);
+        let diff = vec3<f32>(light_info.x - in.world_pos.x, light_info.y - in.world_pos.y, light_info.z - in.world_pos.z);
+        let distance = length(diff);
+        let intensity = light_info.a / ((distance + 0.01) * (distance + 0.01));
+        gbuffers.lighting = vec4<f32>(0.0);
 
-    gbuffers.lighting.r = intensity; //lighting
-    
-    let light_relative = normalize(light_info.xyz - in.world_pos.xyz);
-    let camera_relative = normalize(light_info.xyz + camera.position.xyz);
-    let merged_relative = normalize(light_relative + camera_relative);
+        gbuffers.lighting.r = intensity; //lighting
+        
+        let light_relative = normalize(light_info.xyz - in.world_pos.xyz);
+        let camera_relative = normalize(light_info.xyz + camera.position.xyz);
+        let merged_relative = normalize(light_relative + camera_relative);
 
-    let shininess = mix(256.0, 2.0, roughness);
-    
-    let ambient = 0.25;
-    let diffuse = (1.0 - metallicness) * max(dot(in.normal, light_relative), 0.0);
-    let specular_strength = mix(0.04, 1.0, metallicness);
-    let specular = specular_strength * pow(max(dot(in.normal, merged_relative), 0.0), 15.0);
-    
-    gbuffers.lighting.r = (ambient + diffuse + specular) * intensity;
-
+        let shininess = mix(256.0, 2.0, roughness);
+        
+        let ambient = 0.25;
+        let diffuse = (1.0 - metallicness) * max(dot(in.normal, light_relative), 0.0);
+        let specular_strength = mix(0.04, 1.0, metallicness);
+        let specular = specular_strength * pow(max(dot(in.normal, merged_relative), 0.0), 15.0);
+        
+        gbuffers.lighting.r += (ambient + diffuse + specular) * intensity;
+    }
     
     //test shadow
 
@@ -176,20 +178,72 @@ fn fs_main(in: VertexOutput) -> GbufferOutput {
 
     let light_clip_pos = depth_texture_lod0_camera.view_proj * in.world_pos;
     let light_coords = light_clip_pos.xyz / light_clip_pos.w;
-    let shadow_texture_uv = vec2(light_coords.y, light_clip_pos.x) * 0.5 + 0.5;
-    let depth = light_coords.z;
-    let test = textureSampleCompare(
-        depth_texture_lod0_view,
-        depth_texture_lod0_samplier,
-        shadow_texture_uv,
-        depth
-    );
-    if test < 0.5 {
+    
+    gbuffers.lighting.r = 1;
+    gbuffers.lighting.g = light_coords.x;
+    
+
+    var closeness_response = 0.0;
+    if abs(light_coords.x) < 1 && abs(light_coords.y) < 1 {
+        let shadow_texture_uv = vec2(light_coords.x, light_coords.y * -1) * 0.5 + 0.5;
+        let depth = light_coords.z - 0.001;
+        closeness_response = textureSampleCompare(
+            depth_texture_lod0_view,
+            depth_texture_lod0_samplier,
+            shadow_texture_uv,
+            depth
+        );
+    }else if abs(light_coords.x) < 3 && abs(light_coords.y) < 3 {
+        let shadow_texture_uv = vec2(light_coords.x / 3, light_coords.y * -1 / 3) * 0.5 + 0.5;
+        let depth = light_coords.z - 0.001;
+        closeness_response = textureSampleCompare(
+            depth_texture_lod1_view,
+            depth_texture_lod1_samplier,
+            shadow_texture_uv,
+            depth
+        );
+    }else if abs(light_coords.x) < 8 && abs(light_coords.y) < 8 {
+        let shadow_texture_uv = vec2(light_coords.x / 8, light_coords.y * -1 / 8) * 0.5 + 0.5;
+        let depth = light_coords.z - 0.001;
+        closeness_response = textureSampleCompare(
+            depth_texture_lod2_view,
+            depth_texture_lod2_samplier,
+            shadow_texture_uv,
+            depth
+        );
+    }else if abs(light_coords.x) < 24 && abs(light_coords.y) < 24 {
+        let shadow_texture_uv = vec2(light_coords.x / 24, light_coords.y * -1 / 24) * 0.5 + 0.5;
+        let depth = light_coords.z - 0.001;
+        closeness_response = textureSampleCompare(
+            depth_texture_lod3_view,
+            depth_texture_lod3_samplier,
+            shadow_texture_uv,
+            depth
+        );
+    }else{
+        closeness_response = 0;
+    }
+
+
+    if closeness_response < 0.5 {
         gbuffers.lighting.g = 0;
     }else{
         gbuffers.lighting.g = 1;
     }
-    gbuffers.lighting.g = 1;
+
+    let light_relative = normalize(depth_texture_lod0_camera.position.xyz - in.world_pos.xyz);
+    let camera_relative = normalize(depth_texture_lod0_camera.position.xyz + camera.position.xyz);
+    let merged_relative = normalize(light_relative + camera_relative);
+
+    let shininess = mix(256.0, 2.0, roughness);
+    
+    let diffuse = (1.0 - metallicness) * max(dot(in.normal, light_relative), 0.0);
+    let specular_strength = mix(0.04, 1.0, metallicness);
+    let specular = specular_strength * pow(max(dot(in.normal, merged_relative), 0.0), 15.0);
+    
+    gbuffers.lighting.g = (diffuse + specular) * closeness_response;
+
+
     
     return gbuffers;
 }

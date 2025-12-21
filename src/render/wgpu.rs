@@ -189,10 +189,10 @@ pub struct SunShadow {
 }
 
 impl SunShadow {
-    pub fn new(device: &Device, lod_level : u32, layout : &BindGroupLayout) -> SunShadow {
+    pub fn new(device: &Device, distance : f32, layout : &BindGroupLayout) -> SunShadow {
         let mut sun_shadows_lod_camera = OrthographicCamera::new();
-        sun_shadows_lod_camera.width = 128.0 * (lod_level as f32);
-        sun_shadows_lod_camera.height = 128.0 * (lod_level as f32);
+        sun_shadows_lod_camera.width = distance;
+        sun_shadows_lod_camera.height = distance;
         let mut sun_shadows_lod_camera_uniform = CameraUniform::new();
         sun_shadows_lod_camera_uniform.update_view_proj_ortho(&mut sun_shadows_lod_camera);
         let sun_shadows_lod_camera_buffer = device.create_buffer_init(
@@ -204,7 +204,7 @@ impl SunShadow {
         );
         let sun_shadow_texture_lod = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Lod 0 Shadow Texture"),
-            size: wgpu::Extent3d { width : 1024 / lod_level, height : 1024 / lod_level, depth_or_array_layers : 1 },
+            size: wgpu::Extent3d { width : 4096, height : 4096, depth_or_array_layers : 1 },
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
