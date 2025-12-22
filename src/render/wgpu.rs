@@ -96,6 +96,26 @@ pub fn create_material_gbuffer(device: &wgpu::Device, width: u32, height: u32) -
     })
 }
 
+pub fn create_depth_gbuffer(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
+    let size = wgpu::Extent3d {
+        width,
+        height,
+        depth_or_array_layers: 1,
+    };
+
+    device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("Depth Gbuffer"),
+        size: size,
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Depth32Float, //
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+            | wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[wgpu::TextureFormat::Depth32Float],
+    })
+}
+
 pub fn create_normal_gbuffer(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
     let size = wgpu::Extent3d {
         width,
@@ -130,6 +150,7 @@ pub struct RenderState {
     pub window: Arc<Window>,
     pub depth_texture: Texture,
     pub depth_view: TextureView,
+    pub depth_sampler: wgpu::Sampler,
     
     //other stuff that is just helped for engine itself
     pub last_frame_time : Instant,
@@ -276,12 +297,6 @@ impl<'a> RenderState {
             self.normal_gbuffer_view = normal_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
             self.material_gbuffer_view = material_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
 
-            //make samplers
-            self.base_color_gbuffer_sampler = self.device.create_sampler(&wgpu::SamplerDescriptor::default());
-            self.lighting_gbuffer_sampler = self.device.create_sampler(&wgpu::SamplerDescriptor::default());
-            self.normal_gbuffer_sampler = self.device.create_sampler(&wgpu::SamplerDescriptor::default());
-            self.material_gbuffer_sampler = self.device.create_sampler(&wgpu::SamplerDescriptor::default());
-
             //remember to also update in init
             self.gbuffers_bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
                 layout: &self.gbuffers_bind_group_layout,
@@ -294,6 +309,8 @@ impl<'a> RenderState {
                     wgpu::BindGroupEntry { binding: 5, resource: wgpu::BindingResource::Sampler(&self.normal_gbuffer_sampler)},
                     wgpu::BindGroupEntry { binding: 6, resource: wgpu::BindingResource::TextureView(&self.material_gbuffer_view)},
                     wgpu::BindGroupEntry { binding: 7, resource: wgpu::BindingResource::Sampler(&self.material_gbuffer_sampler)},
+                    wgpu::BindGroupEntry { binding: 8, resource: wgpu::BindingResource::TextureView(&self.depth_view)},
+                    wgpu::BindGroupEntry { binding: 9, resource: wgpu::BindingResource::Sampler(&self.depth_sampler)},
                 ],
                 label: Some("Gbuffers Bind Group"),
             });

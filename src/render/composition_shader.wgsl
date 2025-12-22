@@ -10,6 +10,9 @@
 @group(0) @binding(6) var material_texture: texture_2d<f32>;
 @group(0) @binding(7) var material_sampler: sampler;
 
+@group(0) @binding(8) var depth_texture: texture_depth_2d;
+@group(0) @binding(9) var depth_sampler: sampler;
+
 struct VertexInput {
     @location(0) position: vec3<i32>,
 };
@@ -39,6 +42,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let lighting = textureSample(lighting_texture, lighting_sampler, uv);
     let normal = textureSample(normal_texture, normal_sampler, uv);
     let material = textureSample(material_texture, material_sampler, uv);
+    let depth = textureSample(depth_texture, depth_sampler, uv);
+
 
     let base_color = vec4<f32>(color);
     var final_color = vec4<f32>(0.0);
@@ -46,7 +51,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     final_color += base_color * lighting.r; //lighting light
     final_color += base_color * lighting.g; //sun light
 
-
+    final_color = final_color;
 
     return final_color;
 }

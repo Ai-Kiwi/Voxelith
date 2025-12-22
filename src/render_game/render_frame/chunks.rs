@@ -190,10 +190,10 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
                 ops: wgpu::Operations {
                     store: wgpu::StoreOp::Store,
                     load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: 0.1,
-                        g: 0.2,
-                        b: 0.3,
-                        a: 1.0,
+                        r: 0.0,
+                        g: 0.0,
+                        b: 0.0,
+                        a: 0.0,
                     }),
                 },
                 depth_slice: None,
@@ -218,7 +218,7 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
     //transparent
     //for (i, buffer) in render_state.mesh_buffers.iter().enumerate() {
     //    let meshs = &buffer.meshs;
-//
+    //
     //    //setup transparent
     //    let transparent_indirect_draw_calls: Vec<DrawIndirectArgs> = chunks
     //    .par_iter()

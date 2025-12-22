@@ -5,11 +5,9 @@ use egui_wgpu::{Renderer, RendererOptions};
 use wgpu::{ExperimentalFeatures, util::DeviceExt};
 use winit::window::{Theme, Window};
 
-use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{CameraUniform, OrthographicCamera, PerspectiveCamera}, render_frame::gui::GuiInfo, wgpu::{RenderState, SunShadow, create_base_color_gbuffer, create_depth_texture, create_lighting_gbuffer, create_material_gbuffer, create_normal_gbuffer}}, render_game::MAP_VRAM_SIZE, utils::{Vec2, Vertex}};
+use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{CameraUniform, OrthographicCamera, PerspectiveCamera}, render_frame::gui::GuiInfo, wgpu::{RenderState, SunShadow, create_base_color_gbuffer, create_depth_gbuffer, create_depth_texture, create_lighting_gbuffer, create_material_gbuffer, create_normal_gbuffer}}, render_game::MAP_VRAM_SIZE, utils::{Vec2, Vertex}};
 
 impl RenderState {
-    // We don't need this to be async right now,
-    // but we will in the next tutorial
     pub async fn new(window: Arc<Window>) -> anyhow::Result<RenderState> {
         let size: winit::dpi::PhysicalSize<u32> = window.inner_size();
 
@@ -50,10 +48,11 @@ impl RenderState {
             })
             .await?;
 
+        let depth_texture = create_depth_texture(&device,size.width,size.height);
+        let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let depth_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
+
         let surface_caps = surface.get_capabilities(&adapter);
-        // Shader code in this tutorial assumes an sRGB surface texture. Using a different
-        // one will result in all the colors coming out darker. If you want to support non
-        // sRGB surfaces, you'll need to account for that when drawing to the frame.
         let surface_format = surface_caps.formats.iter()
             .find(|f| f.is_srgb())
             .copied()
@@ -300,11 +299,8 @@ impl RenderState {
                 strip_index_format: None,
                 front_face: wgpu::FrontFace::Ccw,
                 cull_mode: Some(wgpu::Face::Back),
-                // Setting this to anything other than Fill requires Features::NON_FILL_POLYGON_MODE
                 polygon_mode: wgpu::PolygonMode::Fill,
-                // Requires Features::DEPTH_CLIP_CONTROL
                 unclipped_depth: false,
-                // Requires Features::CONSERVATIVE_RASTERIZATION
                 conservative: false,
             },
             depth_stencil: Some(wgpu::DepthStencilState {
@@ -368,6 +364,7 @@ impl RenderState {
         let lighting_gbuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
         let normal_gbuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
         let material_gbuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
+
 
         //bind group layout
         let gbuffers_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -439,6 +436,23 @@ impl RenderState {
                     visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
                     count: None,
+                },
+                //depth
+                wgpu::BindGroupLayoutEntry {
+                    binding: 8,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Depth, 
+                        view_dimension: wgpu::TextureViewDimension::D2, 
+                        multisampled: false 
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 9,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
+                    count: None,
                 }
             ],
             label: Some("Gbuffers Bind Group Layout"),
@@ -457,6 +471,8 @@ impl RenderState {
                 wgpu::BindGroupEntry { binding: 5, resource: wgpu::BindingResource::Sampler(&normal_gbuffer_sampler)},
                 wgpu::BindGroupEntry { binding: 6, resource: wgpu::BindingResource::TextureView(&material_gbuffer_view)},
                 wgpu::BindGroupEntry { binding: 7, resource: wgpu::BindingResource::Sampler(&material_gbuffer_sampler)},
+                wgpu::BindGroupEntry { binding: 8, resource: wgpu::BindingResource::TextureView(&depth_view)},
+                wgpu::BindGroupEntry { binding: 9, resource: wgpu::BindingResource::Sampler(&depth_sampler)},
             ],
             label: Some("Gbuffers Bind Group"),
         });
@@ -657,9 +673,6 @@ impl RenderState {
             cache: None,
         });
 
-        let depth_texture = create_depth_texture(&device,size.width,size.height);
-        let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
-
         //setup egui
         let egui_renderer = Renderer::new(&device, surface_format, RendererOptions { 
             msaa_samples: 1, 
@@ -704,6 +717,7 @@ impl RenderState {
             mouse_position: Vec2::new(0.0, 0.0),
             depth_texture,
             depth_view,
+            depth_sampler,
             egui_renderer,
             egui_context,
             egui_winit,

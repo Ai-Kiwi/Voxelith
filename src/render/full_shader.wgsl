@@ -169,20 +169,13 @@ fn fs_main(in: VertexOutput) -> GbufferOutput {
         
         gbuffers.lighting.r += (ambient + diffuse + specular) * intensity;
     }
+    gbuffers.lighting.r = 0;
     
-    //test shadow
-
     //get camera distnce to point to pick shadow
     let shadow_camera_diff = vec3<f32>(0 - in.world_pos.x, 0 - in.world_pos.y, 0- in.world_pos.z);
     let shadow_camera_distance = length(shadow_camera_diff);
-
     let light_clip_pos = depth_texture_lod0_camera.view_proj * in.world_pos;
-    let light_coords = light_clip_pos.xyz / light_clip_pos.w;
-    
-    gbuffers.lighting.r = 1;
-    gbuffers.lighting.g = light_coords.x;
-    
-
+    let light_coords = light_clip_pos.xyz / light_clip_pos.w;    
     var closeness_response = 0.0;
     if abs(light_coords.x) < 1 && abs(light_coords.y) < 1 {
         let shadow_texture_uv = vec2(light_coords.x, light_coords.y * -1) * 0.5 + 0.5;
@@ -225,11 +218,7 @@ fn fs_main(in: VertexOutput) -> GbufferOutput {
     }
 
 
-    if closeness_response < 0.5 {
-        gbuffers.lighting.g = 0;
-    }else{
-        gbuffers.lighting.g = 1;
-    }
+
 
     let light_relative = normalize(depth_texture_lod0_camera.position.xyz - in.world_pos.xyz);
     let camera_relative = normalize(depth_texture_lod0_camera.position.xyz + camera.position.xyz);
@@ -241,9 +230,9 @@ fn fs_main(in: VertexOutput) -> GbufferOutput {
     let specular_strength = mix(0.04, 1.0, metallicness);
     let specular = specular_strength * pow(max(dot(in.normal, merged_relative), 0.0), 15.0);
     
-    gbuffers.lighting.g = (diffuse + specular) * closeness_response;
+    gbuffers.lighting.g = ((diffuse + specular) * closeness_response) + 0.25;
 
-
+    gbuffers.lighting.r = 0;
     
     return gbuffers;
 }
