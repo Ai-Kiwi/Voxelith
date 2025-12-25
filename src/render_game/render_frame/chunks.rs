@@ -211,6 +211,7 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
 
     composition_render_pass.set_pipeline(&render_state.composition_render_pipeline);
     composition_render_pass.set_bind_group(0, &render_state.gbuffers_bind_group, &[]);
+    composition_render_pass.set_bind_group(1, &render_state.camera_bind_group, &[]);
     composition_render_pass.draw(0..3, 0..1);
 
     drop(composition_render_pass);

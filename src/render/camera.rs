@@ -1,4 +1,4 @@
-use cgmath::Point3;
+use cgmath::{Point3, SquareMatrix};
 
 use crate::utils::Vec3;
 
@@ -14,9 +14,8 @@ pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::from_co
 // This is so we can store this in a buffer
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct CameraUniform {
-    // We can't use cgmath with bytemuck directly, so we'll have
-    // to convert the Matrix4 into a 4x4 f32 array
-    view_proj: [[f32; 4]; 4],
+    pub view_proj: [[f32; 4]; 4],
+    pub view_proj_inverse: [[f32; 4]; 4],
     pub position: [f32; 3],
     _padding: f32,
 }
@@ -26,18 +25,39 @@ impl CameraUniform {
         use cgmath::SquareMatrix;
         Self {
             view_proj: cgmath::Matrix4::identity().into(),
+            view_proj_inverse: cgmath::Matrix4::identity().into(),
             position: [0.0,0.0,0.0],
             _padding: 0.0,
         }
     }
 
     pub fn update_view_proj_prespec(&mut self, camera: &mut PerspectiveCamera, width : u32, height : u32) {
-        self.view_proj = camera.build_view_projection_matrix(width as f32, height as f32).into();
+        let front: Vec3 = Vec3::new(
+            camera.yaw.cos() * camera.pitch.cos(),
+            camera.pitch.sin(),
+            camera.yaw.sin() * camera.pitch.cos()
+        ).normalize();
+        let new_target = camera.position + front;
+        camera.target = Point3::new(new_target.x, new_target.y ,new_target.z);
+        let position = Point3::new(camera.position.x, camera.position.y ,camera.position.z);
+
+        camera.aspect = (width as f32) / (height as f32);
+
+        let view = cgmath::Matrix4::look_at_rh(position, camera.target, cgmath::Vector3::unit_y());
+        let proj = cgmath::perspective(cgmath::Deg(camera.fovy), camera.aspect, camera.znear, camera.zfar);
+
+        self.view_proj_inverse = (OPENGL_TO_WGPU_MATRIX * proj * view).invert().unwrap().into();
+        self.view_proj = (OPENGL_TO_WGPU_MATRIX * proj * view).into();
         self.position = [camera.position.x, camera.position.y, camera.position.z]
     }
 
     pub fn update_view_proj_ortho(&mut self, camera: &mut OrthographicCamera) {
-        self.view_proj = camera.build_view_projection_matrix().into();
+        let position = Point3::new(camera.position.x, camera.position.y ,camera.position.z);
+
+        let view = cgmath::Matrix4::look_at_rh(position, camera.target, cgmath::Vector3::unit_y());
+        let proj = cgmath::ortho(-(camera.width/2.0),camera.width/2.0,-(camera.height/2.0),camera.height/2.0,camera.znear,camera.zfar);
+        self.view_proj_inverse = (OPENGL_TO_WGPU_MATRIX * proj * view).invert().unwrap().into();
+        self.view_proj = (OPENGL_TO_WGPU_MATRIX * proj * view).into();        
         self.position = [camera.position.x, camera.position.y, camera.position.z]
     }
 }
@@ -66,25 +86,6 @@ impl PerspectiveCamera {
             yaw: 0.0,
         }
     }
-
-
-    fn build_view_projection_matrix(&mut self, width : f32, height : f32) -> cgmath::Matrix4<f32> {
-        let front: Vec3 = Vec3::new(
-            self.yaw.cos() * self.pitch.cos(),
-            self.pitch.sin(),
-            self.yaw.sin() * self.pitch.cos()
-        ).normalize();
-        let new_target = self.position + front;
-        self.target = Point3::new(new_target.x, new_target.y ,new_target.z);
-        let position = Point3::new(self.position.x, self.position.y ,self.position.z);
-
-        self.aspect = width / height;
-
-        let view = cgmath::Matrix4::look_at_rh(position, self.target, cgmath::Vector3::unit_y());
-        let proj = cgmath::perspective(cgmath::Deg(self.fovy), self.aspect, self.znear, self.zfar);
-
-        return OPENGL_TO_WGPU_MATRIX * proj * view;
-    }
 }
 
 pub struct OrthographicCamera {
@@ -106,16 +107,6 @@ impl OrthographicCamera {
             width: 1024.0,
             height: 1024.0,
         }
-    }
-
-
-    fn build_view_projection_matrix(&mut self) -> cgmath::Matrix4<f32> {
-        let position = Point3::new(self.position.x, self.position.y ,self.position.z);
-
-        let view = cgmath::Matrix4::look_at_rh(position, self.target, cgmath::Vector3::unit_y());
-        let proj = cgmath::ortho(-(self.width/2.0),self.width/2.0,-(self.height/2.0),self.height/2.0,self.znear,self.zfar);
-        
-        return OPENGL_TO_WGPU_MATRIX * proj * view;
     }
 }
 

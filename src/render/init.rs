@@ -559,7 +559,8 @@ impl RenderState {
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Composition Pipeline Layout"),
                 bind_group_layouts: &[
-                    &gbuffers_bind_group_layout
+                    &gbuffers_bind_group_layout,
+                    &camera_bind_group_layout
                 ],
                 push_constant_ranges: &[],
         });
@@ -591,11 +592,8 @@ impl RenderState {
                 strip_index_format: None,
                 front_face: wgpu::FrontFace::Ccw,
                 cull_mode: Some(wgpu::Face::Back),
-                // Setting this to anything other than Fill requires Features::NON_FILL_POLYGON_MODE
                 polygon_mode: wgpu::PolygonMode::Fill,
-                // Requires Features::DEPTH_CLIP_CONTROL
                 unclipped_depth: false,
-                // Requires Features::CONSERVATIVE_RASTERIZATION
                 conservative: false,
             },
             depth_stencil: Some(wgpu::DepthStencilState {

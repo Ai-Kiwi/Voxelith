@@ -30,15 +30,15 @@ pub fn calculate_pix_color(pixel_type : PixelTypes,x : i32, y : i32, z : i32) ->
         },
         PixelTypes::Dirt => {
             if code > 0.95 {
-                (Color::new(79, 76, 74, 255),Material::new(5,230,0))
+                (Color::new(79, 76, 74, 255),Material::new(5,230,255))
             }else if code > 0.75 {
-                (Color::new(92, 58, 17, 255),Material::new(5,225,0))
+                (Color::new(92, 58, 17, 255),Material::new(5,225,255))
             }else if code > 0.5 {
-                (Color::new(82, 49, 11, 255),Material::new(4,217,0))
+                (Color::new(82, 49, 11, 255),Material::new(4,217,255))
             }else if code > 0.25 {
-                (Color::new(99, 59, 13, 255),Material::new(5,222,0))
+                (Color::new(99, 59, 13, 255),Material::new(5,222,255))
             } else {
-                (Color::new(117, 71, 19, 255),Material::new(6,225,0))
+                (Color::new(117, 71, 19, 255),Material::new(6,225,255))
             }
         },
         PixelTypes::Stone => {
