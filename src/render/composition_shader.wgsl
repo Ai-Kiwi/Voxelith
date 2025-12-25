@@ -96,7 +96,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     var pixel_color_data = get_pixel_data(uv);
     
-    if material.b > 0 || false == true { //disabled for now
+    if material.b > 0 && false == true { //disabled for now
         var i = 0;
         loop {
             world_ray_position = world_ray_position + (reflect_dir * 0.1);
