@@ -1,6 +1,6 @@
 use std::{collections::{BTreeMap, HashMap}, sync::{Arc, mpsc::{Receiver, Sender}}};
 
-use crate::{game::InputEvent, render::{camera::PerspectiveCamera, mesh::GpuMeshReference, wgpu::RenderState}, render_game::{chunk::{ChunkMeshUpdate, EntityRenderData, update_chunk_meshs}, handle_input::handle_user_input}, utils::Vec3};
+use crate::{game::{InputEvent, entity::EntityRenderData}, render::{camera::PerspectiveCamera, mesh::GpuMeshReference, wgpu::RenderState}, render_game::{chunk::{ChunkMeshUpdate, update_chunk_meshs}, handle_input::handle_user_input}, utils::Vec3};
 
 
 pub const LEVEL_1_LOD_DISTANCE: f32 = 480.0;

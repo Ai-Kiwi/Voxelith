@@ -179,6 +179,14 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
         );
     }
 
+    //render entities
+    
+
+
+
+
+
+
     drop(gbuffer_render_pass);
 
     let mut composition_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {

@@ -22,7 +22,7 @@ pub fn handle_user_inputs(world : &mut WorldData, player_position : &mut Vec3, i
                         let mut i = 0;
                         'rayloop : for ray in raycast_test(position, facing_dir.normalize()) {
                             i+=1;
-                            if world.get_pixel_data(ray.x as i32,ray.y as i32,ray.z as i32) != PixelTypes::Air {
+                            if world.get_pixel_data(ray.x as i32,ray.y as i32,ray.z as i32) != Some(PixelTypes::Air) {
                                 for x in -5..=5 {
                                     for y in -5..=5 {
                                         for z in -5..=5 {

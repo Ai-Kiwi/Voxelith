@@ -26,7 +26,7 @@ impl MeshCreator {
         }
     }
 
-    pub fn load_mesh_file_to_buffer(path : &str, render_state : RenderState) -> Option<Buffer> {
+    pub fn load_mesh_file_to_vertices(path : &str, render_state : RenderState) -> Option<Buffer> {
         let hashmap_data = MeshCreator::load_mesh_file_to_hashmap(path);
         match hashmap_data {
             Some(data) => {

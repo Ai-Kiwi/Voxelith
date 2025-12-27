@@ -12,7 +12,7 @@ pub struct WorldData {
 
 
 impl WorldData {
-    pub fn get_pixel_data(&self, pixel_x : i32, pixel_y : i32, pixel_z : i32) -> PixelTypes {
+    pub fn get_pixel_data(&self, pixel_x : i32, pixel_y : i32, pixel_z : i32) -> Option<PixelTypes> {
         let chunk_x = pixel_x.div_euclid(16);
         let chunk_y = pixel_y.div_euclid(16);
         let chunk_z = pixel_z.div_euclid(16);
@@ -23,10 +23,10 @@ impl WorldData {
         match chunk_data {
             Some(chunk) => {
                 let pixel = chunk.get_relative_pixel(local_x, local_y, local_z);
-                return pixel
+                return Some(pixel)
             },
             None => {
-                return PixelTypes::Air
+                return None
             },
         };
     }
@@ -34,14 +34,13 @@ impl WorldData {
         self.pixel_edit_queue.push((pixel_pos.0,pixel_pos.1,pixel_pos.2,pixel));
     }
 
-    pub fn get_area_block_data_unordered(&self, start_pixel_pos : (i32,i32,i32), end_pixel_pos : (i32,i32,i32)) -> Vec<PixelTypes> {
-        let mut blocks_positions = Vec::new();
+    pub fn test_collision_area(&self, start_pixel_pos : (i32,i32,i32), end_pixel_pos : (i32,i32,i32)) -> bool {
         let start_chunk_x = start_pixel_pos.0.div_euclid(16);
         let start_chunk_y = start_pixel_pos.0.div_euclid(16);
         let start_chunk_z = start_pixel_pos.0.div_euclid(16);
-        let end_chunk_x = start_pixel_pos.0.div_euclid(16);
-        let end_chunk_y = start_pixel_pos.0.div_euclid(16);
-        let end_chunk_z = start_pixel_pos.0.div_euclid(16);
+        let end_chunk_x = end_pixel_pos.0.div_euclid(16);
+        let end_chunk_y = end_pixel_pos.0.div_euclid(16);
+        let end_chunk_z = end_pixel_pos.0.div_euclid(16);
 
         for chunk_y in start_chunk_y..end_chunk_y as i32 {
             for chunk_z in start_chunk_z..end_chunk_z as i32 {
@@ -55,8 +54,12 @@ impl WorldData {
                                 let block_z = (chunk_z * 16) + local_z;
                                 if block_x <= end_chunk_x && block_x >= start_chunk_x && block_y <= end_chunk_y && block_y >= start_chunk_y && block_z <= end_chunk_z && block_z >= start_chunk_z {
                                     match chunk_data {
-                                        Some(data) => blocks_positions.push(data.get_relative_pixel(local_x, local_y, local_z)),
-                                        None => blocks_positions.push(PixelTypes::Air),
+                                        Some(data) => {
+                                            if data.get_relative_pixel(local_x, local_y, local_z).should_be_collision() {
+                                                return true
+                                            }
+                                        }
+                                        None => (),
                                     }
                                 }
                             }
@@ -66,6 +69,6 @@ impl WorldData {
             }
         }
 
-        return blocks_positions;
+        return false;
     }
 }

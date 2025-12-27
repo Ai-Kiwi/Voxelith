@@ -1,10 +1,10 @@
-use crate::physics::PhysicsObject;
+use crate::{physics::PhysicsObject, utils::Vec3};
 
 
 
 pub struct Entity {
     pub id : u64,
-    pub position : (f32,f32,f32),
+    pub position : Vec3,
     pub physics : PhysicsObject,
     pub entity_type : EntityType,
     //health
@@ -14,7 +14,6 @@ pub struct Entity {
     //rotation
     //physics
     //inventory
-    pub updated : bool
 }
 
 pub enum EntityType {

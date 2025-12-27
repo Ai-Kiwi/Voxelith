@@ -46,4 +46,15 @@ impl PixelTypes {
         }
 
     }
+    pub const fn should_be_collision(&self) -> bool {
+        match self {
+            PixelTypes::Air => false,
+            PixelTypes::Grass => true,
+            PixelTypes::Dirt => true,
+            PixelTypes::Stone => true,
+            PixelTypes::Water => false,
+            PixelTypes::Sand => true,
+            PixelTypes::Snow => true,
+        }            
+    }
 }

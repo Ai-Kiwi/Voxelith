@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::mpsc::Sender};
 
-use crate::entity::Entity;
+use crate::{entity::{Entity, EntityType}, game::Game, utils::Vec3};
 
 pub struct Entities {
     pub entities: HashMap<u64, Entity>,
@@ -8,17 +8,23 @@ pub struct Entities {
 }
 
 
-pub fn handle_entity_update() {
+pub struct EntityRenderData {
+    pub id : u64,
+    pub position : Vec3,
+    pub entity_type : EntityType,
+    pub alive : bool,
+}
+
+
+pub fn handle_entity_update(game : &Game, entity_render_tx: &Sender<EntityRenderData>,) {
     //send updates for entities
-    //for entity in &mut world.entities {
-    //    if entity.1.updated == true {
-    //        let _ = entity_render_tx.send(EntityRenderData {
-    //            id: *entity.0,
-    //            alive: true,
-    //            position: entity.1.position,
-    //            entity_type: crate::entity::EntityType::Player,
-    //        });
-    //        entity.1.updated = false;
-    //    }
-    //}
+    for entity in &game.entities.entities {
+        let _ = entity_render_tx.send(EntityRenderData {
+            id: *entity.0,
+            position: entity.1.position,
+            entity_type: crate::entity::EntityType::Player,
+            alive: true,
+        });
+    }
+    
 }

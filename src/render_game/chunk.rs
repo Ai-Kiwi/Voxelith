@@ -14,13 +14,6 @@ pub struct ChunkMeshUpdate {
     pub data : Arc<Chunk>,
 }
 
-pub struct EntityRenderData {
-    //    pub id : u64,
-    //    pub alive : bool,
-    //    pub position : (f32, f32, f32),
-    //    pub entity_type : EntityType,
-}
-
 pub fn update_render_chunk_mesh(render_state : &mut RenderState, game_data : &mut GameData, chunk_pos : (i32,i32,i32), mesh : Option<&Mesh>, transparent : bool, chunk_data : Arc<Chunk>) {
     let key = (chunk_pos.0,chunk_pos.1,chunk_pos.2,transparent);
     if let Some(mesh_data) = mesh {
