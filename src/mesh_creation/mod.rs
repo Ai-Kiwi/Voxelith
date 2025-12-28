@@ -1,3 +1,5 @@
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+
 use crate::{game::chunk::Chunk, mesh_creation::create_mesh::create_chunk_mesh, render_game::chunk::ChunkMeshUpdate};
 
 use std::{sync::{Arc, mpsc::{Receiver, Sender}}, thread::sleep};
@@ -43,7 +45,7 @@ pub async fn chunk_mesh_creation_thread(chunk_mesh_update_tx : Sender<ChunkMeshU
             continue;
         }
         
-        for request in requests {
+        let _ = requests.par_iter().for_each(|request| {
             //non transparent
             let mesh = create_chunk_mesh(&request, 1, false);
             //let mesh_l2 = create_chunk_mesh(&request, 2, false);
@@ -73,6 +75,6 @@ pub async fn chunk_mesh_creation_thread(chunk_mesh_update_tx : Sender<ChunkMeshU
                 transparent: true,
                 data: request.chunk.clone(),
             });
-        }
+        });
     }
 }
