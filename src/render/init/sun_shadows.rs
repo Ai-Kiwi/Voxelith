@@ -18,7 +18,7 @@ impl SunShadow {
         );
         let sun_shadow_texture_lod = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Lod 0 Shadow Texture"),
-            size: wgpu::Extent3d { width : 4096, height : 4096, depth_or_array_layers : 1 },
+            size: wgpu::Extent3d { width : 4096, height : 4096, depth_or_array_layers : 1 },   //ultra 8192, high 4096, medium 2048, low 1024, very low 512
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
