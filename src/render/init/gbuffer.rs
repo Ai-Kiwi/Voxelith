@@ -325,26 +325,6 @@ pub fn create_material_gbuffer(device: &wgpu::Device, width: u32, height: u32) -
     })
 }
 
-pub fn create_depth_gbuffer(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
-    let size = wgpu::Extent3d {
-        width,
-        height,
-        depth_or_array_layers: 1,
-    };
-
-    device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("Depth Gbuffer"),
-        size: size,
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Depth32Float, //
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
-            | wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[wgpu::TextureFormat::Depth32Float],
-    })
-}
-
 pub fn create_normal_gbuffer(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
     let size = wgpu::Extent3d {
         width,
