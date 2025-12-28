@@ -74,13 +74,8 @@ pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderStat
     });
 
     let mut camera = PerspectiveCamera::new();
-
     let mut camera_uniform = CameraUniform::new();
     camera_uniform.update_view_proj_prespec(&mut camera, config.width, config.height);
-
-
-
-    //setup needed buffers and info for them
     let camera_buffer = device.create_buffer_init(
         &wgpu::util::BufferInitDescriptor {
             label: Some("Camera Buffer"),
@@ -88,11 +83,6 @@ pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderStat
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         }
     );
-
-    //sun shadow
-    let sun_shadow = InitSunShadow::new(&device).await;
-
-    //camera bind group
     let camera_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         entries: &[
             wgpu::BindGroupLayoutEntry {
@@ -108,7 +98,6 @@ pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderStat
         ],
         label: Some("camera bind group layout"),
     });
-
     let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
         layout: &camera_bind_group_layout,
         entries: &[
@@ -119,6 +108,9 @@ pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderStat
         ],
         label: Some("camera bind group"),
     });
+
+    //sun shadow
+    let sun_shadow = InitSunShadow::new(&device).await;
 
     //create gbuffer 
     let gbuffer_info = InitGbufferInfo::new(&device, &size, &depth_view, &depth_sampler, &camera_bind_group_layout, &sun_shadow).await;
