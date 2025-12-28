@@ -3,7 +3,7 @@ use std::{mem, sync::{Arc, Weak}, time::Instant};
 use dashmap::DashMap;
 use wgpu::{CommandEncoderDescriptor, util::DeviceExt};
 
-use crate::{render::wgpu::RenderState, render_game::MAP_VRAM_SIZE, utils::{Mesh, Vertex}};
+use crate::{render::{MAP_VRAM_SIZE, wgpu::RenderState}, utils::{Mesh, Vertex}};
 
 pub struct MeshBufferReference {
     pub id : u64,

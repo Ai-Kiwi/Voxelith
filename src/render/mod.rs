@@ -16,7 +16,7 @@ pub mod mesh;
 //pub const LEVEL_3_LOD_DISTANCE: f32 = 2560.0;
 //pub const LEVEL_2_LOD_DISTANCE: f32 = 1280.0;
 //pub const LEVEL_1_LOD_DISTANCE: f32 = 640.0;
-
+pub const MAP_VRAM_SIZE: u64 = 256 * 1024 * 1024; //256mb
 
 pub struct RenderFrameThreadPerformanceInfo {
     total_tick_time : f32, 

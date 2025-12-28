@@ -5,7 +5,7 @@ use egui_wgpu::Renderer;
 use wgpu::{BindGroupLayout, Buffer, Device, Texture, TextureView, util::DeviceExt};
 use winit::{keyboard::KeyCode, window::Window};
 
-use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{CameraUniform, OrthographicCamera, PerspectiveCamera}, mesh::MeshBuffer, render_frame::gui::GuiInfo}, utils::Vec2};
+use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{CameraUniform, OrthographicCamera, PerspectiveCamera}, init::{init_render_state}, mesh::MeshBuffer, render_frame::gui::GuiInfo}, utils::Vec2};
 
 pub fn get_distance_to_camera_unsquared(camera : &PerspectiveCamera, x : f32, y : f32, z : f32) -> f32 {
     let dx = camera.position.x - x;
@@ -142,7 +142,6 @@ pub struct RenderState {
     pub queue: wgpu::Queue,
     pub config: wgpu::SurfaceConfiguration,
     pub is_surface_configured: bool,
-    pub basic_mesh_render_pipeline: wgpu::RenderPipeline,
     pub gbuffer_render_pipeline : wgpu::RenderPipeline,
     pub camera_uniform: CameraUniform,
     pub camera_buffer: wgpu::Buffer,
@@ -209,67 +208,10 @@ pub struct SunShadow {
     pub bind_group: wgpu::BindGroup,
 }
 
-impl SunShadow {
-    pub fn new(device: &Device, distance : f32, layout : &BindGroupLayout) -> SunShadow {
-        let mut sun_shadows_lod_camera = OrthographicCamera::new();
-        sun_shadows_lod_camera.width = distance;
-        sun_shadows_lod_camera.height = distance;
-        let mut sun_shadows_lod_camera_uniform = CameraUniform::new();
-        sun_shadows_lod_camera_uniform.update_view_proj_ortho(&mut sun_shadows_lod_camera);
-        let sun_shadows_lod_camera_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Light Shadow Camera Buffer"),
-                contents: bytemuck::cast_slice(&[sun_shadows_lod_camera_uniform]),
-                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            }
-        );
-        let sun_shadow_texture_lod = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("Lod 0 Shadow Texture"),
-            size: wgpu::Extent3d { width : 4096, height : 4096, depth_or_array_layers : 1 },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Depth32Float,
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT
-                | wgpu::TextureUsages::TEXTURE_BINDING,
-            view_formats: &[wgpu::TextureFormat::Depth32Float],
-        });
-        let sun_shadow_texture_lod_view = sun_shadow_texture_lod.create_view(&wgpu::TextureViewDescriptor::default());
-        let sun_shadow_texture_lod_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("Shadow Sampler"),
-            compare: Some(wgpu::CompareFunction::Less),
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            ..Default::default()
-        });
-
-        let sun_shadow_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: sun_shadows_lod_camera_buffer.as_entire_binding(),
-                }
-            ],
-            label: Some("sun_shadow_bind_group"),
-        });
-
-        SunShadow {
-            camera: sun_shadows_lod_camera,
-            camera_uniform: sun_shadows_lod_camera_uniform,
-            camera_buffer: sun_shadows_lod_camera_buffer,
-            texture_view: sun_shadow_texture_lod_view,
-            texture_sampler: sun_shadow_texture_lod_sampler,
-            bind_group: sun_shadow_bind_group,
-        }
-    }
-}
-
-
-
 impl<'a> RenderState {
+    pub async fn new(window: Arc<Window>) -> anyhow::Result<RenderState> {
+        return init_render_state(window).await;
+    }
 
     pub fn resize(&mut self, width: u32, height: u32) {
         if width > 0 && height > 0 {
@@ -316,6 +258,5 @@ impl<'a> RenderState {
             });
         }    
     }
-
 }
 
