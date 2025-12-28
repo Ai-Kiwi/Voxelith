@@ -5,7 +5,7 @@ use egui_wgpu::Renderer;
 use wgpu::{BindGroupLayout, Buffer, Device, Texture, TextureView, util::DeviceExt};
 use winit::{keyboard::KeyCode, window::Window};
 
-use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{CameraUniform, OrthographicCamera, PerspectiveCamera}, init::{init_render_state}, mesh::MeshBuffer, render_frame::gui::GuiInfo}, utils::Vec2};
+use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{CameraUniform, OrthographicCamera, PerspectiveCamera}, init::{gbuffer::update_render_state_gbuffer, init_render_state}, mesh::MeshBuffer, render_frame::gui::GuiInfo}, utils::Vec2};
 
 pub fn get_distance_to_camera_unsquared(camera : &PerspectiveCamera, x : f32, y : f32, z : f32) -> f32 {
     let dx = camera.position.x - x;
@@ -15,126 +15,6 @@ pub fn get_distance_to_camera_unsquared(camera : &PerspectiveCamera, x : f32, y 
     return dx*dx + dy*dy + dz*dz;
 }
 
-
-pub fn create_depth_texture(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
-    let size = wgpu::Extent3d {
-        width,
-        height,
-        depth_or_array_layers: 1,
-    };
-
-    device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("Depth Texture"),
-        size,
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Depth32Float,
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
-             | wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[wgpu::TextureFormat::Depth32Float],
-    })
-}
-
-pub fn create_base_color_gbuffer(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
-    let size = wgpu::Extent3d {
-        width,
-        height,
-        depth_or_array_layers: 1,
-    };
-
-    device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("Base Color Gbuffer"),
-        size: size,
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8Unorm,
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
-            | wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[wgpu::TextureFormat::Rgba8Unorm],
-    })
-}
-
-pub fn create_lighting_gbuffer(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
-    let size = wgpu::Extent3d {
-        width,
-        height,
-        depth_or_array_layers: 1,
-    };
-
-    device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("Lighting Gbuffer"),
-        size: size,
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba16Float,
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
-            | wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[wgpu::TextureFormat::Rgba16Float],
-    })
-}
-
-pub fn create_material_gbuffer(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
-    let size = wgpu::Extent3d {
-        width,
-        height,
-        depth_or_array_layers: 1,
-    };
-
-    device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("Material Gbuffer"),
-        size: size,
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8Unorm, //
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
-            | wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[wgpu::TextureFormat::Rgba8Unorm],
-    })
-}
-
-pub fn create_depth_gbuffer(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
-    let size = wgpu::Extent3d {
-        width,
-        height,
-        depth_or_array_layers: 1,
-    };
-
-    device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("Depth Gbuffer"),
-        size: size,
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Depth32Float, //
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
-            | wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[wgpu::TextureFormat::Depth32Float],
-    })
-}
-
-pub fn create_normal_gbuffer(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
-    let size = wgpu::Extent3d {
-        width,
-        height,
-        depth_or_array_layers: 1,
-    };
-
-    device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("Normal Gbuffer"),
-        size: size,
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8Unorm,
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
-            | wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[wgpu::TextureFormat::Rgba8Unorm],
-    })
-}
 pub struct RenderState {
     //gpu related data
     pub surface: wgpu::Surface<'static>,
@@ -218,44 +98,7 @@ impl<'a> RenderState {
             self.config.width = width;
             self.config.height = height;
             self.surface.configure(&self.device, &self.config);
-            let depth_texture = create_depth_texture(&self.device,width,height);
-            let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-            self.depth_texture = depth_texture;
-            self.depth_view = depth_view;
-            self.is_surface_configured = true;
-
-            //update gbuffers
-
-            //create texture infos
-            let base_color_gbuffer = create_base_color_gbuffer(&self.device, width, height);
-            let lighting_gbuffer = create_lighting_gbuffer(&self.device, width, height);
-            let normal_gbuffer = create_normal_gbuffer(&self.device, width, height);
-            let material_gbuffer = create_material_gbuffer(&self.device, width, height);
-
-            //make views
-            self.base_color_gbuffer_view = base_color_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
-            self.lighting_gbuffer_view = lighting_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
-            self.normal_gbuffer_view = normal_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
-            self.material_gbuffer_view = material_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
-
-            //remember to also update in init
-            self.gbuffers_bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-                layout: &self.gbuffers_bind_group_layout,
-                entries: &[
-                    wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&self.base_color_gbuffer_view)},
-                    wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::Sampler(&self.base_color_gbuffer_sampler)},
-                    wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::TextureView(&self.lighting_gbuffer_view)},
-                    wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::Sampler(&self.lighting_gbuffer_sampler)},
-                    wgpu::BindGroupEntry { binding: 4, resource: wgpu::BindingResource::TextureView(&self.normal_gbuffer_view)},
-                    wgpu::BindGroupEntry { binding: 5, resource: wgpu::BindingResource::Sampler(&self.normal_gbuffer_sampler)},
-                    wgpu::BindGroupEntry { binding: 6, resource: wgpu::BindingResource::TextureView(&self.material_gbuffer_view)},
-                    wgpu::BindGroupEntry { binding: 7, resource: wgpu::BindingResource::Sampler(&self.material_gbuffer_sampler)},
-                    wgpu::BindGroupEntry { binding: 8, resource: wgpu::BindingResource::TextureView(&self.depth_view)},
-                    wgpu::BindGroupEntry { binding: 9, resource: wgpu::BindingResource::Sampler(&self.depth_sampler)},
-                ],
-                label: Some("Gbuffers Bind Group"),
-            });
+            update_render_state_gbuffer(self);
         }    
     }
 }

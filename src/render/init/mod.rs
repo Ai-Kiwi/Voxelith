@@ -5,9 +5,11 @@ use egui_wgpu::{Renderer, RendererOptions};
 use wgpu::{ExperimentalFeatures, util::DeviceExt};
 use winit::window::{Theme, Window};
 
-mod sun_shadows;
+pub mod sun_shadows;
+pub mod gbuffer;
+pub mod composition;
 
-use crate::{render::{MAP_VRAM_SIZE, RenderFrameThreadPerformanceInfo, camera::{CameraUniform, PerspectiveCamera}, init::sun_shadows::InitSunShadow, render_frame::gui::GuiInfo, wgpu::{RenderState, create_base_color_gbuffer, create_depth_texture, create_lighting_gbuffer, create_normal_gbuffer}}, utils::{Vec2, Vertex}};
+use crate::{render::{MAP_VRAM_SIZE, RenderFrameThreadPerformanceInfo, camera::{CameraUniform, PerspectiveCamera}, init::{composition::InitCompositionInfo, gbuffer::{InitGbufferInfo, create_depth_texture}, sun_shadows::InitSunShadow}, render_frame::gui::GuiInfo, wgpu::RenderState}, utils::{Vec2, Vertex}};
 
 pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderState>  {
     let size: winit::dpi::PhysicalSize<u32> = window.inner_size();
@@ -64,19 +66,9 @@ pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderStat
         desired_maximum_frame_latency: 2,
     };
 
-    let full_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("Shader"),
-        source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/full_shader.wgsl").into()),
-    });
-
-    let composition_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("Shader"),
-        source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/composition_shader.wgsl").into()),
-    });
-
     let temporary_move_buffer = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("Temporary Move Buffer"),
-        size: 2 * 1024 * 1024, // 1 MB
+        size: 2 * 1024 * 1024, // 2 MB
         usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
         mapped_at_creation: false,
     });
@@ -114,7 +106,7 @@ pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderStat
                 count: None,
             }
         ],
-        label: Some("camera_bind_group_layout"),
+        label: Some("camera bind group layout"),
     });
 
     let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -125,268 +117,14 @@ pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderStat
                 resource: camera_buffer.as_entire_binding(),
             }
         ],
-        label: Some("camera_bind_group"),
+        label: Some("camera bind group"),
     });
 
-    //create texture infos
-    let base_color_gbuffer = create_base_color_gbuffer(&device, size.width, size.height);
-    let lighting_gbuffer = create_lighting_gbuffer(&device, size.width, size.height);
-    let normal_gbuffer = create_normal_gbuffer(&device, size.width, size.height);
-    let material_gbuffer = create_normal_gbuffer(&device, size.width, size.height);
-
-    //make views
-    let base_color_gbuffer_view = base_color_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
-    let lighting_gbuffer_view = lighting_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
-    let normal_gbuffer_view = normal_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
-    let material_gbuffer_view = material_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
-
-    //make samplers
-    let base_color_gbuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
-    let lighting_gbuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
-    let normal_gbuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
-    let material_gbuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
-
-
-    //bind group layout
-    let gbuffers_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        entries: &[
-            //base color
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
-                    sample_type: wgpu::TextureSampleType::Float { filterable: false }, 
-                    view_dimension: wgpu::TextureViewDimension::D2, 
-                    multisampled: false 
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 1,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
-                count: None,
-            },
-            //lighting
-            wgpu::BindGroupLayoutEntry {
-                binding: 2,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
-                    sample_type: wgpu::TextureSampleType::Float { filterable: false }, 
-                    view_dimension: wgpu::TextureViewDimension::D2, 
-                    multisampled: false 
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 3,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
-                count: None,
-            },
-            //normal
-            wgpu::BindGroupLayoutEntry {
-                binding: 4,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
-                    sample_type: wgpu::TextureSampleType::Float { filterable: false }, 
-                    view_dimension: wgpu::TextureViewDimension::D2, 
-                    multisampled: false 
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 5,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
-                count: None,
-            },
-            //material
-            wgpu::BindGroupLayoutEntry {
-                binding: 6,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
-                    sample_type: wgpu::TextureSampleType::Float { filterable: false }, 
-                    view_dimension: wgpu::TextureViewDimension::D2, 
-                    multisampled: false 
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 7,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
-                count: None,
-            },
-            //depth
-            wgpu::BindGroupLayoutEntry {
-                binding: 8,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
-                    sample_type: wgpu::TextureSampleType::Depth, 
-                    view_dimension: wgpu::TextureViewDimension::D2, 
-                    multisampled: false 
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 9,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
-                count: None,
-            }
-        ],
-        label: Some("Gbuffers Bind Group Layout"),
-    });
-
-    //bind group
-    //remember to also update in resize
-    let gbuffers_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        layout: &gbuffers_bind_group_layout,
-        entries: &[
-            wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&base_color_gbuffer_view)},
-            wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::Sampler(&base_color_gbuffer_sampler)},
-            wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::TextureView(&lighting_gbuffer_view)},
-            wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::Sampler(&lighting_gbuffer_sampler)},
-            wgpu::BindGroupEntry { binding: 4, resource: wgpu::BindingResource::TextureView(&normal_gbuffer_view)},
-            wgpu::BindGroupEntry { binding: 5, resource: wgpu::BindingResource::Sampler(&normal_gbuffer_sampler)},
-            wgpu::BindGroupEntry { binding: 6, resource: wgpu::BindingResource::TextureView(&material_gbuffer_view)},
-            wgpu::BindGroupEntry { binding: 7, resource: wgpu::BindingResource::Sampler(&material_gbuffer_sampler)},
-            wgpu::BindGroupEntry { binding: 8, resource: wgpu::BindingResource::TextureView(&depth_view)},
-            wgpu::BindGroupEntry { binding: 9, resource: wgpu::BindingResource::Sampler(&depth_sampler)},
-        ],
-        label: Some("Gbuffers Bind Group"),
-    });
-
-    let create_gbuffers_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Render Pipeline Layout"),
-            bind_group_layouts: &[
-                &camera_bind_group_layout,
-                &sun_shadow.bind_group_layout
-            ],
-            push_constant_ranges: &[],
-    });
-
-    //full render pipeline
-    let gbuffer_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-        label: Some("Gbuffer Render Pipeline"),
-        layout: Some(&create_gbuffers_pipeline_layout),
-        vertex: wgpu::VertexState {
-            module: &full_shader,
-            entry_point: Some("vs_main"),
-            buffers: &[
-                Vertex::desc()
-            ],
-            compilation_options: wgpu::PipelineCompilationOptions::default(),
-        },
-        fragment: Some(wgpu::FragmentState {
-            module: &full_shader,
-            entry_point: Some("fs_main"),
-            targets: &[
-                Some(wgpu::ColorTargetState {
-                    format: wgpu::TextureFormat::Rgba8Unorm,
-                    blend: None,
-                    write_mask: wgpu::ColorWrites::ALL,
-                }),
-                Some(wgpu::ColorTargetState {
-                    format: wgpu::TextureFormat::Rgba16Float,
-                    blend: None,
-                    write_mask: wgpu::ColorWrites::ALL,
-                }),
-                Some(wgpu::ColorTargetState {
-                    format: wgpu::TextureFormat::Rgba8Unorm,
-                    blend: None,
-                    write_mask: wgpu::ColorWrites::ALL,
-                }),
-                Some(wgpu::ColorTargetState {
-                    format: wgpu::TextureFormat::Rgba8Unorm,
-                    blend: None,
-                    write_mask: wgpu::ColorWrites::ALL,
-                }),
-            ],
-            compilation_options: wgpu::PipelineCompilationOptions::default(),
-        }),
-        primitive: wgpu::PrimitiveState {
-            topology: wgpu::PrimitiveTopology::TriangleList,
-            strip_index_format: None,
-            front_face: wgpu::FrontFace::Ccw,
-            cull_mode: Some(wgpu::Face::Back),
-            polygon_mode: wgpu::PolygonMode::Fill,
-            unclipped_depth: false,
-            conservative: false,
-        },
-        depth_stencil: Some(wgpu::DepthStencilState {
-            format: wgpu::TextureFormat::Depth32Float,
-            depth_write_enabled: true,
-            depth_compare: wgpu::CompareFunction::Less,
-            stencil: wgpu::StencilState::default(),
-            bias: wgpu::DepthBiasState::default(),
-        }),
-        multisample: wgpu::MultisampleState {
-            count: 1,
-            mask: !0,
-            alpha_to_coverage_enabled: false,
-        },
-        multiview: None,
-        cache: None,
-    });
+    //create gbuffer 
+    let gbuffer_info = InitGbufferInfo::new(&device, &size, &depth_view, &depth_sampler, &camera_bind_group_layout, &sun_shadow).await;
 
     //composition render
-    let composition_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Composition Pipeline Layout"),
-            bind_group_layouts: &[
-                &gbuffers_bind_group_layout,
-                &camera_bind_group_layout
-            ],
-            push_constant_ranges: &[],
-    });
-
-    let composition_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-        label: Some("Composition Render Pipeline"),
-        layout: Some(&composition_pipeline_layout),
-        vertex: wgpu::VertexState {
-            module: &composition_shader,
-            entry_point: Some("vs_main"),
-            buffers: &[],
-            compilation_options: wgpu::PipelineCompilationOptions::default(),
-        },
-        fragment: Some(wgpu::FragmentState {
-            module: &composition_shader,
-            entry_point: Some("fs_main"),
-            targets: &[
-                Some(wgpu::ColorTargetState {
-                    #[cfg(target_os = "linux")] format: wgpu::TextureFormat::Rgba8UnormSrgb,
-                    #[cfg(target_os = "windows")] format: wgpu::TextureFormat::Bgra8UnormSrgb,
-                    blend: Some(wgpu::BlendState::REPLACE),
-                    write_mask: wgpu::ColorWrites::ALL,
-                }),
-            ],
-            compilation_options: wgpu::PipelineCompilationOptions::default(),
-        }),
-        primitive: wgpu::PrimitiveState {
-            topology: wgpu::PrimitiveTopology::TriangleList,
-            strip_index_format: None,
-            front_face: wgpu::FrontFace::Ccw,
-            cull_mode: Some(wgpu::Face::Back),
-            polygon_mode: wgpu::PolygonMode::Fill,
-            unclipped_depth: false,
-            conservative: false,
-        },
-        depth_stencil: Some(wgpu::DepthStencilState {
-            format: wgpu::TextureFormat::Depth32Float,
-            depth_write_enabled: false,
-            depth_compare: wgpu::CompareFunction::Always,
-            stencil: wgpu::StencilState::default(),
-            bias: wgpu::DepthBiasState::default(),
-        }),
-        multisample: wgpu::MultisampleState {
-            count: 1,
-            mask: !0,
-            alpha_to_coverage_enabled: false,
-        },
-        multiview: None,
-        cache: None,
-    });
+    let composition = InitCompositionInfo::new(&device, &gbuffer_info, &camera_bind_group_layout);
 
     //setup egui
     let egui_renderer = Renderer::new(&device, surface_format, RendererOptions { 
@@ -399,6 +137,7 @@ pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderStat
     let egui_context: egui::Context = egui::Context::default();
     let egui_winit: egui_winit::State = egui_winit::State::new(egui_context.clone(), ViewportId::ROOT, &window, Some(1.0), Some(Theme::Dark), Some(4096));
 
+    //performance monitoring info
     let performance_info = RenderFrameThreadPerformanceInfo {
         total_tick_time: 0.0,
         total_render_time: 0.0,
@@ -417,7 +156,7 @@ pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderStat
         queue,
         config,
         is_surface_configured: false,
-        gbuffer_render_pipeline,
+        gbuffer_render_pipeline : gbuffer_info.gbuffer_render_pipeline,
         camera_uniform,
         camera_buffer,
         camera_bind_group,
@@ -443,18 +182,18 @@ pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderStat
         performance_info,
         mesh_buffers: Vec::new(),
         temporary_move_buffer,
-        base_color_gbuffer_view,
-        lighting_gbuffer_view,
-        base_color_gbuffer_sampler,
-        lighting_gbuffer_sampler,
-        gbuffers_bind_group,
-        gbuffers_bind_group_layout,
-        composition_pipeline_layout,
-        composition_render_pipeline,
-        normal_gbuffer_view,
-        material_gbuffer_view,
-        normal_gbuffer_sampler,
-        material_gbuffer_sampler,
+        base_color_gbuffer_view : gbuffer_info.base_color_gbuffer_view,
+        lighting_gbuffer_view : gbuffer_info.lighting_gbuffer_view,
+        base_color_gbuffer_sampler : gbuffer_info.base_color_gbuffer_sampler,
+        lighting_gbuffer_sampler : gbuffer_info.lighting_gbuffer_sampler,
+        gbuffers_bind_group : gbuffer_info.gbuffers_bind_group,
+        gbuffers_bind_group_layout : gbuffer_info.gbuffers_bind_group_layout,
+        composition_pipeline_layout: composition.composition_pipeline_layout,
+        composition_render_pipeline: composition.composition_render_pipeline,
+        normal_gbuffer_view : gbuffer_info.normal_gbuffer_view,
+        material_gbuffer_view : gbuffer_info.material_gbuffer_view,
+        normal_gbuffer_sampler : gbuffer_info.normal_gbuffer_sampler,
+        material_gbuffer_sampler : gbuffer_info.material_gbuffer_sampler,
         sun_shadow_lod_0 : sun_shadow.sun_shadow_lod_0,
         sun_shadow_lod_1 : sun_shadow.sun_shadow_lod_1,
         sun_shadow_lod_2 : sun_shadow.sun_shadow_lod_2,
