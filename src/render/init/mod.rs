@@ -8,8 +8,9 @@ use winit::window::{Theme, Window};
 pub mod sun_shadows;
 pub mod gbuffer;
 pub mod composition;
+pub mod entity_meshs;
 
-use crate::{render::{MAP_VRAM_SIZE, RenderFrameThreadPerformanceInfo, camera::{CameraUniform, PerspectiveCamera}, init::{composition::InitCompositionInfo, gbuffer::{InitGbufferInfo, create_depth_texture}, sun_shadows::InitSunShadow}, render_frame::gui::GuiInfo, wgpu::RenderState}, utils::{Vec2, Vertex}};
+use crate::{render::{MAP_VRAM_SIZE, RenderFrameThreadPerformanceInfo, camera::{CameraUniform, PerspectiveCamera}, init::{composition::InitCompositionInfo, entity_meshs::InitEntityMeshs, gbuffer::{InitGbufferInfo, create_depth_texture}, sun_shadows::InitSunShadow}, render_frame::gui::GuiInfo, wgpu::RenderState}, utils::{Vec2, Vertex}};
 
 pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderState>  {
     let size: winit::dpi::PhysicalSize<u32> = window.inner_size();
@@ -117,6 +118,9 @@ pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderStat
 
     //composition render
     let composition = InitCompositionInfo::new(&device, &gbuffer_info, &camera_bind_group_layout);
+
+    //entity meshs
+    let enttie_mesh_data = InitEntityMeshs::new(&device);
 
     //setup egui
     let egui_renderer = Renderer::new(&device, surface_format, RendererOptions { 

@@ -233,6 +233,8 @@ pub struct Color {
     pub a : u8
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Pod, Zeroable, Serialize, Deserialize, Decode, Encode)]
 pub struct Material {
     pub reflectiveness : u8,
     pub roughness : u8,

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::{mpsc::{Receiver, Sender, channel}}, thread, time::{Duration, Instant}};
 use futures::executor::block_on;
-use crate::{chunk_geneariton::{NewChunkInfo, chunk_generation_thread}, entity::Entity, game::{chunk::handle_chunk_loaded, entity::{Entities, EntityRenderData, handle_entity_update}, handle_inputs::handle_user_inputs, mesh_updates::handle_chunk_mesh_updates, pixel_updates::handle_pixel_updates, world::WorldData}, mesh_creation::{ChunkMeshCreateRequest, chunk_mesh_creation_thread}, physics::{PhysicsObject, tick_physics}, render_game::chunk::ChunkMeshUpdate, utils::{Vec2, Vec3}};
+use crate::{chunk_geneariton::{NewChunkInfo, chunk_generation_thread}, entity::{Entity, EntityRenderComponent}, game::{chunk::handle_chunk_loaded, entity::{Entities, EntityRenderData, handle_entity_update}, handle_inputs::handle_user_inputs, mesh_updates::handle_chunk_mesh_updates, pixel_updates::handle_pixel_updates, world::WorldData}, mesh_creation::{ChunkMeshCreateRequest, chunk_mesh_creation_thread}, physics::{PhysicsObject, tick_physics}, render_game::chunk::ChunkMeshUpdate, utils::{Vec2, Vec3}};
 
 pub mod world;
 pub mod chunk;
@@ -64,7 +64,10 @@ pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_
             gravity: true,
             grounded: false,
         }, 
-        entity_type: crate::entity::EntityType::Player, 
+        entity_class: crate::entity::EntityClass::Player,
+        render_component: Some(EntityRenderComponent {
+            entity_meshs: Vec::new(),
+        }), 
     } );
 
     game.entities.entities_count = 1;

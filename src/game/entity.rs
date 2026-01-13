@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::mpsc::Sender};
 
-use crate::{entity::{Entity, EntityType}, game::Game, utils::Vec3};
+use crate::{entity::{Entity, EntityClass}, game::Game, utils::Vec3};
 
 pub struct Entities {
     pub entities: HashMap<u64, Entity>,
@@ -11,7 +11,7 @@ pub struct Entities {
 pub struct EntityRenderData {
     pub id : u64,
     pub position : Vec3,
-    pub entity_type : EntityType,
+    pub entity_class : EntityClass,
     pub alive : bool,
 }
 
@@ -22,7 +22,7 @@ pub fn handle_entity_update(game : &Game, entity_render_tx: &Sender<EntityRender
         let _ = entity_render_tx.send(EntityRenderData {
             id: *entity.0,
             position: entity.1.position,
-            entity_type: crate::entity::EntityType::Player,
+            entity_class: crate::entity::EntityClass::Player,
             alive: true,
         });
     }

@@ -1,17 +1,28 @@
 use std::{collections::HashMap, f32::consts::PI};
+use bincode::{Decode, Encode};
+use bytemuck::{Pod, Zeroable};
+use serde::{Deserialize, Serialize};
 use wgpu::{Buffer, CommandEncoder, RenderPass};
-use crate::{render::{camera::PerspectiveCamera, wgpu::RenderState}, utils::{Color, Vec3, raycast_test, voxel_raycast_test}};
+use crate::{render::{camera::PerspectiveCamera, wgpu::RenderState}, utils::{Color, Material, Vec3, raycast_test, voxel_raycast_test}};
 
 mod create_mesh;
 mod files;
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Pod, Zeroable, Serialize, Deserialize, Decode, Encode)]
+pub struct VoxelData {
+    pub color : Color,
+    pub material : Material,
+}
+
 pub struct MeshCreator {
-    pub mesh_voxels : HashMap<(i32,i32,i32),Color>,
+    pub mesh_voxels : HashMap<(i32,i32,i32),VoxelData>,
     pub mesh_buffer : Option<Buffer>,
     pub mesh_buffer_size : u32,
     pub camera : PerspectiveCamera,
     pub camera_distance : f32,
     pub selected_color : [u8; 3],
+    pub selected_material : [u8; 3],
     pub file_editing : String,
     pub update_due : bool
 }
@@ -27,6 +38,7 @@ impl MeshCreator {
             selected_color: [255,255,255],
             file_editing: "basic".to_string(),
             update_due: true,
+            selected_material: [0,0,0],
         }
     }
 }
@@ -99,7 +111,10 @@ pub fn tick_mesh_creator(render_state : &mut RenderState, mesh_creator : &mut Me
             last_ray_postion = ray
         }
 
-        mesh_creator.mesh_voxels.insert((last_ray_postion.x as i32,last_ray_postion.y as i32,last_ray_postion.z as i32), Color::new(mesh_creator.selected_color[0], mesh_creator.selected_color[1], mesh_creator.selected_color[2], 255));
+        mesh_creator.mesh_voxels.insert((last_ray_postion.x as i32,last_ray_postion.y as i32,last_ray_postion.z as i32), VoxelData { 
+            color: Color::new(mesh_creator.selected_color[0], mesh_creator.selected_color[1], mesh_creator.selected_color[2], 255), 
+            material: Material { reflectiveness: 0, roughness: 0, metallicness: 0 }
+        });
         mesh_creator.update_due = true;
     }
 

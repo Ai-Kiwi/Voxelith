@@ -54,6 +54,12 @@ impl App {
                     state.window.set_fullscreen(None);
                 }
             },
+            (KeyCode::F2, true) => {
+                self.page_open = PageOpen::Game
+            },
+            (KeyCode::F3, true) => {
+                self.page_open = PageOpen::MeshCreator
+            },
             (KeyCode::Tab, true) => {
                 state.game_selected = !state.game_selected;
                 match self.page_open {
