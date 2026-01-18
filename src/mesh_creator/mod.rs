@@ -1,6 +1,7 @@
 use std::{collections::HashMap, f32::consts::PI};
 use bincode::{Decode, Encode};
 use bytemuck::{Pod, Zeroable};
+use cgmath::Point3;
 use serde::{Deserialize, Serialize};
 use wgpu::{Buffer, CommandEncoder, RenderPass};
 use crate::{render::{camera::PerspectiveCamera, wgpu::RenderState}, utils::{Color, Material, Vec3, raycast_test, voxel_raycast_test}};
@@ -164,4 +165,176 @@ pub fn render_mesh_creator(render_state : &mut RenderState, mesh_creator : &mut 
     //        render_pass.draw(0..mesh_creator.mesh_buffer_size, 0..1);
     //    }
     //}
+    
+
+
+
+    //sun shadows textures
+    let sun_shadow_items = Vec::from([
+        &mut render_state.sun_shadow_lod_0,
+        &mut render_state.sun_shadow_lod_1,
+        &mut render_state.sun_shadow_lod_2,
+        &mut render_state.sun_shadow_lod_3
+    ]);
+
+    for sun_shadow in sun_shadow_items {
+        sun_shadow.camera.target = Point3::new(render_state.camera_uniform.position[0], render_state.camera_uniform.position[1], render_state.camera_uniform.position[2]);
+        sun_shadow.camera.position = Vec3::new(50.0 + render_state.camera_uniform.position[0], 500.0 + render_state.camera_uniform.position[1], 150.0 + render_state.camera_uniform.position[2]);
+        sun_shadow.camera_uniform.update_view_proj_ortho(&mut sun_shadow.camera);
+        render_state.queue.write_buffer(&sun_shadow.camera_buffer, 0, bytemuck::cast_slice(&[sun_shadow.camera_uniform]));
+        
+        let mut sun_shadow_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("Sun Shadow Render Pass"),
+            color_attachments: &[],
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment { 
+                view: &sun_shadow.texture_view, 
+                depth_ops: Some(wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(1.0),
+                    store: wgpu::StoreOp::Store,
+                }), 
+                stencil_ops: None,
+            }),
+            occlusion_query_set: None,
+            timestamp_writes: None,
+        });
+        sun_shadow_render_pass.set_pipeline(&render_state.sun_shadow_render_pipeline);
+        sun_shadow_render_pass.set_bind_group(0, &sun_shadow.bind_group, &[]);
+        
+        if mesh_creator.mesh_buffer_size > 0 {
+            if let Some(mesh_buffer) = &mesh_creator.mesh_buffer {
+                sun_shadow_render_pass.set_vertex_buffer(0, mesh_buffer.slice(..));
+                sun_shadow_render_pass.draw(0..mesh_creator.mesh_buffer_size, 0..1);
+            }
+        }
+        drop(sun_shadow_render_pass)
+    }
+    
+    
+    let mut gbuffer_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("Render Pass"),
+        color_attachments: &[
+            Some(wgpu::RenderPassColorAttachment {
+                view: &render_state.base_color_gbuffer_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    store: wgpu::StoreOp::Store,
+                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                        r: 0.0,
+                        g: 0.0,
+                        b: 0.0,
+                        a: 0.0,
+                    }),
+                },
+                depth_slice: None,
+            }),
+            Some(wgpu::RenderPassColorAttachment {
+                view: &render_state.lighting_gbuffer_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    store: wgpu::StoreOp::Store,
+                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                        r: 0.0,
+                        g: 0.0,
+                        b: 0.0,
+                        a: 0.0,
+                    }),
+                },
+                depth_slice: None,
+            }),
+            Some(wgpu::RenderPassColorAttachment {
+                view: &render_state.normal_gbuffer_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    store: wgpu::StoreOp::Store,
+                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                        r: 0.0,
+                        g: 0.0,
+                        b: 0.0,
+                        a: 0.0,
+                    }),
+                },
+                depth_slice: None,
+            }),
+            Some(wgpu::RenderPassColorAttachment {
+                view: &render_state.material_gbuffer_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    store: wgpu::StoreOp::Store,
+                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                        r: 0.0,
+                        g: 0.0,
+                        b: 0.0,
+                        a: 0.0,
+                    }),
+                },
+                depth_slice: None,
+            })
+        ],
+        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment { 
+            view: &render_state.depth_view, 
+            depth_ops: Some(wgpu::Operations {
+                load: wgpu::LoadOp::Clear(1.0),
+                store: wgpu::StoreOp::Store,
+            }), 
+            stencil_ops: None,
+        }),
+        occlusion_query_set: None,
+        timestamp_writes: None,
+    });
+
+    gbuffer_render_pass.set_pipeline(&render_state.gbuffer_render_pipeline);
+    gbuffer_render_pass.set_bind_group(0, &render_state.camera_bind_group, &[]);
+    gbuffer_render_pass.set_bind_group(1, &render_state.sun_shadow_textures_bind_group, &[]);
+
+    //let camera_direction_normal = Vec3::new(
+    //    game_data.camera.target.x - game_data.camera.position.x, 
+    //    game_data.camera.target.y - game_data.camera.position.y, 
+    //    game_data.camera.target.z - game_data.camera.position.z
+    //).normalize();
+
+    //render the terrain.
+
+    //render opaque
+    if mesh_creator.mesh_buffer_size > 0 {
+        if let Some(mesh_buffer) = &mesh_creator.mesh_buffer {
+            gbuffer_render_pass.set_vertex_buffer(0, mesh_buffer.slice(..));
+            gbuffer_render_pass.draw(0..mesh_creator.mesh_buffer_size, 0..1);
+        }
+    }
+    drop(gbuffer_render_pass);
+
+    let mut composition_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("Render Pass"),
+        color_attachments: &[
+            Some(wgpu::RenderPassColorAttachment {
+                view: &view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    store: wgpu::StoreOp::Store,
+                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                        r: 0.0,
+                        g: 0.0,
+                        b: 0.0,
+                        a: 0.0,
+                    }),
+                },
+                depth_slice: None,
+            }),
+        ],
+        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment { 
+            view: &render_state.depth_view, 
+            depth_ops: None,
+            stencil_ops: None,
+        }),
+        occlusion_query_set: None,
+        timestamp_writes: None,
+    });
+
+    composition_render_pass.set_pipeline(&render_state.composition_render_pipeline);
+    composition_render_pass.set_bind_group(0, &render_state.gbuffers_bind_group, &[]);
+    composition_render_pass.set_bind_group(1, &render_state.camera_bind_group, &[]);
+    composition_render_pass.draw(0..3, 0..1);
+
+    drop(composition_render_pass);
+
 }
