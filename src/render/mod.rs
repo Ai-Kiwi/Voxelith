@@ -3,7 +3,7 @@ use std::{collections::{BTreeMap, HashMap}, sync::mpsc::channel, thread};
 use pollster::block_on;
 use winit::event_loop::EventLoop;
 
-use crate::{game::{InputEvent, entity::EntityRenderData, game_thread}, mesh_creator::MeshCreator, render::{app::App, camera::PerspectiveCamera}, render_game::{GameData, RenderThreadChannels, chunk::ChunkMeshUpdate}};
+use crate::{game::{InputEvent, game_thread}, mesh_creator::MeshCreator, render::{app::App, camera::PerspectiveCamera}, render_game::{GameData, RenderThreadChannels, chunk::ChunkMeshUpdate, entities::EntityRenderData}};
 
 
 pub mod camera;
@@ -12,6 +12,7 @@ mod app;
 mod init;
 mod render_frame;
 pub mod mesh;
+pub mod entities;
 
 //pub const LEVEL_3_LOD_DISTANCE: f32 = 2560.0;
 //pub const LEVEL_2_LOD_DISTANCE: f32 = 1280.0;
@@ -54,6 +55,7 @@ pub async fn render_thread() {
         },
         camera: PerspectiveCamera::new(),
         cache_chunk_meshs: BTreeMap::new(),
+        entities: HashMap::new(),
     };
 
     app.game_data = Some(game_state);

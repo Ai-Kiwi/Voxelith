@@ -1,6 +1,6 @@
 use std::{collections::{BTreeMap, HashMap}, sync::{Arc, mpsc::{Receiver, Sender}}};
 
-use crate::{game::{InputEvent, entity::EntityRenderData}, render::{camera::PerspectiveCamera, mesh::GpuMeshReference, wgpu::RenderState}, render_game::{chunk::{ChunkMeshUpdate, update_chunk_meshs}, handle_input::handle_user_input}, utils::Vec3};
+use crate::{game::InputEvent, render::{camera::PerspectiveCamera, mesh::GpuMeshReference, wgpu::RenderState}, render_game::{chunk::{ChunkMeshUpdate, update_chunk_meshs}, entities::EntityRenderData, handle_input::handle_user_input}, utils::Vec3};
 
 
 pub const LEVEL_1_LOD_DISTANCE: f32 = 480.0;
@@ -31,7 +31,7 @@ pub struct GameData {
     pub cache_chunk_meshs : BTreeMap<(i32,i32,i32,bool),ChunkInfo>,
     pub chunk_mesh_data : HashMap<(i32,i32,i32,bool),ChunkMeshUpdate>,
     pub render_channels : RenderThreadChannels,
-    //let mut entities_to_render: HashMap<u64,EntityRenderData> = HashMap::new();
+    pub entities: HashMap<u64,EntityRenderData>,
 }
 
 pub fn tick_game_render_logic(render_state : &mut RenderState, game_data : &mut GameData, open : bool) {

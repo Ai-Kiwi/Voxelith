@@ -1,3 +1,15 @@
+use crate::{entity::EntityClass, utils::Vec3};
+
+pub struct EntityRenderData {
+    pub id : u64,
+    pub position : Vec3,
+    pub entity_class : EntityClass,
+    pub alive : bool,
+    pub render_mesh_id : u64, //THIS IS VERY TEMP, WILL CHANGE TO REAL SYSTEM LATER BUT FOR NOW WILL WORK
+}
+
+
+
 pub fn update_entites() {
     loop {
         //let entity_render_update = entity_render_rx.try_recv();

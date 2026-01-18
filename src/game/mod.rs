@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::{mpsc::{Receiver, Sender, channel}}, thread, time::{Duration, Instant}};
 use futures::executor::block_on;
-use crate::{chunk_geneariton::{NewChunkInfo, chunk_generation_thread}, entity::{Entity, EntityRenderComponent}, game::{chunk::handle_chunk_loaded, entity::{Entities, EntityRenderData, handle_entity_update}, handle_inputs::handle_user_inputs, mesh_updates::handle_chunk_mesh_updates, pixel_updates::handle_pixel_updates, world::WorldData}, mesh_creation::{ChunkMeshCreateRequest, chunk_mesh_creation_thread}, physics::{PhysicsObject, tick_physics}, render_game::chunk::ChunkMeshUpdate, utils::{Vec2, Vec3}};
+use crate::{chunk_geneariton::{NewChunkInfo, chunk_generation_thread}, entity::{Entity, EntityRenderComponent}, game::{chunk::handle_chunk_loaded, entity::{Entities, handle_entity_update}, handle_inputs::handle_user_inputs, mesh_updates::handle_chunk_mesh_updates, pixel_updates::handle_pixel_updates, world::WorldData}, mesh_creation::{ChunkMeshCreateRequest, chunk_mesh_creation_thread}, physics::{PhysicsObject, tick_physics}, render_game::{chunk::ChunkMeshUpdate, entities::EntityRenderData}, utils::{Vec2, Vec3}};
 
 pub mod world;
 pub mod chunk;

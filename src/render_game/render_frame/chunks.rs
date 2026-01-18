@@ -2,14 +2,14 @@ use cgmath::Point3;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use wgpu::{CommandEncoder, RenderPass, wgc::device::queue, wgt::DrawIndirectArgs};
 
-use crate::{render::wgpu::RenderState, render_game::GameData, utils::Vec3};
+use crate::{entity, render::{self, wgpu::RenderState}, render_game::GameData, utils::Vec3};
 
 
 pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData, view: &wgpu::TextureView, encoder : &mut CommandEncoder) {
     let chunks = &game_data.cache_chunk_meshs;
     
-    //opaque
-    let mut buffer_draw_calls = Vec::new();
+    //create draw calls.
+    let mut terrain_buffer_draw_calls = Vec::new();
     for (i, buffer) in render_state.mesh_buffers.iter().enumerate() {
         let meshs = &buffer.meshs;
 
@@ -28,7 +28,31 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
         })
         .collect();
 
-        buffer_draw_calls.push(opaque_indirect_draw_calls);
+        terrain_buffer_draw_calls.push(opaque_indirect_draw_calls);
+    }
+
+    //pub struct State {
+    //    instances: Vec<Instance>,
+    //    instance_buffer: wgpu::Buffer,
+    //}
+
+    //let instance_data = instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
+    //let instance_buffer = device.create_buffer_init(
+    //    &wgpu::util::BufferInitDescriptor {
+    //        label: Some("Instance Buffer"),
+    //        contents: bytemuck::cast_slice(&instance_data),
+    //        usage: wgpu::BufferUsages::VERTEX,
+    //    }
+    //);
+
+    //will add the system for entity instances to pipeline for main render
+    //this system will be used for both entity and terrain.
+    //This approch makes code simplier and also allows moving the terrain around if i wanted todo that one day
+
+
+    let mut entity_buffer_draw_calls: Vec<u64> = Vec::new();
+    for (i, entity) in &game_data.entities {
+        
     }
     
     //sun shadows textures
@@ -63,7 +87,7 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
         sun_shadow_render_pass.set_bind_group(0, &sun_shadow.bind_group, &[]);
         
         
-        for (i, draw_call) in buffer_draw_calls.iter().enumerate() {
+        for (i, draw_call) in terrain_buffer_draw_calls.iter().enumerate() {
             render_state.queue.write_buffer(&render_state.mesh_buffers[i].opaque_indirect_buffer, 0, bytemuck::cast_slice(&draw_call));
             render_state.queue.write_buffer(&render_state.mesh_buffers[i].opaque_count_buffer, 0, bytemuck::cast_slice(&[draw_call.len() as u32]));
             sun_shadow_render_pass.set_vertex_buffer(0, render_state.mesh_buffers[i].mesh_buffer.slice(..));
@@ -165,7 +189,7 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
     //render the terrain.
 
     //render opaque
-    for (i, draw_call) in buffer_draw_calls.iter().enumerate() {
+    for (i, draw_call) in terrain_buffer_draw_calls.iter().enumerate() {
         render_state.queue.write_buffer(&render_state.mesh_buffers[i].opaque_indirect_buffer, 0, bytemuck::cast_slice(&draw_call));
         render_state.queue.write_buffer(&render_state.mesh_buffers[i].opaque_count_buffer, 0, bytemuck::cast_slice(&[draw_call.len() as u32]));
         gbuffer_render_pass.set_vertex_buffer(0, render_state.mesh_buffers[i].mesh_buffer.slice(..));
@@ -223,42 +247,6 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
     composition_render_pass.draw(0..3, 0..1);
 
     drop(composition_render_pass);
-
-    //transparent
-    //for (i, buffer) in render_state.mesh_buffers.iter().enumerate() {
-    //    let meshs = &buffer.meshs;
-    //
-    //    //setup transparent
-    //    let transparent_indirect_draw_calls: Vec<DrawIndirectArgs> = chunks
-    //    .par_iter()
-    //    .filter(|mesh| mesh.0.3 == true && mesh.1.size > 0 && mesh.1.buffer_number == i)
-    //    .map(|chunk| {
-    //        let id = chunk.1.pointer.id;
-    //        let mesh_info = meshs.get(&id).unwrap();
-    //        DrawIndirectArgs {
-    //            vertex_count: mesh_info.vertex_length,
-    //            instance_count: 1,
-    //            first_vertex: mesh_info.vertex_position,
-    //            first_instance: 0,
-    //        }
-    //    })
-    //    .collect();
-    //
-    //    //render transparent
-    //    render_pass.set_pipeline(&render_state.basic_mesh_render_pipeline);
-    //    render_state.queue.write_buffer(&buffer.transparent_indirect_buffer, 0, bytemuck::cast_slice(&transparent_indirect_draw_calls));
-    //    render_state.queue.write_buffer(&buffer.transparent_count_buffer, 0, bytemuck::cast_slice(&[transparent_indirect_draw_calls.len() as u32]));
-    //    render_pass.set_vertex_buffer(0, buffer.mesh_buffer.slice(..));
-    //    render_pass.set_bind_group(0, &render_state.camera_bind_group, &[]);
-    //    
-    //    render_pass.multi_draw_indirect_count(
-    //        &buffer.transparent_indirect_buffer, 
-    //        0, 
-    //        &buffer.transparent_count_buffer,
-    //        0,
-    //        1000000
-    //    );
-    //}
 
 }
 
