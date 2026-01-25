@@ -4,7 +4,7 @@ use bytemuck::{Pod, Zeroable};
 use cgmath::Point3;
 use serde::{Deserialize, Serialize};
 use wgpu::{Buffer, CommandEncoder, RenderPass};
-use crate::{render::{camera::PerspectiveCamera, wgpu::RenderState}, utils::{Color, Material, Vec3, raycast_test, voxel_raycast_test}};
+use crate::{render::{self, camera::PerspectiveCamera, wgpu::RenderState}, utils::{Color, Material, Vec3, raycast_test, voxel_raycast_test}};
 
 mod create_mesh;
 mod files;
@@ -66,14 +66,23 @@ pub fn tick_mesh_creator(render_state : &mut RenderState, mesh_creator : &mut Me
     let camera_position = Vec3::new(0.0, 0.0, 0.0) - (camera_front_norm * mesh_creator.camera_distance);
     mesh_creator.camera.position = camera_position;
 
+    //camera zoom in out
+    if render_state.keys_down.contains_key(&winit::keyboard::KeyCode::KeyW) {
+        mesh_creator.camera_distance -= 100.0 * render_state.delta_time;
+    }
+    if render_state.keys_down.contains_key(&winit::keyboard::KeyCode::KeyS) {
+        mesh_creator.camera_distance += 100.0 * render_state.delta_time;
+    }
+
+
+
     render_state.camera_uniform.update_view_proj_prespec(&mut mesh_creator.camera, render_state.config.width, render_state.config.height);
 
-
-    if render_state.keys_pressed.contains_key(&winit::keyboard::KeyCode::KeyE) {
+    if render_state.keys_pressed.contains_key(&winit::keyboard::KeyCode::KeyE) || render_state.keys_pressed.contains_key(&winit::keyboard::KeyCode::KeyR) {
         let screen_height = render_state.config.height as f32;
         let screen_width = render_state.config.width as f32;
         let fov_y: f32 = mesh_creator.camera.fovy.to_radians();
-        let fov_x = 2.0 * ((screen_width / screen_height) * (fov_y / 2.0).tan()).atan();
+        let fov_x = 2.0 * ( (fov_y / 2.0).tan() * (screen_width / screen_height) ).atan();
 
         let normalized_mouse_x = (render_state.mouse_position.x - (screen_width / 2.0)) / (screen_width / 2.0);
         let normalized_mouse_y = -1.0 * (render_state.mouse_position.y - (screen_height / 2.0)) / (screen_height / 2.0);
@@ -107,16 +116,25 @@ pub fn tick_mesh_creator(render_state : &mut RenderState, mesh_creator : &mut Me
                 break;
             }
             if mesh_creator.mesh_voxels.get(&(ray.x as i32,ray.y as i32,ray.z as i32)).is_some() {
+                if render_state.keys_pressed.contains_key(&winit::keyboard::KeyCode::KeyR) {
+                    mesh_creator.mesh_voxels.remove(&(ray.x as i32,ray.y as i32,ray.z as i32));
+                    mesh_creator.update_due = true;
+                }
                 break;
             }
+            mesh_creator.mesh_voxels.insert((ray.x as i32,ray.y as i32,ray.z as i32), VoxelData { 
+                color: Color::new(mesh_creator.selected_color[0], mesh_creator.selected_color[1], mesh_creator.selected_color[2], 255), 
+                material: Material { reflectiveness: 0, roughness: 0, metallicness: 0 }
+            });
             last_ray_postion = ray
         }
-
-        mesh_creator.mesh_voxels.insert((last_ray_postion.x as i32,last_ray_postion.y as i32,last_ray_postion.z as i32), VoxelData { 
-            color: Color::new(mesh_creator.selected_color[0], mesh_creator.selected_color[1], mesh_creator.selected_color[2], 255), 
-            material: Material { reflectiveness: 0, roughness: 0, metallicness: 0 }
-        });
-        mesh_creator.update_due = true;
+        if render_state.keys_pressed.contains_key(&winit::keyboard::KeyCode::KeyE) {
+            mesh_creator.mesh_voxels.insert((last_ray_postion.x as i32,last_ray_postion.y as i32,last_ray_postion.z as i32), VoxelData { 
+                color: Color::new(mesh_creator.selected_color[0], mesh_creator.selected_color[1], mesh_creator.selected_color[2], 255), 
+                material: Material { reflectiveness: 0, roughness: 0, metallicness: 0 }
+            });
+            mesh_creator.update_due = true;
+        }
     }
 
 

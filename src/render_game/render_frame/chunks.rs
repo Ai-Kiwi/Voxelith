@@ -1,8 +1,10 @@
+use std::collections::HashMap;
+
 use cgmath::Point3;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use wgpu::{CommandEncoder, RenderPass, wgc::device::queue, wgt::DrawIndirectArgs};
 
-use crate::{entity, render::{self, wgpu::RenderState}, render_game::GameData, utils::Vec3};
+use crate::{entity, render::{self, entity_meshs::MeshId, mesh, wgpu::RenderState}, render_game::GameData, utils::Vec3};
 
 
 pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData, view: &wgpu::TextureView, encoder : &mut CommandEncoder) {
@@ -50,9 +52,19 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
     //This approch makes code simplier and also allows moving the terrain around if i wanted todo that one day
 
 
-    let mut entity_buffer_draw_calls: Vec<u64> = Vec::new();
+    let mut entity_buffer_draw_calls: HashMap<MeshId,Vec<MeshId>> = HashMap::new();
     for (i, entity) in &game_data.entities {
-        
+        let mesh_id = MeshId(1);
+        match entity_buffer_draw_calls.get_mut(&mesh_id) {
+            Some(draw_calls) => {
+                draw_calls.push(mesh_id);
+            },
+            None => {
+                let mut buffer_calls = Vec::new();
+                buffer_calls.push(mesh_id);
+                entity_buffer_draw_calls.insert(mesh_id, buffer_calls);
+            },
+        }
     }
     
     //sun shadows textures
@@ -204,7 +216,18 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
     }
 
     //render entities
-    
+    for mesh in entity_buffer_draw_calls {
+        let vertex_info = render_state.mesh_id_reference.get(&mesh.0).expect(format!("Failed to render entity as texture id {} is not loaded", mesh.0.0).as_str());
+
+        gbuffer_render_pass.set_vertex_buffer(0, render_state.entity_mesh_buffer.slice(..));
+        gbuffer_render_pass.set_vertex_buffer(1, render_state.mesh_instance_buffer.slice(..));
+
+        gbuffer_render_pass.draw(vertex_info.start..(vertex_info.start+vertex_info.length), 0..(mesh.1.len() as u32));
+
+        for _ in mesh.1 {
+
+        }
+    }
 
 
 

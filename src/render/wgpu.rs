@@ -5,7 +5,7 @@ use egui_wgpu::Renderer;
 use wgpu::{BindGroupLayout, Buffer, Device, Texture, TextureView, util::DeviceExt};
 use winit::{keyboard::KeyCode, window::Window};
 
-use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{CameraUniform, OrthographicCamera, PerspectiveCamera}, init::{gbuffer::update_render_state_gbuffer, init_render_state}, mesh::MeshBuffer, render_frame::gui::GuiInfo}, utils::Vec2};
+use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{CameraUniform, OrthographicCamera, PerspectiveCamera}, entity_meshs::{MeshEntityLocationReference, MeshId, MeshInstance, MeshInstanceId}, init::{gbuffer::update_render_state_gbuffer, init_render_state}, mesh::MeshBuffer, render_frame::gui::GuiInfo}, utils::Vec2};
 
 pub fn get_distance_to_camera_unsquared(camera : &PerspectiveCamera, x : f32, y : f32, z : f32) -> f32 {
     let dx = camera.position.x - x;
@@ -45,19 +45,25 @@ pub struct RenderState {
     pub mesh_id_upto : u64,
     pub mesh_buffers : Vec<MeshBuffer>,
 
+    //entity instances
+    pub free_mesh_instance :  Vec<MeshInstanceId>,
+    pub mesh_id_reference : HashMap<MeshId,MeshEntityLocationReference>,
+    pub mesh_instance_buffer : wgpu::Buffer,
+    pub entity_mesh_buffer : wgpu::Buffer,
+    pub mesh_instances: HashMap<MeshInstanceId, MeshInstance>,
 
     //gui related stuff. Also engine
     pub egui_renderer : Renderer,
     pub egui_context : egui::Context,
     pub egui_winit : egui_winit::State,
+    pub performance_info : RenderFrameThreadPerformanceInfo,
 
     //window state
     pub game_selected : bool,
     pub fullscreen : bool,
     pub gui_info : GuiInfo,
 
-    pub performance_info : RenderFrameThreadPerformanceInfo,
-
+    //rendering buffers
     pub base_color_gbuffer_view: TextureView,
     pub lighting_gbuffer_view: TextureView,
     pub base_color_gbuffer_sampler: wgpu::Sampler,
@@ -71,6 +77,7 @@ pub struct RenderState {
     pub normal_gbuffer_view: TextureView,
     pub material_gbuffer_view: TextureView,
 
+    //shadow related
     pub sun_shadow_lod_0 : SunShadow,
     pub sun_shadow_lod_1 : SunShadow,
     pub sun_shadow_lod_2 : SunShadow,

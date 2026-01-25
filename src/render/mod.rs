@@ -3,7 +3,7 @@ use std::{collections::{BTreeMap, HashMap}, sync::mpsc::channel, thread};
 use pollster::block_on;
 use winit::event_loop::EventLoop;
 
-use crate::{game::{InputEvent, game_thread}, mesh_creator::MeshCreator, render::{app::App, camera::PerspectiveCamera}, render_game::{GameData, RenderThreadChannels, chunk::ChunkMeshUpdate, entities::EntityRenderData}};
+use crate::{game::{InputEvent, game_thread}, mesh_creator::MeshCreator, render::{app::App, camera::PerspectiveCamera}, render_game::{GameData, RenderThreadChannels, chunk::ChunkMeshUpdate, entities::{EntityRenderData, EntityRenderDataUpdate}}};
 
 
 pub mod camera;
@@ -13,6 +13,7 @@ mod init;
 mod render_frame;
 pub mod mesh;
 pub mod entities;
+pub mod entity_meshs;
 
 //pub const LEVEL_3_LOD_DISTANCE: f32 = 2560.0;
 //pub const LEVEL_2_LOD_DISTANCE: f32 = 1280.0;
@@ -37,7 +38,7 @@ pub async fn render_thread() {
 
     //start up game state
     let (chunk_mesh_update_tx, chunk_mesh_update_rx) = channel::<ChunkMeshUpdate>();
-    let (entity_render_tx, entity_render_rx) = channel::<EntityRenderData>();
+    let (entity_render_tx, entity_render_rx) = channel::<EntityRenderDataUpdate>();
     let (input_event_tx, mut input_event_rx) = channel::<InputEvent>();
     
     //game loop thread start

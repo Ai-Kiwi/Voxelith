@@ -120,7 +120,7 @@ pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderStat
     let composition = InitCompositionInfo::new(&device, &gbuffer_info, &camera_bind_group_layout);
 
     //entity meshs
-    let enttie_mesh_data = InitEntityMeshs::new(&device);
+    let entity_mesh_data = InitEntityMeshs::new(&device);
 
     //setup egui
     let egui_renderer = Renderer::new(&device, surface_format, RendererOptions { 
@@ -195,6 +195,11 @@ pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderStat
         sun_shadow_lod_2 : sun_shadow.sun_shadow_lod_2,
         sun_shadow_lod_3 : sun_shadow.sun_shadow_lod_3,
         sun_shadow_render_pipeline : sun_shadow.pipeline,
-        sun_shadow_textures_bind_group : sun_shadow.bind_group
+        sun_shadow_textures_bind_group : sun_shadow.bind_group,
+        free_mesh_instance: entity_mesh_data.free_mesh_instances,
+        mesh_id_reference: entity_mesh_data.mesh_id_reference,
+        mesh_instance_buffer: entity_mesh_data.mesh_instances_buffer,
+        entity_mesh_buffer: entity_mesh_data.meshs_buffer,
+        mesh_instances: entity_mesh_data.mesh_instances,
     })
 }
