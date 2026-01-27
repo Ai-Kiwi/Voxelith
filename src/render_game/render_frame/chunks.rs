@@ -92,7 +92,7 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
         sun_shadow_render_pass.set_pipeline(&render_state.sun_shadow_render_pipeline);
         sun_shadow_render_pass.set_bind_group(0, &sun_shadow.bind_group, &[]);
         
-        
+        //draw terrain
         for (i, draw_call) in terrain_buffer_draw_calls.iter().enumerate() {
             render_state.queue.write_buffer(&render_state.mesh_buffers[i].opaque_indirect_buffer, 0, bytemuck::cast_slice(&draw_call));
             render_state.queue.write_buffer(&render_state.mesh_buffers[i].opaque_count_buffer, 0, bytemuck::cast_slice(&[draw_call.len() as u32]));
@@ -107,6 +107,17 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
                 1000000
             );
         }
+        //draw entities
+        for mesh in &entity_instances_to_render {
+            let buffer_info = render_state.mesh_instances.get(&mesh.0).unwrap();
+            let vertex_info = render_state.mesh_id_reference.get(&mesh.0).expect(format!("Failed to render entity as texture id {} is not loaded", mesh.0.0).as_str());
+
+            sun_shadow_render_pass.set_vertex_buffer(0, render_state.entity_meshs_buffer.slice(..));
+            sun_shadow_render_pass.set_vertex_buffer(1, buffer_info.instances_buffer.slice(..));
+
+            sun_shadow_render_pass.draw(vertex_info.start..(vertex_info.start+vertex_info.length), 0..(mesh.1.len() as u32));
+        }
+
         drop(sun_shadow_render_pass)
     }
     
@@ -212,7 +223,7 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
     }
 
     //render entities
-    for mesh in entity_instances_to_render {
+    for mesh in &entity_instances_to_render {
         let buffer_info = render_state.mesh_instances.get(&mesh.0).unwrap();
         let vertex_info = render_state.mesh_id_reference.get(&mesh.0).expect(format!("Failed to render entity as texture id {} is not loaded", mesh.0.0).as_str());
 

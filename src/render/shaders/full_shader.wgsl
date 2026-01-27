@@ -23,7 +23,6 @@ var<uniform> camera: CameraUniform;
 @group(1) @binding(10) var depth_texture_lod3_samplier: sampler_comparison;
 @group(1) @binding(11) var<uniform> depth_texture_lod3_camera: CameraUniform;
 
-//
 struct InstanceInput {
     @location(5) model_matrix_0: vec4<f32>,
     @location(6) model_matrix_1: vec4<f32>,

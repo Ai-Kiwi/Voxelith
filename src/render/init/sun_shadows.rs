@@ -1,6 +1,6 @@
 use wgpu::{BindGroup, BindGroupLayout, Buffer, Device, PipelineLayout, TextureView, util::DeviceExt};
 
-use crate::{render::{camera::{CameraUniform, OrthographicCamera}, wgpu::SunShadow}, utils::Vertex};
+use crate::{render::{camera::{CameraUniform, OrthographicCamera}, entity_meshs::MeshInstanceRaw, wgpu::SunShadow}, utils::Vertex};
 
 impl SunShadow {
     pub fn new(device: &Device, distance : f32, layout : &BindGroupLayout) -> SunShadow {
@@ -253,7 +253,8 @@ impl InitSunShadow {
                 module: &light_depth_shader,
                 entry_point: Some("vs_main"),
                 buffers: &[
-                    Vertex::desc()
+                    Vertex::desc(),
+                    MeshInstanceRaw::desc()
                 ],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
