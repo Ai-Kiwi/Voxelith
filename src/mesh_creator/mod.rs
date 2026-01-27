@@ -221,6 +221,7 @@ pub fn render_mesh_creator(render_state : &mut RenderState, mesh_creator : &mut 
         if mesh_creator.mesh_buffer_size > 0 {
             if let Some(mesh_buffer) = &mesh_creator.mesh_buffer {
                 sun_shadow_render_pass.set_vertex_buffer(0, mesh_buffer.slice(..));
+                sun_shadow_render_pass.set_vertex_buffer(1, render_state.blank_instance_info.slice(..));
                 sun_shadow_render_pass.draw(0..mesh_creator.mesh_buffer_size, 0..1);
             }
         }
@@ -316,6 +317,7 @@ pub fn render_mesh_creator(render_state : &mut RenderState, mesh_creator : &mut 
     if mesh_creator.mesh_buffer_size > 0 {
         if let Some(mesh_buffer) = &mesh_creator.mesh_buffer {
             gbuffer_render_pass.set_vertex_buffer(0, mesh_buffer.slice(..));
+            gbuffer_render_pass.set_vertex_buffer(1, render_state.blank_instance_info.slice(..));
             gbuffer_render_pass.draw(0..mesh_creator.mesh_buffer_size, 0..1);
         }
     }

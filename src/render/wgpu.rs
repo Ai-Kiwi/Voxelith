@@ -5,7 +5,7 @@ use egui_wgpu::Renderer;
 use wgpu::{BindGroupLayout, Buffer, Device, Texture, TextureView, util::DeviceExt};
 use winit::{keyboard::KeyCode, window::Window};
 
-use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{CameraUniform, OrthographicCamera, PerspectiveCamera}, entity_meshs::{MeshEntityLocationReference, MeshId, MeshInstance, MeshInstanceId}, init::{gbuffer::update_render_state_gbuffer, init_render_state}, mesh::MeshBuffer, render_frame::gui::GuiInfo}, utils::Vec2};
+use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{CameraUniform, OrthographicCamera, PerspectiveCamera}, entity_meshs::{MeshEntityLocationReference, MeshId, MeshInstance, MeshInstanceId}, init::{entity_meshs::MeshInstancesBufferInfo, gbuffer::update_render_state_gbuffer, init_render_state}, mesh::MeshBuffer, render_frame::gui::GuiInfo}, utils::Vec2};
 
 pub fn get_distance_to_camera_unsquared(camera : &PerspectiveCamera, x : f32, y : f32, z : f32) -> f32 {
     let dx = camera.position.x - x;
@@ -46,11 +46,10 @@ pub struct RenderState {
     pub mesh_buffers : Vec<MeshBuffer>,
 
     //entity instances
-    pub free_mesh_instance :  Vec<MeshInstanceId>,
     pub mesh_id_reference : HashMap<MeshId,MeshEntityLocationReference>,
-    pub mesh_instance_buffer : wgpu::Buffer,
-    pub entity_mesh_buffer : wgpu::Buffer,
-    pub mesh_instances: HashMap<MeshInstanceId, MeshInstance>,
+    pub entity_meshs_buffer : Buffer,
+    pub mesh_instances : HashMap<MeshId,MeshInstancesBufferInfo>,
+    pub blank_instance_info : Buffer,
 
     //gui related stuff. Also engine
     pub egui_renderer : Renderer,

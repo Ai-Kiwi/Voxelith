@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use cgmath::Point3;
+use cgmath::{Point3, Quaternion, Vector3};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use wgpu::{CommandEncoder, RenderPass, wgc::device::queue, wgt::DrawIndirectArgs};
+use wgpu::{CommandEncoder, RenderPass, wgc::device::{self, queue}, wgt::DrawIndirectArgs};
 
-use crate::{entity, render::{self, entity_meshs::MeshId, mesh, wgpu::RenderState}, render_game::GameData, utils::Vec3};
+use crate::{entity, render::{self, entity_meshs::{MeshId, MeshInstance, MeshInstanceId, MeshInstanceRaw}, mesh, wgpu::RenderState}, render_game::GameData, utils::Vec3};
 
 
 pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData, view: &wgpu::TextureView, encoder : &mut CommandEncoder) {
@@ -51,19 +51,31 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
     //this system will be used for both entity and terrain.
     //This approch makes code simplier and also allows moving the terrain around if i wanted todo that one day
 
-
-    let mut entity_buffer_draw_calls: HashMap<MeshId,Vec<MeshId>> = HashMap::new();
+    //collect entity instances which we want to render
+    let mut entity_instances_to_render: HashMap<MeshId,Vec<MeshInstanceId>> = HashMap::new();
     for (i, entity) in &game_data.entities {
-        let mesh_id = MeshId(1);
-        match entity_buffer_draw_calls.get_mut(&mesh_id) {
+        let mesh_id: MeshId = entity.render_mesh_id;
+        let instance_id = entity.instance_id;
+        match entity_instances_to_render.get_mut(&mesh_id) {
             Some(draw_calls) => {
-                draw_calls.push(mesh_id);
+                draw_calls.push(instance_id);
             },
             None => {
-                let mut buffer_calls = Vec::new();
-                buffer_calls.push(mesh_id);
-                entity_buffer_draw_calls.insert(mesh_id, buffer_calls);
+                let mut buffer_calls: Vec<MeshInstanceId> = Vec::new();
+                buffer_calls.push(instance_id);
+                entity_instances_to_render.insert(mesh_id, buffer_calls);
             },
+        }
+    }
+    //put the updated data into buffers
+    for (mesh_id, instance_buffer) in &render_state.mesh_instances {
+        if let Some(entity_list) = entity_instances_to_render.get(&mesh_id) {
+            let mut buffer_contents: Vec<u8> = Vec::with_capacity(entity_list.len() * size_of::<MeshInstanceRaw>());
+            for entity_instance_id in entity_list {
+                let instance_data = instance_buffer.mesh_instances.get(entity_instance_id).unwrap();
+                buffer_contents.extend_from_slice(bytemuck::bytes_of(&instance_data.to_raw()));
+            }
+            render_state.queue.write_buffer(&instance_buffer.instances_buffer, 0, &buffer_contents);
         }
     }
     
@@ -103,6 +115,7 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
             render_state.queue.write_buffer(&render_state.mesh_buffers[i].opaque_indirect_buffer, 0, bytemuck::cast_slice(&draw_call));
             render_state.queue.write_buffer(&render_state.mesh_buffers[i].opaque_count_buffer, 0, bytemuck::cast_slice(&[draw_call.len() as u32]));
             sun_shadow_render_pass.set_vertex_buffer(0, render_state.mesh_buffers[i].mesh_buffer.slice(..));
+            sun_shadow_render_pass.set_vertex_buffer(1, render_state.blank_instance_info.slice(..));
         
             sun_shadow_render_pass.multi_draw_indirect_count(
                 &render_state.mesh_buffers[i].opaque_indirect_buffer, 
@@ -205,6 +218,7 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
         render_state.queue.write_buffer(&render_state.mesh_buffers[i].opaque_indirect_buffer, 0, bytemuck::cast_slice(&draw_call));
         render_state.queue.write_buffer(&render_state.mesh_buffers[i].opaque_count_buffer, 0, bytemuck::cast_slice(&[draw_call.len() as u32]));
         gbuffer_render_pass.set_vertex_buffer(0, render_state.mesh_buffers[i].mesh_buffer.slice(..));
+        gbuffer_render_pass.set_vertex_buffer(1, render_state.blank_instance_info.slice(..));
     
         gbuffer_render_pass.multi_draw_indirect_count(
             &render_state.mesh_buffers[i].opaque_indirect_buffer, 
@@ -216,21 +230,15 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
     }
 
     //render entities
-    for mesh in entity_buffer_draw_calls {
+    for mesh in entity_instances_to_render {
+        let buffer_info = render_state.mesh_instances.get(&mesh.0).unwrap();
         let vertex_info = render_state.mesh_id_reference.get(&mesh.0).expect(format!("Failed to render entity as texture id {} is not loaded", mesh.0.0).as_str());
 
-        gbuffer_render_pass.set_vertex_buffer(0, render_state.entity_mesh_buffer.slice(..));
-        gbuffer_render_pass.set_vertex_buffer(1, render_state.mesh_instance_buffer.slice(..));
+        gbuffer_render_pass.set_vertex_buffer(0, render_state.entity_meshs_buffer.slice(..));
+        gbuffer_render_pass.set_vertex_buffer(1, buffer_info.instances_buffer.slice(..));
 
         gbuffer_render_pass.draw(vertex_info.start..(vertex_info.start+vertex_info.length), 0..(mesh.1.len() as u32));
-
-        for _ in mesh.1 {
-
-        }
     }
-
-
-
 
 
 

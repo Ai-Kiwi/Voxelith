@@ -1,9 +1,9 @@
-use crate::{physics::PhysicsObject, utils::Vec3};
+use crate::{game::entity::EntityId, physics::PhysicsObject, utils::Vec3};
 
 
 
 pub struct Entity {
-    pub id : u64,
+    pub id : EntityId,
     pub position : Vec3,
     pub physics : PhysicsObject,
     pub entity_class : EntityClass,

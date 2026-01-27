@@ -12,7 +12,6 @@ mod app;
 mod init;
 mod render_frame;
 pub mod mesh;
-pub mod entities;
 pub mod entity_meshs;
 
 //pub const LEVEL_3_LOD_DISTANCE: f32 = 2560.0;

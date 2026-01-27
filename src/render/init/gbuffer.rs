@@ -1,7 +1,7 @@
 use wgpu::{Device, TextureView};
 use winit::dpi::Size;
 
-use crate::{render::{init::sun_shadows::InitSunShadow, wgpu::{RenderState, SunShadow}}, utils::Vertex};
+use crate::{render::{entity_meshs::MeshInstanceRaw, init::sun_shadows::InitSunShadow, wgpu::{RenderState, SunShadow}}, utils::Vertex};
 
 pub struct InitGbufferInfo {
     pub base_color_gbuffer_view: TextureView,
@@ -170,7 +170,8 @@ impl InitGbufferInfo {
             module: &full_shader,
             entry_point: Some("vs_main"),
             buffers: &[
-                Vertex::desc()
+                Vertex::desc(),
+                MeshInstanceRaw::desc()
                 ],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },

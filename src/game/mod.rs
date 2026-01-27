@@ -1,6 +1,6 @@
-use std::{collections::HashMap, sync::{mpsc::{Receiver, Sender, channel}}, thread, time::{Duration, Instant}};
+use std::{collections::HashMap, sync::mpsc::{Receiver, Sender, channel}, thread, time::{Duration, Instant, SystemTime}};
 use futures::executor::block_on;
-use crate::{chunk_geneariton::{NewChunkInfo, chunk_generation_thread}, entity::{Entity, EntityRenderComponent}, game::{chunk::handle_chunk_loaded, entity::{Entities, handle_entity_update}, handle_inputs::handle_user_inputs, mesh_updates::handle_chunk_mesh_updates, pixel_updates::handle_pixel_updates, world::WorldData}, mesh_creation::{ChunkMeshCreateRequest, chunk_mesh_creation_thread}, physics::{PhysicsObject, tick_physics}, render_game::{chunk::ChunkMeshUpdate, entities::{EntityRenderData, EntityRenderDataUpdate}}, utils::{Vec2, Vec3}};
+use crate::{chunk_geneariton::{NewChunkInfo, chunk_generation_thread}, entity::{Entity, EntityRenderComponent}, game::{chunk::handle_chunk_loaded, entity::{Entities, EntityId, handle_entity_update}, handle_inputs::handle_user_inputs, mesh_updates::handle_chunk_mesh_updates, pixel_updates::handle_pixel_updates, world::WorldData}, mesh_creation::{ChunkMeshCreateRequest, chunk_mesh_creation_thread}, physics::{PhysicsObject, tick_physics}, render_game::{chunk::ChunkMeshUpdate, entities::{EntityRenderData, EntityRenderDataUpdate}}, utils::{Vec2, Vec3}};
 
 pub mod world;
 pub mod chunk;
@@ -43,6 +43,7 @@ pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_
         entities: Entities {
             entities: HashMap::new(),
             entities_count: 0,
+            updated: HashMap::new(),
         },
     };
     let mut player_position = Vec3::new(0.0, 0.0, 0.0);
@@ -51,26 +52,24 @@ pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_
     let (chunk_generated_tx, chunk_generated_rx) = channel::<NewChunkInfo>();
     let (request_chunk_mesh_update_tx, mut request_chunk_mesh_update_rx) = channel::<ChunkMeshCreateRequest>();
 
-    game.entities.entities.insert(0, Entity { 
-        id: 0, 
-        position: Vec3::new(0.0, 0.0, 0.0), 
-        physics: PhysicsObject {
-            hitbox: Vec3::new(2.5,8.5,2.5),
-            moveable: true,
-            velocity: Vec3::new(0.0, 0.0, 0.0),
-            gravity: true,
-            grounded: false,
-        }, 
-        entity_class: crate::entity::EntityClass::Player,
-        render_component: Some(EntityRenderComponent {
-            entity_meshs: Vec::new(),
-        }), 
-    } );
-    let _ = entity_render_tx.send(EntityRenderDataUpdate { 
-        id: 0, 
-        position: Vec3::new(0.0, 0.0, 0.0), 
-        entity_class: crate::entity::EntityClass::Player
-    });
+    for i in 0..500 {
+        game.entities.entities.insert(EntityId(i), Entity { 
+            id: EntityId(i), 
+            position: Vec3::new(0.0, 0.0, 0.0), 
+            physics: PhysicsObject {
+                hitbox: Vec3::new(2.5,8.5,2.5),
+                moveable: true,
+                velocity: Vec3::new(0.0, 0.0, 0.0),
+                gravity: true,
+                grounded: false,
+            }, 
+            entity_class: crate::entity::EntityClass::Player,
+            render_component: Some(EntityRenderComponent {
+                entity_meshs: Vec::new(),
+            }), 
+        } );
+        game.entities.updated.insert(EntityId(i), ());
+    }
 
 
     game.entities.entities_count = 1;
@@ -87,6 +86,7 @@ pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_
 
     let mut last_tick_time = Instant::now();
 
+    let mut start_time = SystemTime::now();
     println!("starting game loop");
     'game_loop : loop {
         handle_chunk_loaded(&mut game.world, &chunk_generated_rx, &player_position, &chunk_generation_request_tx);
@@ -102,10 +102,23 @@ pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_
         //physics loop
         tick_physics(&mut game);
 
-        handle_entity_update(&game, &entity_render_tx);
+        handle_entity_update(&mut game, &entity_render_tx);
+
+        //for time being rotate
+        
+        for i in 0..500 {
+            let obj = game.entities.entities.get_mut(&EntityId(i)).unwrap();
+            obj.position.x = (start_time.elapsed().unwrap().as_secs_f32() * i as f32).sin() * i as f32;
+            obj.position.z = (start_time.elapsed().unwrap().as_secs_f32() * i as f32).cos() * i as f32;
+            game.entities.updated.insert(EntityId(i), ());
+        }
+
+
+
+
 
         //60tps
-        let sleep_time = Duration::from_millis(((1.0 / 60.0) - last_tick_time.elapsed().as_secs_f32()) as u64);
+        let sleep_time = Duration::from_millis(((1000.0 / 60.0) - last_tick_time.elapsed().as_secs_f32()) as u64);
         if sleep_time < Duration::from_secs(0) {
             println!("main game loop is lagging. Took more then needed time")
         }
