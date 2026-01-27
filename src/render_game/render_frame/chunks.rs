@@ -33,24 +33,6 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
         terrain_buffer_draw_calls.push(opaque_indirect_draw_calls);
     }
 
-    //pub struct State {
-    //    instances: Vec<Instance>,
-    //    instance_buffer: wgpu::Buffer,
-    //}
-
-    //let instance_data = instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
-    //let instance_buffer = device.create_buffer_init(
-    //    &wgpu::util::BufferInitDescriptor {
-    //        label: Some("Instance Buffer"),
-    //        contents: bytemuck::cast_slice(&instance_data),
-    //        usage: wgpu::BufferUsages::VERTEX,
-    //    }
-    //);
-
-    //will add the system for entity instances to pipeline for main render
-    //this system will be used for both entity and terrain.
-    //This approch makes code simplier and also allows moving the terrain around if i wanted todo that one day
-
     //collect entity instances which we want to render
     let mut entity_instances_to_render: HashMap<MeshId,Vec<MeshInstanceId>> = HashMap::new();
     for (i, entity) in &game_data.entities {
