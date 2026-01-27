@@ -52,7 +52,7 @@ pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_
     let (chunk_generated_tx, chunk_generated_rx) = channel::<NewChunkInfo>();
     let (request_chunk_mesh_update_tx, mut request_chunk_mesh_update_rx) = channel::<ChunkMeshCreateRequest>();
 
-    for i in 0..500 {
+    for i in 0..5 {
         game.entities.entities.insert(EntityId(i), Entity { 
             id: EntityId(i), 
             position: Vec3::new(0.0, 0.0, 0.0), 
@@ -106,7 +106,7 @@ pub async fn game_thread(chunk_mesh_update_tx : Sender<ChunkMeshUpdate>, entity_
 
         //for time being rotate
         
-        for i in 0..500 {
+        for i in 0..5 {
             let obj = game.entities.entities.get_mut(&EntityId(i)).unwrap();
             obj.position.x = (start_time.elapsed().unwrap().as_secs_f32() * i as f32).sin() * i as f32;
             obj.position.z = (start_time.elapsed().unwrap().as_secs_f32() * i as f32).cos() * i as f32;
