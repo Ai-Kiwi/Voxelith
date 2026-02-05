@@ -31,107 +31,110 @@ impl InitGbufferInfo {
         let lighting_gbuffer = create_lighting_gbuffer(&device, size.width, size.height);
         let normal_gbuffer = create_normal_gbuffer(&device, size.width, size.height);
         let material_gbuffer = create_normal_gbuffer(&device, size.width, size.height);
+        let final_gbuffer = create_final_gbuffer(&device, size.width, size.height);
         
         //make views
         let base_color_gbuffer_view = base_color_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
         let lighting_gbuffer_view = lighting_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
         let normal_gbuffer_view = normal_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
         let material_gbuffer_view = material_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
+        let final_gbuffer_view = final_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
         
         //make samplers
         let base_color_gbuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
         let lighting_gbuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
         let normal_gbuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
         let material_gbuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
+        let final_gbuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
         
         //bind group layout
         let gbuffers_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[
                 //base color
                 wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
-                    sample_type: wgpu::TextureSampleType::Float { filterable: false }, 
-                    view_dimension: wgpu::TextureViewDimension::D2, 
-                    multisampled: false 
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: false }, 
+                        view_dimension: wgpu::TextureViewDimension::D2, 
+                        multisampled: false 
+                    },
+                    count: None,
                 },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 1,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
-                count: None,
-            },
-            //lighting
-            wgpu::BindGroupLayoutEntry {
-                binding: 2,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
-                    sample_type: wgpu::TextureSampleType::Float { filterable: false }, 
-                    view_dimension: wgpu::TextureViewDimension::D2, 
-                    multisampled: false 
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
+                    count: None,
                 },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 3,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
-                count: None,
-            },
-            //normal
-            wgpu::BindGroupLayoutEntry {
-                binding: 4,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
-                    sample_type: wgpu::TextureSampleType::Float { filterable: false }, 
-                    view_dimension: wgpu::TextureViewDimension::D2, 
-                    multisampled: false 
+                //lighting
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: false }, 
+                        view_dimension: wgpu::TextureViewDimension::D2, 
+                        multisampled: false 
+                    },
+                    count: None,
                 },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 5,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
-                count: None,
-            },
-            //material
-            wgpu::BindGroupLayoutEntry {
-                binding: 6,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
-                    sample_type: wgpu::TextureSampleType::Float { filterable: false }, 
-                    view_dimension: wgpu::TextureViewDimension::D2, 
-                    multisampled: false 
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
+                    count: None,
                 },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 7,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
-                count: None,
-            },
-            //depth
-            wgpu::BindGroupLayoutEntry {
-                binding: 8,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
-                    sample_type: wgpu::TextureSampleType::Depth, 
-                    view_dimension: wgpu::TextureViewDimension::D2, 
-                    multisampled: false 
+                //normal
+                wgpu::BindGroupLayoutEntry {
+                    binding: 4,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: false }, 
+                        view_dimension: wgpu::TextureViewDimension::D2, 
+                        multisampled: false 
+                    },
+                    count: None,
                 },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 9,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
-                count: None,
-            }
+                wgpu::BindGroupLayoutEntry {
+                    binding: 5,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
+                    count: None,
+                },
+                //material
+                wgpu::BindGroupLayoutEntry {
+                    binding: 6,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: false }, 
+                        view_dimension: wgpu::TextureViewDimension::D2, 
+                        multisampled: false 
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 7,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
+                    count: None,
+                },
+                //depth
+                wgpu::BindGroupLayoutEntry {
+                    binding: 8,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Depth, 
+                        view_dimension: wgpu::TextureViewDimension::D2, 
+                        multisampled: false 
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 9,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
+                    count: None,
+                },
             ],
             label: Some("Gbuffers Bind Group Layout"),
         });
@@ -164,16 +167,16 @@ impl InitGbufferInfo {
             push_constant_ranges: &[],
         });
                 
-                //full render pipeline
+        //full render pipeline
         let gbuffer_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Gbuffer Render Pipeline"),
             layout: Some(&create_gbuffers_pipeline_layout),
             vertex: wgpu::VertexState {
-            module: &full_shader,
-            entry_point: Some("vs_main"),
-            buffers: &[
-                Vertex::desc(),
-                MeshInstanceRaw::desc()
+                module: &full_shader,
+                entry_point: Some("vs_main"),
+                buffers: &[
+                    Vertex::desc(),
+                    MeshInstanceRaw::desc()
                 ],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
@@ -241,6 +244,8 @@ impl InitGbufferInfo {
             normal_gbuffer_sampler,
             material_gbuffer_sampler,
             gbuffer_render_pipeline,
+            final_gbuffer_sampler,
+            final_gbuffer_view,
         }
     }
 }
@@ -348,6 +353,26 @@ pub fn create_normal_gbuffer(device: &wgpu::Device, width: u32, height: u32) -> 
     })
 }
 
+pub fn create_final_gbuffer(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
+    let size = wgpu::Extent3d {
+        width,
+        height,
+        depth_or_array_layers: 1,
+    };
+
+    device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("View Gbuffer"),
+        size: size,
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba16Float,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+            | wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[wgpu::TextureFormat::Rgba16Float],
+    })
+}
+
 pub fn update_render_state_gbuffer(render_state : &mut RenderState) {
     let depth_texture = create_depth_texture(&render_state.device,render_state.config.width,render_state.config.height);
     let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
@@ -361,6 +386,7 @@ pub fn update_render_state_gbuffer(render_state : &mut RenderState) {
     let lighting_gbuffer = create_lighting_gbuffer(&render_state.device, render_state.config.width, render_state.config.height);
     let normal_gbuffer = create_normal_gbuffer(&render_state.device, render_state.config.width, render_state.config.height);
     let material_gbuffer = create_material_gbuffer(&render_state.device, render_state.config.width, render_state.config.height);
+    let final_gbuffer = create_final_gbuffer(&render_state.device, render_state.config.width, render_state.config.height);
 
     //make views
     render_state.base_color_gbuffer_view = base_color_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());

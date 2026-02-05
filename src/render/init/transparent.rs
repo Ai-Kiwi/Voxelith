@@ -1,45 +1,48 @@
 use wgpu::{Device, PipelineLayout};
 
-use crate::render::init::gbuffer::InitGbufferInfo;
+use crate::{render::{entity_meshs::MeshInstanceRaw, init::gbuffer::InitGbufferInfo}, utils::Vertex};
 
-pub struct InitCompositionInfo {
-    pub composition_pipeline_layout: PipelineLayout,
-    pub composition_render_pipeline : wgpu::RenderPipeline,
+pub struct InitTransparentInfo {
+    pub transparent_pipeline_layout: PipelineLayout,
+    pub transparent_render_pipeline : wgpu::RenderPipeline,
 }
 
-impl InitCompositionInfo {
-    pub fn new(device : &Device, gbuffer_info : &InitGbufferInfo, camera_bind_group_layout: &wgpu::BindGroupLayout,) -> InitCompositionInfo {
-        let composition_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Composition Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/composition_shader.wgsl").into()),
+impl InitTransparentInfo {
+    pub fn new(device : &Device, gbuffer_info : &InitGbufferInfo, camera_bind_group_layout: &wgpu::BindGroupLayout,) -> InitTransparentInfo {
+        let transparent_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Transparent Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/transparent_shader.wgsl").into()),
         });
-        
-        let composition_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Composition Pipeline Layout"),
+
+        let transparent_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Transparent Pipeline Layout"),
             bind_group_layouts: &[
                 &gbuffer_info.gbuffers_bind_group_layout,
-                &camera_bind_group_layout
+                &camera_bind_group_layout,
             ],
             push_constant_ranges: &[],
         });
 
-        let composition_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Composition Render Pipeline"),
-            layout: Some(&composition_pipeline_layout),
+        let transparent_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Transparent Render Pipeline"),
+            layout: Some(&transparent_pipeline_layout),
             vertex: wgpu::VertexState {
-                module: &composition_shader,
+                module: &transparent_shader,
                 entry_point: Some("vs_main"),
-                buffers: &[],
+                buffers: &[
+                    Vertex::desc(),
+                    MeshInstanceRaw::desc()
+                ],                
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
-                module: &composition_shader,
+                module: &transparent_shader,
                 entry_point: Some("fs_main"),
                 targets: &[
                     Some(wgpu::ColorTargetState {
                         #[cfg(target_os = "linux")] format: wgpu::TextureFormat::Rgba8UnormSrgb,
                         #[cfg(target_os = "windows")] format: wgpu::TextureFormat::Bgra8UnormSrgb,
-                        blend: Some(wgpu::BlendState::REPLACE),
+                        blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                         write_mask: wgpu::ColorWrites::ALL,
                     }),
                 ],
@@ -57,7 +60,7 @@ impl InitCompositionInfo {
             depth_stencil: Some(wgpu::DepthStencilState {
                 format: wgpu::TextureFormat::Depth32Float,
                 depth_write_enabled: false,
-                depth_compare: wgpu::CompareFunction::Always,
+                depth_compare: wgpu::CompareFunction::Less,
                 stencil: wgpu::StencilState::default(),
                 bias: wgpu::DepthBiasState::default(),
             }),
@@ -70,9 +73,9 @@ impl InitCompositionInfo {
             cache: None,
         });
 
-        InitCompositionInfo {
-            composition_pipeline_layout,
-            composition_render_pipeline,
+        InitTransparentInfo {
+            transparent_pipeline_layout,
+            transparent_render_pipeline,
         }
     }
 }

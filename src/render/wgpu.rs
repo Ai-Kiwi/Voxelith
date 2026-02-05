@@ -71,6 +71,8 @@ pub struct RenderState {
     pub gbuffers_bind_group_layout: wgpu::BindGroupLayout,
     pub composition_pipeline_layout: wgpu::PipelineLayout,
     pub composition_render_pipeline: wgpu::RenderPipeline,
+    pub transparent_pipeline_layout: wgpu::PipelineLayout,
+    pub transparent_render_pipeline: wgpu::RenderPipeline,
     pub material_gbuffer_sampler: wgpu::Sampler,
     pub normal_gbuffer_sampler: wgpu::Sampler,
     pub normal_gbuffer_view: TextureView,

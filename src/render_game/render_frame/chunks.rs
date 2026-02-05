@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use cgmath::{Point3, Quaternion, Vector3};
+use egui::IntoAtoms;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use wgpu::{CommandEncoder, RenderPass, wgc::device::{self, queue}, wgt::DrawIndirectArgs};
 
@@ -31,6 +32,38 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
         .collect();
 
         terrain_buffer_draw_calls.push(opaque_indirect_draw_calls);
+    }
+    let mut transparent_terrain_buffer_draw_calls: Vec<Vec<DrawIndirectArgs>> = Vec::new();
+    for (i, buffer) in render_state.mesh_buffers.iter().enumerate() {
+        let meshs = &buffer.meshs;
+
+        let mut transparent_indirect_draw_calls: Vec<(DrawIndirectArgs, f32)> = chunks
+        .par_iter()
+        .filter(|mesh| mesh.0.3 == true && mesh.1.size > 0 && mesh.1.buffer_number == i)
+        .map(|chunk| {
+            let id = chunk.1.pointer.id;
+            let mesh_info = meshs.get(&id).unwrap();
+            
+            let chunk_pos = chunk.0; // Assuming chunk.0.0 is position
+            let dx = (chunk_pos.0 as f32 * 16.0) - game_data.camera.position.x;
+            let dy = (chunk_pos.0 as f32 * 16.0) - game_data.camera.position.y;
+            let dz = (chunk_pos.0 as f32 * 16.0) - game_data.camera.position.z;
+            let dist_sq = dx*dx + dy*dy + dz*dz;
+
+            let draw_call = DrawIndirectArgs {
+                vertex_count: mesh_info.vertex_length,
+                instance_count: 1,
+                first_vertex: mesh_info.vertex_position,
+                first_instance: 0,
+            };
+
+            (draw_call, dist_sq)
+        })
+        .collect();
+
+        transparent_indirect_draw_calls.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+
+        transparent_terrain_buffer_draw_calls.push(transparent_indirect_draw_calls.into_iter().map(|(draw, _)| draw).collect());
     }
 
     //collect entity instances which we want to render
@@ -117,6 +150,7 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
 
             sun_shadow_render_pass.draw(vertex_info.start..(vertex_info.start+vertex_info.length), 0..(mesh.1.len() as u32));
         }
+        //draw transparent
 
         drop(sun_shadow_render_pass)
     }
@@ -272,6 +306,49 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
 
     drop(composition_render_pass);
 
+    let mut transperent_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("Transparent Pass"),
+        color_attachments: &[
+            Some(wgpu::RenderPassColorAttachment {
+                view: &view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    store: wgpu::StoreOp::Store,
+                    load: wgpu::LoadOp::Load,
+                },
+                depth_slice: None,
+            }),
+        ],
+        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment { 
+            view: &render_state.depth_view, 
+            depth_ops: None,
+            stencil_ops: None,
+        }),
+        occlusion_query_set: None,
+        timestamp_writes: None,
+    });
+
+    transperent_render_pass.set_pipeline(&render_state.transparent_render_pipeline);
+    transperent_render_pass.set_bind_group(0, &render_state.gbuffers_bind_group, &[]);
+    transperent_render_pass.set_bind_group(1, &render_state.camera_bind_group, &[]);
+
+    //render opaque
+    for (i, draw_call) in transparent_terrain_buffer_draw_calls.iter().enumerate() {
+        render_state.queue.write_buffer(&render_state.mesh_buffers[i].transparent_indirect_buffer, 0, bytemuck::cast_slice(&draw_call));
+        render_state.queue.write_buffer(&render_state.mesh_buffers[i].transparent_count_buffer, 0, bytemuck::cast_slice(&[draw_call.len() as u32]));
+        transperent_render_pass.set_vertex_buffer(0, render_state.mesh_buffers[i].mesh_buffer.slice(..));
+        transperent_render_pass.set_vertex_buffer(1, render_state.blank_instance_info.slice(..));
+    
+        transperent_render_pass.multi_draw_indirect_count(
+            &render_state.mesh_buffers[i].transparent_indirect_buffer, 
+            0, 
+            &render_state.mesh_buffers[i].transparent_count_buffer,
+            0,
+            1000000
+        );
+    }
+
+    drop(transperent_render_pass);
 }
 
     

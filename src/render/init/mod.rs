@@ -9,8 +9,9 @@ pub mod sun_shadows;
 pub mod gbuffer;
 pub mod composition;
 pub mod entity_meshs;
+pub mod transparent;
 
-use crate::{render::{MAP_VRAM_SIZE, RenderFrameThreadPerformanceInfo, camera::{CameraUniform, PerspectiveCamera}, init::{composition::InitCompositionInfo, entity_meshs::InitEntityMeshs, gbuffer::{InitGbufferInfo, create_depth_texture}, sun_shadows::InitSunShadow}, render_frame::gui::GuiInfo, wgpu::RenderState}, utils::{Vec2, Vertex}};
+use crate::{render::{MAP_VRAM_SIZE, RenderFrameThreadPerformanceInfo, camera::{CameraUniform, PerspectiveCamera}, init::{composition::InitCompositionInfo, entity_meshs::InitEntityMeshs, gbuffer::{InitGbufferInfo, create_depth_texture}, sun_shadows::InitSunShadow, transparent::InitTransparentInfo}, render_frame::gui::GuiInfo, wgpu::RenderState}, utils::{Vec2, Vertex}};
 
 pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderState>  {
     let size: winit::dpi::PhysicalSize<u32> = window.inner_size();
@@ -119,6 +120,9 @@ pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderStat
     //composition render
     let composition = InitCompositionInfo::new(&device, &gbuffer_info, &camera_bind_group_layout);
 
+    //transparent render
+    let transparent = InitTransparentInfo::new(&device, &gbuffer_info, &camera_bind_group_layout);
+
     //entity meshs
     let entity_mesh_data = InitEntityMeshs::new(&device,&queue);
 
@@ -186,6 +190,8 @@ pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderStat
         gbuffers_bind_group_layout : gbuffer_info.gbuffers_bind_group_layout,
         composition_pipeline_layout: composition.composition_pipeline_layout,
         composition_render_pipeline: composition.composition_render_pipeline,
+        transparent_pipeline_layout: transparent.transparent_pipeline_layout,
+        transparent_render_pipeline: transparent.transparent_render_pipeline,
         normal_gbuffer_view : gbuffer_info.normal_gbuffer_view,
         material_gbuffer_view : gbuffer_info.material_gbuffer_view,
         normal_gbuffer_sampler : gbuffer_info.normal_gbuffer_sampler,
