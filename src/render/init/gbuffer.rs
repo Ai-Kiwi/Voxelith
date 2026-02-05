@@ -5,15 +5,17 @@ use crate::{render::{entity_meshs::MeshInstanceRaw, init::sun_shadows::InitSunSh
 
 pub struct InitGbufferInfo {
     pub base_color_gbuffer_view: TextureView,
-    pub lighting_gbuffer_view: TextureView,
     pub base_color_gbuffer_sampler: wgpu::Sampler,
+    pub lighting_gbuffer_view: TextureView,
     pub lighting_gbuffer_sampler: wgpu::Sampler,
     pub gbuffers_bind_group: wgpu::BindGroup,
     pub gbuffers_bind_group_layout: wgpu::BindGroupLayout,
     pub material_gbuffer_sampler: wgpu::Sampler,
+    pub material_gbuffer_view: TextureView,
     pub normal_gbuffer_sampler: wgpu::Sampler,
     pub normal_gbuffer_view: TextureView,
-    pub material_gbuffer_view: TextureView,
+    pub final_gbuffer_sampler: wgpu::Sampler,
+    pub final_gbuffer_view: TextureView,
     pub gbuffer_render_pipeline : wgpu::RenderPipeline,
 }
 
