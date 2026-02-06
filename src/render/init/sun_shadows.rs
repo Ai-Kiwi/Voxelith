@@ -93,11 +93,11 @@ impl InitSunShadow {
             ],
             label: Some("sun_shadow_bind_group_layout"),
         });
-
-        let sun_shadow_lod_0 = SunShadow::new(&device, 128.0, &sun_shadow_bind_group_layout); //1
-        let sun_shadow_lod_1 = SunShadow::new(&device, 384.0, &sun_shadow_bind_group_layout); //3
-        let sun_shadow_lod_2 = SunShadow::new(&device, 1024.0, &sun_shadow_bind_group_layout); //8
-        let sun_shadow_lod_3 = SunShadow::new(&device, 3072.0, &sun_shadow_bind_group_layout); //24
+        //changing any of these also needs changing in shaders, can find not '//sun_shadow_size_relative' where also needs changing. I will fix this at some point as its really janky was of doing it.
+        let sun_shadow_lod_0 = SunShadow::new(&device, 128.0, &sun_shadow_bind_group_layout); //1 //sun_shadow_size_relative
+        let sun_shadow_lod_1 = SunShadow::new(&device, 384.0, &sun_shadow_bind_group_layout); //3 //sun_shadow_size_relative 
+        let sun_shadow_lod_2 = SunShadow::new(&device, 1024.0, &sun_shadow_bind_group_layout); //8 //sun_shadow_size_relative
+        let sun_shadow_lod_3 = SunShadow::new(&device, 3072.0, &sun_shadow_bind_group_layout); //24 //sun_shadow_size_relative
 
         let sun_shadow_textures_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[

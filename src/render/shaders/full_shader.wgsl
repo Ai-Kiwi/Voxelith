@@ -193,8 +193,8 @@ fn fs_main(in: VertexOutput) -> GbufferOutput {
     let light_clip_pos = depth_texture_lod0_camera.view_proj * in.world_pos;
     let light_coords = light_clip_pos.xyz / light_clip_pos.w;    
     var closeness_response = 0.0;
-    if abs(light_coords.x) < 1 && abs(light_coords.y) < 1 {
-        let shadow_texture_uv = vec2(light_coords.x, light_coords.y * -1) * 0.5 + 0.5;
+    if abs(light_coords.x) < 1 && abs(light_coords.y) < 1 {//sun_shadow_size_relative
+        let shadow_texture_uv = vec2(light_coords.x, light_coords.y * -1) * 0.5 + 0.5;//sun_shadow_size_relative
         let depth = light_coords.z - 0.001;
         closeness_response = textureSampleCompare(
             depth_texture_lod0_view,
@@ -202,8 +202,8 @@ fn fs_main(in: VertexOutput) -> GbufferOutput {
             shadow_texture_uv,
             depth
         );
-    }else if abs(light_coords.x) < 3 && abs(light_coords.y) < 3 {
-        let shadow_texture_uv = vec2(light_coords.x / 3, light_coords.y * -1 / 3) * 0.5 + 0.5;
+    }else if abs(light_coords.x) < 3 && abs(light_coords.y) < 3 {//sun_shadow_size_relative
+        let shadow_texture_uv = vec2(light_coords.x / 3, light_coords.y * -1 / 3) * 0.5 + 0.5;//sun_shadow_size_relative
         let depth = light_coords.z - 0.001;
         closeness_response = textureSampleCompare(
             depth_texture_lod1_view,
@@ -211,8 +211,8 @@ fn fs_main(in: VertexOutput) -> GbufferOutput {
             shadow_texture_uv,
             depth
         );
-    }else if abs(light_coords.x) < 8 && abs(light_coords.y) < 8 {
-        let shadow_texture_uv = vec2(light_coords.x / 8, light_coords.y * -1 / 8) * 0.5 + 0.5;
+    }else if abs(light_coords.x) < 8 && abs(light_coords.y) < 8 {//sun_shadow_size_relative
+        let shadow_texture_uv = vec2(light_coords.x / 8, light_coords.y * -1 / 8) * 0.5 + 0.5;//sun_shadow_size_relative
         let depth = light_coords.z - 0.001;
         closeness_response = textureSampleCompare(
             depth_texture_lod2_view,
@@ -220,8 +220,8 @@ fn fs_main(in: VertexOutput) -> GbufferOutput {
             shadow_texture_uv,
             depth
         );
-    }else if abs(light_coords.x) < 24 && abs(light_coords.y) < 24 {
-        let shadow_texture_uv = vec2(light_coords.x / 24, light_coords.y * -1 / 24) * 0.5 + 0.5;
+    }else if abs(light_coords.x) < 24 && abs(light_coords.y) < 24 {//sun_shadow_size_relative
+        let shadow_texture_uv = vec2(light_coords.x / 24, light_coords.y * -1 / 24) * 0.5 + 0.5;//sun_shadow_size_relative
         let depth = light_coords.z - 0.001;
         closeness_response = textureSampleCompare(
             depth_texture_lod3_view,
