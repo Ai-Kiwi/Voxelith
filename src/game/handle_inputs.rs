@@ -41,6 +41,29 @@ pub fn handle_user_inputs(world : &mut WorldData, player_position : &mut Vec3, i
                             }
                         }
                     },
+                    InputEvent::PlaceClick(position, facing_dir) => {
+                        let mut i = 0;
+                        'rayloop : for ray in raycast_test(position, facing_dir.normalize()) {
+                            i+=1;
+                            if world.get_pixel_data(ray.x as i32,ray.y as i32,ray.z as i32) != Some(PixelTypes::Air) {
+                                for x in -5..=5 {
+                                    for y in -5..=5 {
+                                        for z in -5..=5 {
+                                            world.set_pixel_data((ray.x as i32 + x,ray.y as i32 + y ,ray.z as i32 + z), PixelTypes::Stone);
+                                        }
+                                    }
+                                }
+                                break 'rayloop;
+                            }
+    
+    
+                            //world.set_pixel_data((ray.x as i32,ray.y as i32,ray.z as i32), world::PixelTypes::Stone);
+
+                            if i > 500 {
+                                break;
+                            }
+                        }
+                    },
                     InputEvent::CameraPositionUpdate(vec3) => {
                         player_position.x = vec3.x;
                         player_position.y = vec3.y;

@@ -60,6 +60,13 @@ pub fn handle_user_input(render_state : &mut RenderState, game_data : &mut GameD
             z: game_data.camera.position.z 
         },front)).unwrap();
     }
+    if render_state.keys_pressed.contains_key(&winit::keyboard::KeyCode::KeyQ) {
+        game_data.render_channels.input_event_tx.send(InputEvent::PlaceClick(Vec3 { 
+            x: game_data.camera.position.x, 
+            y: game_data.camera.position.y, 
+            z: game_data.camera.position.z 
+        },front)).unwrap();
+    }
 
 
     //handle camera turning

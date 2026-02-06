@@ -14,6 +14,7 @@ pub enum InputEvent {
     Move(Vec2),
     Jump,
     Click(Vec3,Vec3),
+    PlaceClick(Vec3,Vec3),
     CameraPositionUpdate(Vec3)
     //Attack,
     //OpenInventory,
