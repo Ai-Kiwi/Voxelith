@@ -84,21 +84,26 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let camera_normal = normalize(camera.position.xyz - world_pos.xyz);
     let dist = distance(camera.position.xyz, world_pos.xyz);
 
-    const fog_density: f32 = 0.04;
+    const fog_density: f32 = 0.005;
     const sun_scatter: f32 = 0.04;
-    const ambient_scatter: f32 = 0.01;
 
     const step_size: f32 = 1.0;
     const max_steps: f32 = 64;
+
+    const fog_color = vec3<f32>(0.1,0.1,0.8);
+    const ambient_strength: f32 = 0.01;
+    const sunlight_color = vec3<f32>(1.0, 1.0, 0.95);
+
 
     let loops: i32 = i32(clamp(floor(dist / step_size),0,max_steps));
     let left_dist = dist - (f32(loops) * step_size);
 
     var left_in_sunlight = true;
-    var fog_light: f32 = 0;
     var transmittance: f32 = 1.0;
+    var accumulated_color = vec3<f32>(0.0);
 
     for (var i = 0; i < loops; i += 1) {
+        //find if in shadow
         let start_ray_position = vec4<f32>((world_pos) + (camera_normal * f32(i) * step_size), 1.0);
 
         let light_clip_pos = depth_texture_lod1_camera.view_proj * start_ray_position;
@@ -108,29 +113,35 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             let depth = light_coords.z;
             let ground_depth = textureSample(depth_texture_lod1_view, depth_texture_lod1_distance_samplier, shadow_texture_uv);
             
-            if ground_depth + 0.01 > depth { // in sunlight
-                let scatter = sun_scatter * step_size;
-                fog_light += transmittance * scatter;
-                left_in_sunlight = true;
-            }else{
-                left_in_sunlight = false;
-            }
-            //fog_light += transmittance * ambient_scatter * step_size;
-            transmittance *= exp(-fog_density * step_size);
+            left_in_sunlight = ground_depth + 0.01 > depth;
         }
+
+        //actually do fog maths
+        let step_transmittance = exp(-fog_density * step_size);
+        accumulated_color = (accumulated_color * step_transmittance) + (fog_color * (1.0 - step_transmittance));
+        if left_in_sunlight {
+            accumulated_color = (accumulated_color * step_transmittance) + (sunlight_color * (1.0 - step_transmittance));
+        }
+
+        transmittance *= step_transmittance;
     }
 
     //how much light is absorbed.
-    transmittance *= exp(-fog_density * left_dist);
-    if left_in_sunlight {
-        fog_light += transmittance * sun_scatter * left_dist;
-    }else{
-        //fog_light += transmittance * ambient_scatter * left_dist;
-    }
+    //let step_transmittance = exp(-fog_density * left_dist);
+    //if left_in_sunlight {
+    //    let scatter = sun_scatter * step_size;
+    //    fog_light += transmittance * scatter;
+    //}
+    //let ambient_fog = sky_color * ambient_strength;
+    //let sun_fog = sunlight_color * sun_scatter;
+    //let step_fog_color = ambient_fog + sun_fog;
+    //accumulated_color = (accumulated_color * step_transmittance) + (step_fog_color * (1.0 - step_transmittance));
+
+    //transmittance *= step_transmittance;
 
 
-    var data = vec4<f32>(0.1,0.1,0.8,0.0);
-    data += vec4<f32>(1.0,1.0,0.0,0.0) * (fog_light * 0.25);
+    var data = vec4<f32>(accumulated_color,0.0);
+    data += vec4<f32>(accumulated_color,0.0);
     data.a = 1.0 - transmittance;
 
     return data;

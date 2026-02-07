@@ -52,29 +52,23 @@ fn get_pixel_data(uv : vec2<f32>) -> vec4<f32> {
 
     let color = textureSample(base_color_texture, base_color_sampler, uv);
     let lighting = textureSample(lighting_texture, lighting_sampler, uv);
-    let depth = textureSample(depth_texture, depth_sampler, uv);
+    //let depth = textureSample(depth_texture, depth_sampler, uv);
 
-    let x = uv.x * 2.0 - 1.0;
-    let y = (1.0 - uv.y) * 2.0 - 1.0; 
-    let clip_pos = vec4<f32>(x, y, depth, 1.0);
-    let world_pos_h = camera.inverted_view_proj * clip_pos;
-    let world_pos = world_pos_h.xyz / world_pos_h.w;
+    //let x = uv.x * 2.0 - 1.0;
+    //let y = (1.0 - uv.y) * 2.0 - 1.0; 
+    //let clip_pos = vec4<f32>(x, y, depth, 1.0);
+    //let world_pos_h = camera.inverted_view_proj * clip_pos;
+    //let world_pos = world_pos_h.xyz / world_pos_h.w;
 
-    let dist = distance(camera.position, world_pos);
+    //let dist = distance(camera.position, world_pos);
 
-    let camera_normal = normalize(world_pos - camera.position);
+    //let camera_normal = normalize(world_pos - camera.position);
 
     let base_color = vec4<f32>(color);
     var final_color = vec4<f32>(0.0);
 
     final_color += base_color * lighting.r; //lighting light
     final_color += base_color * lighting.g; //sun light
-
-    let sky_color = vec4((camera_normal.y + 0.5) / 4,(camera_normal.y + 0.5) / 4,1.0,1.0);
-
-    let sky_strength = clamp((dist - 5000) / 100, 0, 1);
-
-    final_color = mix(final_color, sky_color, sky_strength);
 
     return final_color;
 }
@@ -99,7 +93,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     var pixel_color_data = get_pixel_data(uv);
 
-    pixel_color_data = vec4<f32>(mix(pixel_color_data.rgb, volumetric_lighting.rgb, volumetric_lighting.a), 1.0);
+    pixel_color_data += volumetric_lighting * volumetric_lighting.a ;
+
 
     //if material.b > 0 && false == true { //disabled for now
     //    var i = 0;
