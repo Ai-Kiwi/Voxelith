@@ -9,7 +9,7 @@ pub mod create_triangles;
 mod pix_colors;
 
 pub struct ChunkMeshCreateRequest {
-    pub chunk : Arc<Chunk>,
+    pub chunk : Option<Arc<Chunk>>,
     pub position : (i32,i32,i32),
 
     pub x_positive_chunk_neighbor : Option<Arc<Chunk>>,

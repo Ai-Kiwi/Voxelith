@@ -1,6 +1,6 @@
 use std::sync::{Arc, mpsc::{Receiver, Sender}};
 
-use crate::{chunk_geneariton::NewChunkInfo, game::{MAX_CHUNK_LOAD_DISTANCE, pixel::PixelTypes, world::WorldData}, utils::Vec3};
+use crate::{chunk_geneariton::NewChunkInfo, game::{self, MAX_CHUNK_LOAD_DISTANCE, MIN_CHUNK_UNLOAD_DISTANCE, pixel::PixelTypes, world::WorldData}, render, utils::Vec3};
 
 
 #[derive(Clone)]
@@ -82,6 +82,15 @@ pub fn handle_chunk_loaded(world : &mut WorldData, chunk_generated_rx : &Receive
         }
         range += 1;
     }
+    
+    //unload chunk
+    world.chunks.retain(|position, _| {
+        let keep = (position.0 - middle_chunk_x).abs() < MIN_CHUNK_UNLOAD_DISTANCE && (position.1 - middle_chunk_y).abs() < MIN_CHUNK_UNLOAD_DISTANCE && (position.2 - middle_chunk_z).abs() < MIN_CHUNK_UNLOAD_DISTANCE;
+        if !keep {
+            world.chunk_mesh_updates_needed.insert(*position, ());
+        }
+        return keep
+    });
 
     loop {
         let chunk_generated = chunk_generated_rx.try_recv();

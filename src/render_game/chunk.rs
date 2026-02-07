@@ -11,10 +11,10 @@ pub struct ChunkMeshUpdate {
     pub mesh_l2 : Option<Mesh>,
     pub mesh_l4 : Option<Mesh>,
     pub mesh_l8 : Option<Mesh>,
-    pub data : Arc<Chunk>,
+    pub data : Option<Arc<Chunk>>,
 }
 
-pub fn update_render_chunk_mesh(render_state : &mut RenderState, game_data : &mut GameData, chunk_pos : (i32,i32,i32), mesh : Option<&Mesh>, transparent : bool, chunk_data : Arc<Chunk>) {
+pub fn update_render_chunk_mesh(render_state : &mut RenderState, game_data : &mut GameData, chunk_pos : (i32,i32,i32), mesh : Option<&Mesh>, transparent : bool) {
     let key = (chunk_pos.0,chunk_pos.1,chunk_pos.2,transparent);
     if let Some(mesh_data) = mesh {
         let reference = create_gpu_mesh(render_state, &mesh_data);
@@ -41,16 +41,16 @@ pub fn update_render_chunk_mesh(render_state : &mut RenderState, game_data : &mu
     //update gpu reference data
     //x,z,y for order
 
-    let mut texture_chunk_data : Vec<u8> = Vec::with_capacity(16 * 16 * 16);
-    for z in 0..16{
-        for y in 0..16{
-            for x in 0..16{
-                let pixel_value = chunk_data.data[x + (z * 16) + (y * 16 * 16)];
-                let value = if pixel_value.is_transparent() || pixel_value == PixelTypes::Air {0} else {255};
-                texture_chunk_data.push(value);
-            }
-        }
-    };
+    //let mut texture_chunk_data : Vec<u8> = Vec::with_capacity(16 * 16 * 16);
+    //for z in 0..16{
+    //    for y in 0..16{
+    //        for x in 0..16{
+    //            let pixel_value = chunk_data.data[x + (z * 16) + (y * 16 * 16)];
+    //            let value = if pixel_value.is_transparent() || pixel_value == PixelTypes::Air {0} else {255};
+    //            texture_chunk_data.push(value);
+    //        }
+    //    }
+    //};
 }
 
 
@@ -59,7 +59,7 @@ pub fn update_chunk_meshs(render_state : &mut RenderState, game_data : &mut Game
         let mesh_update = game_data.render_channels.chunk_mesh_update_rx.try_recv();
         match mesh_update {
             Ok(mesh_update) => {
-                update_render_chunk_mesh(render_state, game_data, mesh_update.chunk_pos, mesh_update.mesh.as_ref(), mesh_update.transparent, mesh_update.data.clone());
+                update_render_chunk_mesh(render_state, game_data, mesh_update.chunk_pos, mesh_update.mesh.as_ref(), mesh_update.transparent);
 
                 game_data.chunk_mesh_data.insert((mesh_update.chunk_pos.0,mesh_update.chunk_pos.1,mesh_update.chunk_pos.2,mesh_update.transparent), mesh_update);
             },

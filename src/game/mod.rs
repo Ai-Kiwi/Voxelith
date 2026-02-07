@@ -23,7 +23,8 @@ pub enum InputEvent {
     // ... other game actions
 }
 
-pub const MAX_CHUNK_LOAD_DISTANCE: i32 = 100;
+pub const MAX_CHUNK_LOAD_DISTANCE: i32 = 70;
+pub const MIN_CHUNK_UNLOAD_DISTANCE: i32 = 75;
 
 pub struct Game {
     pub world : WorldData,
