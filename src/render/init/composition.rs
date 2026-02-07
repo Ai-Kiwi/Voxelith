@@ -1,6 +1,6 @@
 use wgpu::{Device, PipelineLayout};
 
-use crate::render::init::gbuffer::InitGbufferInfo;
+use crate::render::init::{gbuffer::InitGbufferInfo, volumetric_lighting::InitVolumetricLightingInfo};
 
 pub struct InitCompositionInfo {
     pub composition_pipeline_layout: PipelineLayout,
@@ -8,7 +8,7 @@ pub struct InitCompositionInfo {
 }
 
 impl InitCompositionInfo {
-    pub fn new(device : &Device, gbuffer_info : &InitGbufferInfo, camera_bind_group_layout: &wgpu::BindGroupLayout,) -> InitCompositionInfo {
+    pub fn new(device : &Device, gbuffer_info : &InitGbufferInfo, camera_bind_group_layout: &wgpu::BindGroupLayout, volumetric_lighting_data : &InitVolumetricLightingInfo) -> InitCompositionInfo {
         let composition_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Composition Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/composition_shader.wgsl").into()),
@@ -18,7 +18,8 @@ impl InitCompositionInfo {
             label: Some("Composition Pipeline Layout"),
             bind_group_layouts: &[
                 &gbuffer_info.gbuffers_bind_group_layout,
-                &camera_bind_group_layout
+                &camera_bind_group_layout,
+                &volumetric_lighting_data.volumetric_lighting_bind_group_layout
             ],
             push_constant_ranges: &[],
         });

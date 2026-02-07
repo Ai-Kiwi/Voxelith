@@ -17,9 +17,12 @@ struct CameraUniform {
     view_proj: mat4x4<f32>,
     inverted_view_proj: mat4x4<f32>,
     position: vec3<f32>,
+    _pad: f32, // ensures 16-byte alignment for arrays or buffers
 };
-@group(1) @binding(0)
-var<uniform> camera: CameraUniform;
+@group(1) @binding(0) var<uniform> camera: CameraUniform;
+
+@group(2) @binding(0) var volumetric_lighting_texture: texture_2d<f32>;
+@group(2) @binding(1) var volumetric_lighting_sampler: sampler;
 
 struct VertexInput {
     @location(0) position: vec3<i32>,
@@ -83,7 +86,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let depth = textureSample(depth_texture, depth_sampler, uv);
     let normal = textureSample(normal_texture, normal_sampler, uv);
     let material = textureSample(material_texture, material_sampler, uv);
-
+    let volumetric_lighting = textureSample(volumetric_lighting_texture, volumetric_lighting_sampler, uv);
 
     let x = uv.x * 2.0 - 1.0;
     let y = (1.0 - uv.y) * 2.0 - 1.0; 
@@ -95,31 +98,33 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let reflect_dir = reflect(-view_dir, normal.xyz);
 
     var pixel_color_data = get_pixel_data(uv);
-    
-    if material.b > 0 && false == true { //disabled for now
-        var i = 0;
-        loop {
-            world_ray_position = world_ray_position + (reflect_dir * 0.1);
-            i = (i + 1);
-            if ((i > 150)) {
-                break;
-            }
-            let clip_pos = camera.view_proj * vec4(world_ray_position, 1.0);
-            let screen_coords = clip_pos.xyz / clip_pos.w;    
-            let ray_depth = screen_coords.z * 0.5 + 0.5;
 
-            let screen_coords_uv = vec2(screen_coords.x, screen_coords.y * -1) * 0.5 + 0.5;
-            let screen_depth = textureSample(depth_texture, depth_sampler, screen_coords_uv);
+    pixel_color_data = vec4<f32>(mix(pixel_color_data.rgb, volumetric_lighting.rgb, volumetric_lighting.a), 1.0);
 
-            if (any(screen_coords_uv < vec2(0.0)) || any(screen_coords_uv > vec2(1.0))) {
-                break;
-            }
-
-            if ray_depth > screen_depth - 0.001 {
-                pixel_color_data = get_pixel_data(screen_coords_uv);
-                break;
-            }
-        }
-    }
+    //if material.b > 0 && false == true { //disabled for now
+    //    var i = 0;
+    //    loop {
+    //        world_ray_position = world_ray_position + (reflect_dir * 0.1);
+    //        i = (i + 1);
+    //        if ((i > 150)) {
+    //            break;
+    //        }
+    //        let clip_pos = camera.view_proj * vec4(world_ray_position, 1.0);
+    //        let screen_coords = clip_pos.xyz / clip_pos.w;    
+    //        let ray_depth = screen_coords.z * 0.5 + 0.5;
+    //
+    //        let screen_coords_uv = vec2(screen_coords.x, screen_coords.y * -1) * 0.5 + 0.5;
+    //        let screen_depth = textureSample(depth_texture, depth_sampler, screen_coords_uv);
+    //
+    //        if (any(screen_coords_uv < vec2(0.0)) || any(screen_coords_uv > vec2(1.0))) {
+    //            break;
+    //        }
+    //
+    //        if ray_depth > screen_depth - 0.001 {
+    //            pixel_color_data = get_pixel_data(screen_coords_uv);
+    //            break;
+    //        }
+    //    }
+    //}
     return pixel_color_data;
 }

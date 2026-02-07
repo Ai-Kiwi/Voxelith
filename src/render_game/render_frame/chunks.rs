@@ -33,6 +33,10 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
 
         terrain_buffer_draw_calls.push(opaque_indirect_draw_calls);
     }
+    for (i, draw_call) in terrain_buffer_draw_calls.iter().enumerate() {
+        render_state.queue.write_buffer(&render_state.mesh_buffers[i].opaque_indirect_buffer, 0, bytemuck::cast_slice(&draw_call));
+        render_state.queue.write_buffer(&render_state.mesh_buffers[i].opaque_count_buffer, 0, bytemuck::cast_slice(&[draw_call.len() as u32]));
+    }
     let mut transparent_terrain_buffer_draw_calls: Vec<Vec<DrawIndirectArgs>> = Vec::new();
     for (i, buffer) in render_state.mesh_buffers.iter().enumerate() {
         let meshs = &buffer.meshs;
@@ -64,6 +68,10 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
         transparent_indirect_draw_calls.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
 
         transparent_terrain_buffer_draw_calls.push(transparent_indirect_draw_calls.into_iter().map(|(draw, _)| draw).collect());
+    }
+    for (i, draw_call) in transparent_terrain_buffer_draw_calls.iter().enumerate() {
+        render_state.queue.write_buffer(&render_state.mesh_buffers[i].transparent_indirect_buffer, 0, bytemuck::cast_slice(&draw_call));
+        render_state.queue.write_buffer(&render_state.mesh_buffers[i].transparent_count_buffer, 0, bytemuck::cast_slice(&[draw_call.len() as u32]));
     }
 
     //collect entity instances which we want to render
@@ -107,7 +115,7 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
         sun_shadow.camera.position = Vec3::new(50.0 + render_state.camera_uniform.position[0], 500.0 + render_state.camera_uniform.position[1], 150.0 + render_state.camera_uniform.position[2]);
         sun_shadow.camera_uniform.update_view_proj_ortho(&mut sun_shadow.camera);
         render_state.queue.write_buffer(&sun_shadow.camera_buffer, 0, bytemuck::cast_slice(&[sun_shadow.camera_uniform]));
-        
+
         let mut sun_shadow_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Sun Shadow Render Pass"),
             color_attachments: &[],
@@ -124,11 +132,9 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
         });
         sun_shadow_render_pass.set_pipeline(&render_state.sun_shadow_render_pipeline);
         sun_shadow_render_pass.set_bind_group(0, &sun_shadow.bind_group, &[]);
-        
+    
         //draw terrain
         for (i, draw_call) in terrain_buffer_draw_calls.iter().enumerate() {
-            render_state.queue.write_buffer(&render_state.mesh_buffers[i].opaque_indirect_buffer, 0, bytemuck::cast_slice(&draw_call));
-            render_state.queue.write_buffer(&render_state.mesh_buffers[i].opaque_count_buffer, 0, bytemuck::cast_slice(&[draw_call.len() as u32]));
             sun_shadow_render_pass.set_vertex_buffer(0, render_state.mesh_buffers[i].mesh_buffer.slice(..));
             sun_shadow_render_pass.set_vertex_buffer(1, render_state.blank_instance_info.slice(..));
         
@@ -150,8 +156,6 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
 
             sun_shadow_render_pass.draw(vertex_info.start..(vertex_info.start+vertex_info.length), 0..(mesh.1.len() as u32));
         }
-        //draw transparent
-
         drop(sun_shadow_render_pass)
     }
     
@@ -267,9 +271,40 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
         gbuffer_render_pass.draw(vertex_info.start..(vertex_info.start+vertex_info.length), 0..(mesh.1.len() as u32));
     }
 
-
-
     drop(gbuffer_render_pass);
+
+
+    let mut volumetric_lighting_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("Render Pass"),
+        color_attachments: &[
+            Some(wgpu::RenderPassColorAttachment {
+                view: &render_state.volumetric_lighting_gbuffer_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    store: wgpu::StoreOp::Store,
+                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                        r: 0.0,
+                        g: 0.0,
+                        b: 0.0,
+                        a: 0.0,
+                    }),
+                },
+                depth_slice: None,
+            }),
+        ],
+        depth_stencil_attachment: None,
+        occlusion_query_set: None,
+        timestamp_writes: None,
+    });
+
+    volumetric_lighting_render_pass.set_pipeline(&render_state.volumetric_lighting_render_pipeline);
+    volumetric_lighting_render_pass.set_bind_group(0, &render_state.gbuffers_bind_group, &[]);
+    volumetric_lighting_render_pass.set_bind_group(1, &render_state.camera_bind_group, &[]);
+    volumetric_lighting_render_pass.set_bind_group(2, &render_state.sun_shadow_textures_bind_group, &[]);
+    volumetric_lighting_render_pass.draw(0..3, 0..1);
+
+    drop(volumetric_lighting_render_pass);
+
 
     let mut composition_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: Some("Render Pass"),
@@ -298,10 +333,10 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
         timestamp_writes: None,
     });
 
-
     composition_render_pass.set_pipeline(&render_state.composition_render_pipeline);
     composition_render_pass.set_bind_group(0, &render_state.gbuffers_bind_group, &[]);
     composition_render_pass.set_bind_group(1, &render_state.camera_bind_group, &[]);
+    composition_render_pass.set_bind_group(2, &render_state.volumetric_lighting_bind_group, &[]);
     composition_render_pass.draw(0..3, 0..1);
 
     drop(composition_render_pass);
@@ -332,10 +367,8 @@ pub fn render_chunks(render_state : &mut RenderState, game_data : &mut GameData,
     transperent_render_pass.set_bind_group(0, &render_state.gbuffers_bind_group, &[]);
     transperent_render_pass.set_bind_group(1, &render_state.camera_bind_group, &[]);
 
-    //render opaque
+    //render transparent
     for (i, draw_call) in transparent_terrain_buffer_draw_calls.iter().enumerate() {
-        render_state.queue.write_buffer(&render_state.mesh_buffers[i].transparent_indirect_buffer, 0, bytemuck::cast_slice(&draw_call));
-        render_state.queue.write_buffer(&render_state.mesh_buffers[i].transparent_count_buffer, 0, bytemuck::cast_slice(&[draw_call.len() as u32]));
         transperent_render_pass.set_vertex_buffer(0, render_state.mesh_buffers[i].mesh_buffer.slice(..));
         transperent_render_pass.set_vertex_buffer(1, render_state.blank_instance_info.slice(..));
     

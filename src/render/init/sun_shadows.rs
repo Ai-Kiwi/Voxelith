@@ -29,7 +29,7 @@ impl SunShadow {
         });
         let sun_shadow_texture_lod_view = sun_shadow_texture_lod.create_view(&wgpu::TextureViewDescriptor::default());
         let sun_shadow_texture_lod_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("Shadow Sampler"),
+            label: Some("Shadow Compare Sampler"),
             compare: Some(wgpu::CompareFunction::Less),
             mag_filter: wgpu::FilterMode::Linear,
             min_filter: wgpu::FilterMode::Linear,
@@ -37,6 +37,16 @@ impl SunShadow {
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             ..Default::default()
         });
+        let sun_shadow_distance_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("Shadow Distance Sampler"),
+            compare: None,
+            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Nearest,
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            ..Default::default()
+        });
+
 
         let sun_shadow_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: layout,
@@ -55,6 +65,7 @@ impl SunShadow {
             camera_buffer: sun_shadows_lod_camera_buffer,
             texture_view: sun_shadow_texture_lod_view,
             texture_sampler: sun_shadow_texture_lod_sampler,
+            texture_distance_sampler : sun_shadow_distance_sampler,
             bind_group: sun_shadow_bind_group,
         }
     }
@@ -121,6 +132,12 @@ impl InitSunShadow {
                 wgpu::BindGroupLayoutEntry {
                     binding: 2,
                     visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
@@ -130,7 +147,7 @@ impl InitSunShadow {
                 },
                 //lod1
                 wgpu::BindGroupLayoutEntry {
-                    binding: 3,
+                    binding: 4,
                     visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
                         sample_type: wgpu::TextureSampleType::Depth, 
@@ -140,13 +157,19 @@ impl InitSunShadow {
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 4,
+                    binding: 5,
                     visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Comparison),
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 5,
+                    binding: 6,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 7,
                     visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
@@ -157,7 +180,7 @@ impl InitSunShadow {
                 },
                 //lod2
                 wgpu::BindGroupLayoutEntry {
-                    binding: 6,
+                    binding: 8,
                     visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
                         sample_type: wgpu::TextureSampleType::Depth, 
@@ -167,13 +190,19 @@ impl InitSunShadow {
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 7,
+                    binding: 9,
                     visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Comparison),
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 8,
+                    binding: 10,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 11,
                     visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
@@ -184,7 +213,7 @@ impl InitSunShadow {
                 },
                 //lod3
                 wgpu::BindGroupLayoutEntry {
-                    binding: 9,
+                    binding: 12,
                     visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
                         sample_type: wgpu::TextureSampleType::Depth, 
@@ -194,13 +223,19 @@ impl InitSunShadow {
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 10,
+                    binding: 13,
                     visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Comparison),
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 11,
+                    binding: 14,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 15,
                     visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
@@ -220,19 +255,23 @@ impl InitSunShadow {
             entries: &[
                 wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&sun_shadow_lod_0.texture_view)},
                 wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::Sampler(&sun_shadow_lod_0.texture_sampler)},
-                wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::Buffer(sun_shadow_lod_0.camera_buffer.as_entire_buffer_binding())},
+                wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::Sampler(&sun_shadow_lod_0.texture_distance_sampler)},
+                wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::Buffer(sun_shadow_lod_0.camera_buffer.as_entire_buffer_binding())},
 
-                wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::TextureView(&sun_shadow_lod_1.texture_view)},
-                wgpu::BindGroupEntry { binding: 4, resource: wgpu::BindingResource::Sampler(&sun_shadow_lod_1.texture_sampler)},
-                wgpu::BindGroupEntry { binding: 5, resource: wgpu::BindingResource::Buffer(sun_shadow_lod_1.camera_buffer.as_entire_buffer_binding())},
+                wgpu::BindGroupEntry { binding: 4, resource: wgpu::BindingResource::TextureView(&sun_shadow_lod_1.texture_view)},
+                wgpu::BindGroupEntry { binding: 5, resource: wgpu::BindingResource::Sampler(&sun_shadow_lod_1.texture_sampler)},
+                wgpu::BindGroupEntry { binding: 6, resource: wgpu::BindingResource::Sampler(&sun_shadow_lod_1.texture_distance_sampler)},
+                wgpu::BindGroupEntry { binding: 7, resource: wgpu::BindingResource::Buffer(sun_shadow_lod_1.camera_buffer.as_entire_buffer_binding())},
 
-                wgpu::BindGroupEntry { binding: 6, resource: wgpu::BindingResource::TextureView(&sun_shadow_lod_2.texture_view)},
-                wgpu::BindGroupEntry { binding: 7, resource: wgpu::BindingResource::Sampler(&sun_shadow_lod_2.texture_sampler)},
-                wgpu::BindGroupEntry { binding: 8, resource: wgpu::BindingResource::Buffer(sun_shadow_lod_2.camera_buffer.as_entire_buffer_binding())},
+                wgpu::BindGroupEntry { binding: 8, resource: wgpu::BindingResource::TextureView(&sun_shadow_lod_2.texture_view)},
+                wgpu::BindGroupEntry { binding: 9, resource: wgpu::BindingResource::Sampler(&sun_shadow_lod_2.texture_sampler)},
+                wgpu::BindGroupEntry { binding: 10, resource: wgpu::BindingResource::Sampler(&sun_shadow_lod_1.texture_distance_sampler)},
+                wgpu::BindGroupEntry { binding: 11, resource: wgpu::BindingResource::Buffer(sun_shadow_lod_2.camera_buffer.as_entire_buffer_binding())},
 
-                wgpu::BindGroupEntry { binding: 9, resource: wgpu::BindingResource::TextureView(&sun_shadow_lod_3.texture_view)},
-                wgpu::BindGroupEntry { binding: 10, resource: wgpu::BindingResource::Sampler(&sun_shadow_lod_3.texture_sampler)},
-                wgpu::BindGroupEntry { binding: 11, resource: wgpu::BindingResource::Buffer(sun_shadow_lod_3.camera_buffer.as_entire_buffer_binding())},
+                wgpu::BindGroupEntry { binding: 12, resource: wgpu::BindingResource::TextureView(&sun_shadow_lod_3.texture_view)},
+                wgpu::BindGroupEntry { binding: 13, resource: wgpu::BindingResource::Sampler(&sun_shadow_lod_3.texture_sampler)},
+                wgpu::BindGroupEntry { binding: 14, resource: wgpu::BindingResource::Sampler(&sun_shadow_lod_1.texture_distance_sampler)},
+                wgpu::BindGroupEntry { binding: 15, resource: wgpu::BindingResource::Buffer(sun_shadow_lod_3.camera_buffer.as_entire_buffer_binding())},
 
             ],
             label: Some("Sun Shadow Textures Bind Group"),

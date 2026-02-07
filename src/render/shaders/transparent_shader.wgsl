@@ -1,17 +1,22 @@
-@group(0) @binding(0) var base_color_texture: texture_2d<f32>;
-@group(0) @binding(1) var base_color_sampler: sampler;
+@group(0) @binding(0) var depth_texture_lod0_view: texture_depth_2d;
+@group(0) @binding(1) var depth_texture_lod0_samplier: sampler_comparison;
+@group(0) @binding(2) var depth_texture_lod0_distance_samplier: sampler;
+@group(0) @binding(3) var<uniform> depth_texture_lod0_camera: CameraUniform;
 
-@group(0) @binding(2) var lighting_texture: texture_2d<f32>;
-@group(0) @binding(3) var lighting_sampler: sampler;
+@group(0) @binding(4) var depth_texture_lod1_view: texture_depth_2d;
+@group(0) @binding(5) var depth_texture_lod1_samplier: sampler_comparison;
+@group(0) @binding(6) var depth_texture_lod1_distance_samplier: sampler;
+@group(0) @binding(7) var<uniform> depth_texture_lod1_camera: CameraUniform;
 
-@group(0) @binding(4) var normal_texture: texture_2d<f32>;
-@group(0) @binding(5) var normal_sampler: sampler;
+@group(0) @binding(8) var depth_texture_lod2_view: texture_depth_2d;
+@group(0) @binding(9) var depth_texture_lod2_samplier: sampler_comparison;
+@group(0) @binding(10) var depth_texture_lod2_distance_samplier: sampler;
+@group(0) @binding(11) var<uniform> depth_texture_lod2_camera: CameraUniform;
 
-@group(0) @binding(6) var material_texture: texture_2d<f32>;
-@group(0) @binding(7) var material_sampler: sampler;
-
-@group(0) @binding(8) var depth_texture: texture_depth_2d;
-@group(0) @binding(9) var depth_sampler: sampler;
+@group(0) @binding(12) var depth_texture_lod3_view: texture_depth_2d;
+@group(0) @binding(13) var depth_texture_lod3_samplier: sampler_comparison;
+@group(0) @binding(14) var depth_texture_lod3_distance_samplier: sampler;
+@group(0) @binding(15) var<uniform> depth_texture_lod3_camera: CameraUniform;
 
 // Vertex shader
 struct CameraUniform {

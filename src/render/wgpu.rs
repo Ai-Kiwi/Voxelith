@@ -85,6 +85,13 @@ pub struct RenderState {
     pub sun_shadow_lod_3 : SunShadow,
     pub sun_shadow_render_pipeline: wgpu::RenderPipeline,
     pub sun_shadow_textures_bind_group: wgpu::BindGroup,
+        
+    //volumetric lighting related
+    pub volumetric_lighting_gbuffer_sampler: wgpu::Sampler,
+    pub volumetric_lighting_gbuffer_view: TextureView,
+    pub volumetric_lighting_render_pipeline : wgpu::RenderPipeline,
+    pub volumetric_lighting_bind_group: wgpu::BindGroup,
+    pub volumetric_lighting_bind_group_layout: wgpu::BindGroupLayout,
 }
 
 pub struct SunShadow {
@@ -93,6 +100,7 @@ pub struct SunShadow {
     pub camera_buffer: Buffer,
     pub texture_view: TextureView,
     pub texture_sampler: wgpu::Sampler,
+    pub texture_distance_sampler: wgpu::Sampler,
     pub bind_group: wgpu::BindGroup,
 }
 

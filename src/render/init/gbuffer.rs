@@ -1,7 +1,7 @@
 use wgpu::{Device, TextureView};
 use winit::dpi::Size;
 
-use crate::{render::{entity_meshs::MeshInstanceRaw, init::sun_shadows::InitSunShadow, wgpu::{RenderState, SunShadow}}, utils::Vertex};
+use crate::{render::{entity_meshs::MeshInstanceRaw, init::{sun_shadows::InitSunShadow, volumetric_lighting::create_volumetric_lighting_gbuffer}, wgpu::{RenderState, SunShadow}}, utils::Vertex};
 
 pub struct InitGbufferInfo {
     pub base_color_gbuffer_view: TextureView,
@@ -14,15 +14,13 @@ pub struct InitGbufferInfo {
     pub material_gbuffer_view: TextureView,
     pub normal_gbuffer_sampler: wgpu::Sampler,
     pub normal_gbuffer_view: TextureView,
-    pub final_gbuffer_sampler: wgpu::Sampler,
-    pub final_gbuffer_view: TextureView,
     pub gbuffer_render_pipeline : wgpu::RenderPipeline,
 }
 
 impl InitGbufferInfo {
     pub async fn new(device: &wgpu::Device, size : &winit::dpi::PhysicalSize<u32>, depth_view: &wgpu::TextureView, depth_sampler: &wgpu::Sampler, camera_bind_group_layout: &wgpu::BindGroupLayout, sun_shadow : &InitSunShadow) -> InitGbufferInfo {
         let full_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Shader"),
+            label: Some("Gbuffer Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/full_shader.wgsl").into()),
         });
         
@@ -31,21 +29,18 @@ impl InitGbufferInfo {
         let lighting_gbuffer = create_lighting_gbuffer(&device, size.width, size.height);
         let normal_gbuffer = create_normal_gbuffer(&device, size.width, size.height);
         let material_gbuffer = create_normal_gbuffer(&device, size.width, size.height);
-        let final_gbuffer = create_final_gbuffer(&device, size.width, size.height);
         
         //make views
         let base_color_gbuffer_view = base_color_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
         let lighting_gbuffer_view = lighting_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
         let normal_gbuffer_view = normal_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
         let material_gbuffer_view = material_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
-        let final_gbuffer_view = final_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
         
         //make samplers
         let base_color_gbuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
         let lighting_gbuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
         let normal_gbuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
         let material_gbuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
-        let final_gbuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
         
         //bind group layout
         let gbuffers_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -244,8 +239,6 @@ impl InitGbufferInfo {
             normal_gbuffer_sampler,
             material_gbuffer_sampler,
             gbuffer_render_pipeline,
-            final_gbuffer_sampler,
-            final_gbuffer_view,
         }
     }
 }
@@ -353,26 +346,6 @@ pub fn create_normal_gbuffer(device: &wgpu::Device, width: u32, height: u32) -> 
     })
 }
 
-pub fn create_final_gbuffer(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
-    let size = wgpu::Extent3d {
-        width,
-        height,
-        depth_or_array_layers: 1,
-    };
-
-    device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("View Gbuffer"),
-        size: size,
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba16Float,
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
-            | wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[wgpu::TextureFormat::Rgba16Float],
-    })
-}
-
 pub fn update_render_state_gbuffer(render_state : &mut RenderState) {
     let depth_texture = create_depth_texture(&render_state.device,render_state.config.width,render_state.config.height);
     let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
@@ -386,13 +359,14 @@ pub fn update_render_state_gbuffer(render_state : &mut RenderState) {
     let lighting_gbuffer = create_lighting_gbuffer(&render_state.device, render_state.config.width, render_state.config.height);
     let normal_gbuffer = create_normal_gbuffer(&render_state.device, render_state.config.width, render_state.config.height);
     let material_gbuffer = create_material_gbuffer(&render_state.device, render_state.config.width, render_state.config.height);
-    let final_gbuffer = create_final_gbuffer(&render_state.device, render_state.config.width, render_state.config.height);
+    let volumetric_lighting_gbuffer = create_volumetric_lighting_gbuffer(&render_state.device, render_state.config.width, render_state.config.height);
 
     //make views
     render_state.base_color_gbuffer_view = base_color_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
     render_state.lighting_gbuffer_view = lighting_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
     render_state.normal_gbuffer_view = normal_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
     render_state.material_gbuffer_view = material_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
+    render_state.volumetric_lighting_gbuffer_view = volumetric_lighting_gbuffer.create_view(&wgpu::TextureViewDescriptor::default());
 
     //remember to also update in init
     render_state.gbuffers_bind_group = render_state.device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -411,4 +385,12 @@ pub fn update_render_state_gbuffer(render_state : &mut RenderState) {
         ],
         label: Some("Gbuffers Bind Group"),
     });
+    render_state.volumetric_lighting_bind_group = render_state.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &render_state.volumetric_lighting_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&render_state.volumetric_lighting_gbuffer_view)},
+                wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::Sampler(&render_state.volumetric_lighting_gbuffer_sampler)},
+            ],
+            label: Some("Volumetric Lighting Bind Group"),
+        });
 }

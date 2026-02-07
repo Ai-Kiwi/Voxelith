@@ -10,8 +10,9 @@ pub mod gbuffer;
 pub mod composition;
 pub mod entity_meshs;
 pub mod transparent;
+pub mod volumetric_lighting;
 
-use crate::{render::{MAP_VRAM_SIZE, RenderFrameThreadPerformanceInfo, camera::{CameraUniform, PerspectiveCamera}, init::{composition::InitCompositionInfo, entity_meshs::InitEntityMeshs, gbuffer::{InitGbufferInfo, create_depth_texture}, sun_shadows::InitSunShadow, transparent::InitTransparentInfo}, render_frame::gui::GuiInfo, wgpu::RenderState}, utils::{Vec2, Vertex}};
+use crate::{render::{MAP_VRAM_SIZE, RenderFrameThreadPerformanceInfo, camera::{CameraUniform, PerspectiveCamera}, init::{composition::InitCompositionInfo, entity_meshs::InitEntityMeshs, gbuffer::{InitGbufferInfo, create_depth_texture}, sun_shadows::InitSunShadow, transparent::InitTransparentInfo, volumetric_lighting::InitVolumetricLightingInfo}, render_frame::gui::GuiInfo, wgpu::RenderState}, utils::{Vec2, Vertex}};
 
 pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderState>  {
     let size: winit::dpi::PhysicalSize<u32> = window.inner_size();
@@ -117,14 +118,19 @@ pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderStat
     //create gbuffer 
     let gbuffer_info = InitGbufferInfo::new(&device, &size, &depth_view, &depth_sampler, &camera_bind_group_layout, &sun_shadow).await;
 
-    //composition render
-    let composition = InitCompositionInfo::new(&device, &gbuffer_info, &camera_bind_group_layout);
-
+    
     //transparent render
     let transparent = InitTransparentInfo::new(&device, &gbuffer_info, &camera_bind_group_layout);
+    
+    //volumetric lighting
+    let volumetric_lighting_data = InitVolumetricLightingInfo::new(&device, &size, &gbuffer_info, &camera_bind_group_layout, &sun_shadow);
+    
+    //composition render
+    let composition = InitCompositionInfo::new(&device, &gbuffer_info, &camera_bind_group_layout, &volumetric_lighting_data);
 
     //entity meshs
     let entity_mesh_data = InitEntityMeshs::new(&device,&queue);
+
 
     //setup egui
     let egui_renderer = Renderer::new(&device, surface_format, RendererOptions { 
@@ -206,5 +212,10 @@ pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderStat
         mesh_instances: entity_mesh_data.instances,
         entity_meshs_buffer: entity_mesh_data.meshs_buffer,
         blank_instance_info : entity_mesh_data.blank_instance_info,
+        volumetric_lighting_gbuffer_sampler: volumetric_lighting_data.volumetric_lighting_gbuffer_sampler,
+        volumetric_lighting_gbuffer_view: volumetric_lighting_data.volumetric_lighting_gbuffer_view,
+        volumetric_lighting_render_pipeline: volumetric_lighting_data.volumetric_lighting_render_pipeline,
+        volumetric_lighting_bind_group: volumetric_lighting_data.volumetric_lighting_bind_group,
+        volumetric_lighting_bind_group_layout: volumetric_lighting_data.volumetric_lighting_bind_group_layout,
     })
 }

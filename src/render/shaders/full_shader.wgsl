@@ -9,19 +9,23 @@ var<uniform> camera: CameraUniform;
 
 @group(1) @binding(0) var depth_texture_lod0_view: texture_depth_2d;
 @group(1) @binding(1) var depth_texture_lod0_samplier: sampler_comparison;
-@group(1) @binding(2) var<uniform> depth_texture_lod0_camera: CameraUniform;
+@group(1) @binding(2) var depth_texture_lod0_distance_samplier: sampler;
+@group(1) @binding(3) var<uniform> depth_texture_lod0_camera: CameraUniform;
 
-@group(1) @binding(3) var depth_texture_lod1_view: texture_depth_2d;
-@group(1) @binding(4) var depth_texture_lod1_samplier: sampler_comparison;
-@group(1) @binding(5) var<uniform> depth_texture_lod1_camera: CameraUniform;
+@group(1) @binding(4) var depth_texture_lod1_view: texture_depth_2d;
+@group(1) @binding(5) var depth_texture_lod1_samplier: sampler_comparison;
+@group(1) @binding(6) var depth_texture_lod1_distance_samplier: sampler;
+@group(1) @binding(7) var<uniform> depth_texture_lod1_camera: CameraUniform;
 
-@group(1) @binding(6) var depth_texture_lod2_view: texture_depth_2d;
-@group(1) @binding(7) var depth_texture_lod2_samplier: sampler_comparison;
-@group(1) @binding(8) var<uniform> depth_texture_lod2_camera: CameraUniform;
+@group(1) @binding(8) var depth_texture_lod2_view: texture_depth_2d;
+@group(1) @binding(9) var depth_texture_lod2_samplier: sampler_comparison;
+@group(1) @binding(10) var depth_texture_lod2_distance_samplier: sampler;
+@group(1) @binding(11) var<uniform> depth_texture_lod2_camera: CameraUniform;
 
-@group(1) @binding(9) var depth_texture_lod3_view: texture_depth_2d;
-@group(1) @binding(10) var depth_texture_lod3_samplier: sampler_comparison;
-@group(1) @binding(11) var<uniform> depth_texture_lod3_camera: CameraUniform;
+@group(1) @binding(12) var depth_texture_lod3_view: texture_depth_2d;
+@group(1) @binding(13) var depth_texture_lod3_samplier: sampler_comparison;
+@group(1) @binding(14) var depth_texture_lod3_distance_samplier: sampler;
+@group(1) @binding(15) var<uniform> depth_texture_lod3_camera: CameraUniform;
 
 struct InstanceInput {
     @location(5) model_matrix_0: vec4<f32>,
