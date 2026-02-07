@@ -256,22 +256,3 @@ fn fs_main(in: VertexOutput) -> GbufferOutput {
     
     return gbuffers;
 }
-
-//ambient lighting which uses teardowns approch
-//volumentic noise some how
-//transperncy
-//water effects
-//metalic effects
-//reflective effects
-//ambiant occulstion
-
-//particle system
-
-//leaving room then going into another should change screen brightness like your eyes adjusting
-
-//look at adding fog and mist effects into the game
-
-//reflections base on screen contents. if the content is no on the screen then switch to using a blacked out version
-
-
-//lighting might use shadows depends how it works out in practice
