@@ -120,13 +120,13 @@ pub async fn init_render_state(window: Arc<Window>) -> anyhow::Result<RenderStat
 
     
     //transparent render
-    let transparent = InitTransparentInfo::new(&device, &gbuffer_info, &camera_bind_group_layout);
+    let transparent = InitTransparentInfo::new(&device, &gbuffer_info, &camera_bind_group_layout, surface_format);
     
     //volumetric lighting
     let volumetric_lighting_data = InitVolumetricLightingInfo::new(&device, &size, &gbuffer_info, &camera_bind_group_layout, &sun_shadow);
     
     //composition render
-    let composition = InitCompositionInfo::new(&device, &gbuffer_info, &camera_bind_group_layout, &volumetric_lighting_data);
+    let composition = InitCompositionInfo::new(&device, &gbuffer_info, &camera_bind_group_layout, &volumetric_lighting_data, surface_format);
 
     //entity meshs
     let entity_mesh_data = InitEntityMeshs::new(&device,&queue);

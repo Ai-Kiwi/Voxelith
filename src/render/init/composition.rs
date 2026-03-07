@@ -8,7 +8,7 @@ pub struct InitCompositionInfo {
 }
 
 impl InitCompositionInfo {
-    pub fn new(device : &Device, gbuffer_info : &InitGbufferInfo, camera_bind_group_layout: &wgpu::BindGroupLayout, volumetric_lighting_data : &InitVolumetricLightingInfo) -> InitCompositionInfo {
+    pub fn new(device : &Device, gbuffer_info : &InitGbufferInfo, camera_bind_group_layout: &wgpu::BindGroupLayout, volumetric_lighting_data : &InitVolumetricLightingInfo, surface_format : wgpu::TextureFormat) -> InitCompositionInfo {
         let composition_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Composition Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/composition_shader.wgsl").into()),
@@ -38,8 +38,7 @@ impl InitCompositionInfo {
                 entry_point: Some("fs_main"),
                 targets: &[
                     Some(wgpu::ColorTargetState {
-                        #[cfg(target_os = "linux")] format: wgpu::TextureFormat::Rgba8UnormSrgb,
-                        #[cfg(target_os = "windows")] format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                        format: surface_format,
                         blend: Some(wgpu::BlendState::REPLACE),
                         write_mask: wgpu::ColorWrites::ALL,
                     }),

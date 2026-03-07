@@ -8,7 +8,7 @@ pub struct InitTransparentInfo {
 }
 
 impl InitTransparentInfo {
-    pub fn new(device : &Device, gbuffer_info : &InitGbufferInfo, camera_bind_group_layout: &wgpu::BindGroupLayout,) -> InitTransparentInfo {
+    pub fn new(device : &Device, gbuffer_info : &InitGbufferInfo, camera_bind_group_layout: &wgpu::BindGroupLayout, surface_format : wgpu::TextureFormat) -> InitTransparentInfo {
         let transparent_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Transparent Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/transparent_shader.wgsl").into()),
@@ -40,8 +40,7 @@ impl InitTransparentInfo {
                 entry_point: Some("fs_main"),
                 targets: &[
                     Some(wgpu::ColorTargetState {
-                        #[cfg(target_os = "linux")] format: wgpu::TextureFormat::Rgba8UnormSrgb,
-                        #[cfg(target_os = "windows")] format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                        format: surface_format,
                         blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                         write_mask: wgpu::ColorWrites::ALL,
                     }),
