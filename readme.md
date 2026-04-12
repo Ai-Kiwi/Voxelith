@@ -9,7 +9,7 @@ Voxelith is a development game inspired by Teardown and Minecraft. It is current
 
 ### Example Performance
 <img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/20b922c9-87be-4391-b2c0-209385a6636a" />
-Running on a rtx 3060 with i5-14400f at 1440p. This shows how it is able to handle large worlds, as no LOD system is currently here as well as no chunk unloading, everything on screen is full quality.
+Running on a rtx 3060 with i5-14400f at 1440p. This shows how it is able to handle large worlds, as no LOD system is currently here as well as no chunk unloading, everything on screen is full quality. The idea is with LOD added and saving of chunks for much faster loading it will be able to handle large worlds. 
 
 ### Example Volumetric Lighting
 <img alt="image" src="https://github.com/user-attachments/assets/72a72036-aef9-4f68-9c82-b634dcce5b0c" />
