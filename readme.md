@@ -42,3 +42,5 @@ Entities or objects (including terrain) that move have moving shadows that updat
  - Full lighting system
  - Physics system. 
  - Fix for volumetric lighting blowing out the whole scene's colours. 
+  
+devlogs for project : https://github.com/Ai-Kiwi/ai-kiwi-devlog/tree/main/voxelith 
