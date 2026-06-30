@@ -30,6 +30,14 @@ pub fn update_render_chunk_mesh(render_state : &mut RenderState, chunk_pos : (i3
         match old_chunk_loc {
             Some(old_loc) => {
                 render_state.chunk_meshs.swap_remove(old_loc);
+                let old_replaced = render_state.chunk_meshs.get_mut(old_loc);
+                match old_replaced {
+                    Some(replaced) => {
+                        let position = replaced.position;
+                        render_state.chunk_meshs_loc.insert(position, old_loc);
+                    },
+                    None => (),
+                }
             },
             None => (),
         }
