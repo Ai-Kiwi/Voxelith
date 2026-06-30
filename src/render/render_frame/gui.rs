@@ -4,10 +4,10 @@ use egui::{Color32, RichText};
 use egui_wgpu::ScreenDescriptor;
 use wgpu::RenderPassColorAttachment;
 
-use crate::{mesh_creator::MeshCreator, render::{app::PageOpen, wgpu::RenderState}, render_game::GameData};
+use crate::{mesh_creator::MeshCreator, render::{app::PageOpen, wgpu::RenderState}};
 
 impl RenderState {
-    pub fn render_gui(&mut self, encoder : &mut wgpu::CommandEncoder, view : &mut wgpu::TextureView, page_open : &PageOpen, _game_data : &mut Option<GameData>, mesh_creator : &mut Option<MeshCreator>) {
+    pub fn render_gui(&mut self, encoder : &mut wgpu::CommandEncoder, view : &mut wgpu::TextureView, page_open : &PageOpen, mesh_creator : &mut Option<MeshCreator>) {
         let input = self.egui_winit.take_egui_input(&self.window);
         let egui_output = self.egui_context.run(input, |ctx| {
             egui::Window::new("Performance").show(&ctx, |ui| {

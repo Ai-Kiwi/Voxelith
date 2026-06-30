@@ -1,11 +1,15 @@
 use std::time::Instant;
 
-use crate::{mesh_creator::{MeshCreator, render_mesh_creator}, render::{app::PageOpen, wgpu::RenderState}, render_game::{GameData, render_frame::chunks::render_chunks}};
+use crate::{mesh_creator::{MeshCreator, render_mesh_creator}, render::{app::PageOpen, render_frame::render_world::render_world, wgpu::RenderState}};
 
 pub mod gui;
+mod chunks;
+mod render_world;
+mod entities;
+mod shadows;
 
 impl RenderState {
-    pub fn render(&mut self, page_open : &PageOpen, game_data : &mut Option<GameData>, mesh_creator : &mut Option<MeshCreator>) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(&mut self, page_open : &PageOpen, mesh_creator : &mut Option<MeshCreator>) -> Result<(), wgpu::SurfaceError> {
         let start_render_time = Instant::now();
         self.window.request_redraw();
 
@@ -26,22 +30,23 @@ impl RenderState {
         self.performance_info.start_render_time = start_render_time.elapsed().as_secs_f32();
         let main_content_render_start = Instant::now();
 
-        //render chunks
-        match page_open {
-            PageOpen::Game => {
-                if let Some(game_data) = game_data {
-                    render_chunks(self, game_data, &view, &mut encoder);
-                }
-            },
-            PageOpen::TitleScreen => {
+        render_world(self, &mut encoder, &view);
 
-            },
-            PageOpen::MeshCreator => {
-                if let Some(mesh_creator) = mesh_creator {
-                    render_mesh_creator(self, mesh_creator, &view, &mut encoder);
-                }
-            },
-        }
+
+        //render chunks
+        //match page_open {
+        //    PageOpen::Game => {
+        //        
+        //    },
+        //    PageOpen::TitleScreen => {
+        //
+        //    },
+        //    PageOpen::MeshCreator => {
+        //        if let Some(mesh_creator) = mesh_creator {
+        //            render_mesh_creator(self, mesh_creator, &view, &mut encoder);
+        //        }
+        //    },
+        //}
 
         self.performance_info.main_content_render_time = main_content_render_start.elapsed().as_secs_f32();
 
@@ -50,7 +55,7 @@ impl RenderState {
 
         //render gui
         let render_gui_start = Instant::now();
-        self.render_gui(&mut encoder, &mut view, page_open,  game_data, mesh_creator);
+        self.render_gui(&mut encoder, &mut view, page_open, mesh_creator);
         self.performance_info.render_gui_time = render_gui_start.elapsed().as_secs_f32();
 
         // submit will accept anything that implements IntoIter

@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Instant};
 
 use winit::{application::ApplicationHandler, event::{DeviceEvent, DeviceId, KeyEvent, WindowEvent}, event_loop::ActiveEventLoop, keyboard::{KeyCode, PhysicalKey}, window::Window};
 
-use crate::{mesh_creator::{MeshCreator, tick_mesh_creator}, render::{GameData, mesh::mesh_buffer_cleanup, wgpu::RenderState}, render_game::tick_game_render_logic, utils::Vec2};
+use crate::{mesh_creator::{MeshCreator, tick_mesh_creator}, render::{mesh::mesh_buffer_cleanup, update_state::update_render_state, wgpu::{RenderState, RenderThreadChannels}}, utils::Vec2};
 
 #[derive(PartialEq, PartialOrd)]
 pub enum PageOpen {
@@ -13,18 +13,18 @@ pub enum PageOpen {
 
 pub struct App {
     pub state: Option<RenderState>,
-    pub game_data: Option<GameData>,
     pub mesh_creator : Option<MeshCreator>,
     pub page_open: PageOpen,
+    pub pass_render_threads : Option<RenderThreadChannels>
 }
 
 impl App {
     pub fn new() -> Self {
         Self {
             state: None,
-            game_data: None,
             page_open : PageOpen::Game,
             mesh_creator: None,
+            pass_render_threads: None,
         }
     }
 
@@ -94,8 +94,9 @@ impl ApplicationHandler<RenderState> for App {
         window.set_cursor_visible(false);
         window.set_title("Voxelith");
 
+        let render_thread_channels = self.pass_render_threads.take().unwrap();
 
-        self.state = Some(pollster::block_on(RenderState::new(window)).unwrap());
+        self.state = Some(pollster::block_on(RenderState::new(window, render_thread_channels)).unwrap());
 
     }
 
@@ -128,9 +129,7 @@ impl ApplicationHandler<RenderState> for App {
                 
                 //tick game render logic
                 let main_game_tick_start = Instant::now();
-                if let Some(game_data) = &mut self.game_data {
-                    tick_game_render_logic(state, game_data, self.page_open == PageOpen::Game);
-                }
+                update_render_state(state);
                 state.performance_info.main_game_tick = main_game_tick_start.elapsed().as_secs_f32();
 
 
@@ -160,7 +159,7 @@ impl ApplicationHandler<RenderState> for App {
                 state.performance_info.total_tick_time = tick_time_start.elapsed().as_secs_f32();
                 let render_time_start = Instant::now();
                 
-                match state.render(&self.page_open, &mut self.game_data, &mut self.mesh_creator) {
+                match state.render(&self.page_open, &mut self.mesh_creator) {
                     Ok(_) => {}
                     // Reconfigure the surface if it's lost or outdated
                     Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {

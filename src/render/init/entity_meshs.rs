@@ -28,7 +28,7 @@ pub fn create_new_mesh_instances(device : &Device, max_count : u64) -> MeshInsta
     });
     MeshInstancesBufferInfo { 
         instances_buffer: mesh_instances_buffer, 
-        mesh_instances: HashMap::new(), 
+        mesh_instances: HashMap::new(),
         instance_id_upto: 0,
         max_count: max_count,
     }
@@ -52,9 +52,9 @@ impl InitEntityMeshs {
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::VERTEX,
             contents: bytemuck::cast_slice(&contents),
         });
-        
+
         //makes sure first instance is blank. This is so if no instance is picked it is just auto nothing
-        
+
         let blank_instance = MeshInstance {
             position: Vector3 { x: 0.0, y: 0.0, z: 0.0 },
             rotation: Quaternion::new(1.0, 0.0, 0.0, 0.0),
@@ -64,7 +64,7 @@ impl InitEntityMeshs {
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::VERTEX,
             contents: bytemuck::bytes_of(&blank_instance.to_raw()),
         });
-        
+
 
         InitEntityMeshs {
             //entity meshs

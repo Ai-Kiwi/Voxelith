@@ -1,6 +1,6 @@
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use crate::{game::chunk::Chunk, mesh_creation::create_mesh::create_chunk_mesh, render_game::chunk::ChunkMeshUpdate};
+use crate::{game::chunk::Chunk, mesh_creation::create_mesh::create_chunk_mesh, render::update_state::ChunkMeshUpdate};
 
 use std::{sync::{Arc, mpsc::{Receiver, Sender}}, thread::sleep};
 

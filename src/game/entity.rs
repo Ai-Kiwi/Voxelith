@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::mpsc::Sender};
 
-use crate::{entity::{Entity, EntityClass}, game::Game, render_game::entities::{EntityRenderData, EntityRenderDataUpdate}, utils::Vec3};
+use crate::{entity::{Entity, EntityClass}, game::Game, render::update_state::EntityRenderDataUpdate, utils::Vec3};
 
 #[derive(Eq, Hash, PartialEq, Clone, Copy)]
 pub struct EntityId (pub u64);

@@ -3,7 +3,7 @@ use std::{collections::{BTreeMap, HashMap}, sync::mpsc::channel, thread};
 use pollster::block_on;
 use winit::event_loop::EventLoop;
 
-use crate::{game::{InputEvent, game_thread}, mesh_creator::MeshCreator, render::{app::App, camera::PerspectiveCamera}, render_game::{GameData, RenderThreadChannels, chunk::ChunkMeshUpdate, entities::{EntityRenderData, EntityRenderDataUpdate}}};
+use crate::{game::{InputEvent, game_thread}, mesh_creator::MeshCreator, render::{app::App, camera::PerspectiveCamera, update_state::{ChunkMeshUpdate, EntityRenderDataUpdate}, wgpu::RenderThreadChannels}};
 
 
 pub mod camera;
@@ -13,6 +13,7 @@ mod init;
 mod render_frame;
 pub mod mesh;
 pub mod entity_meshs;
+pub mod update_state;
 
 //pub const LEVEL_3_LOD_DISTANCE: f32 = 2560.0;
 //pub const LEVEL_2_LOD_DISTANCE: f32 = 1280.0;
@@ -45,29 +46,21 @@ pub async fn render_thread() {
         block_on(game_thread(chunk_mesh_update_tx, entity_render_tx, &mut input_event_rx));
     });
 
-    let game_state = GameData {
-        chunk_meshs: HashMap::new(),
-        chunk_mesh_data: HashMap::new(),
-        render_channels: RenderThreadChannels {
-            chunk_mesh_update_rx,
-            entity_render_rx,
-            input_event_tx,
-        },
-        camera: PerspectiveCamera::new(),
-        cache_chunk_meshs: BTreeMap::new(),
-        entities: HashMap::new(),
-    };
-
-    app.game_data = Some(game_state);
-
     app.page_open = app::PageOpen::Game;
     app.mesh_creator = Some(MeshCreator::new());
     
 
+    let render_threads = RenderThreadChannels {
+        chunk_mesh_update_rx,
+        entity_render_rx,
+        input_event_tx,
+    };
+
+    app.pass_render_threads = Some(render_threads);
+
     event_loop.run_app(&mut app).expect("failed to run app");
-    
+
     //drop everything. This allows for a clean shutdown
-    app.game_data = None;
     app.state = None;
 }
 

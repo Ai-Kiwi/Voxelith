@@ -1,11 +1,11 @@
-use std::{collections::HashMap, sync::Arc, time::Instant};
+use std::{collections::HashMap, sync::{Arc, mpsc::{Receiver, Sender}}, time::Instant};
 
 use cgmath::Point3;
 use egui_wgpu::Renderer;
 use wgpu::{BindGroupLayout, Buffer, Device, Texture, TextureView, util::DeviceExt};
 use winit::{keyboard::KeyCode, window::Window};
 
-use crate::{render::{RenderFrameThreadPerformanceInfo, camera::{CameraUniform, OrthographicCamera, PerspectiveCamera}, entity_meshs::{MeshEntityLocationReference, MeshId, MeshInstance, MeshInstanceId}, init::{entity_meshs::MeshInstancesBufferInfo, gbuffer::update_render_state_gbuffer, init_render_state}, mesh::MeshBuffer, render_frame::gui::GuiInfo}, utils::Vec2};
+use crate::{entity::EntityClass, game::{InputEvent, entity::EntityId}, render::{RenderFrameThreadPerformanceInfo, camera::{CameraUniform, OrthographicCamera, PerspectiveCamera}, entity_meshs::{MeshEntityLocationReference, MeshId, MeshInstance, MeshInstanceId}, init::{entity_meshs::MeshInstancesBufferInfo, gbuffer::update_render_state_gbuffer, init_render_state}, mesh::{GpuMeshReference, MeshBuffer}, render_frame::gui::GuiInfo, update_state::{ChunkMeshUpdate, EntityRenderDataUpdate}}, utils::{Vec2, Vec3}};
 
 pub fn get_distance_to_camera_unsquared(camera : &PerspectiveCamera, x : f32, y : f32, z : f32) -> f32 {
     let dx = camera.position.x - x;
@@ -92,6 +92,36 @@ pub struct RenderState {
     pub volumetric_lighting_render_pipeline : wgpu::RenderPipeline,
     pub volumetric_lighting_bind_group: wgpu::BindGroup,
     pub volumetric_lighting_bind_group_layout: wgpu::BindGroupLayout,
+
+    //game state related stuff
+    pub camera : PerspectiveCamera,
+    pub chunk_meshs :  Vec<ChunkInfo>,
+    pub chunk_meshs_loc : HashMap<(i32,i32,i32,bool),usize>,
+    pub chunk_mesh_data : HashMap<(i32,i32,i32,bool),ChunkMeshUpdate>,
+    pub render_channels : RenderThreadChannels,
+    pub entities: Vec<EntityRenderData>,
+    pub entities_loc: HashMap<EntityId,usize>,
+}
+
+pub struct RenderThreadChannels {
+    pub chunk_mesh_update_rx : Receiver<ChunkMeshUpdate>, 
+    pub entity_render_rx : Receiver<EntityRenderDataUpdate>, 
+    pub input_event_tx: Sender<InputEvent>,
+}
+
+pub struct ChunkInfo {
+    pub pointer : Arc<GpuMeshReference>,
+    pub buffer_number : usize,
+    pub size : usize,
+    pub position : (i32,i32,i32,bool),
+}
+
+pub struct EntityRenderData {
+    pub id : EntityId,
+    pub position : Vec3,
+    pub entity_class : EntityClass,
+    pub render_mesh_id : MeshId, //THIS IS VERY TEMP, WILL CHANGE TO REAL SYSTEM LATER BUT FOR NOW WILL WORK
+    pub instance_id : MeshInstanceId,
 }
 
 pub struct SunShadow {
@@ -105,8 +135,8 @@ pub struct SunShadow {
 }
 
 impl<'a> RenderState {
-    pub async fn new(window: Arc<Window>) -> anyhow::Result<RenderState> {
-        return init_render_state(window).await;
+    pub async fn new(window: Arc<Window>, render_thread_channels : RenderThreadChannels) -> anyhow::Result<RenderState> {
+        return init_render_state(window, render_thread_channels).await;
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {

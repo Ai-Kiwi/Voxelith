@@ -2,7 +2,6 @@
 use crate::{render::render_thread};
 
 pub mod render;
-pub mod render_game;
 mod game;
 mod mesh_creation;
 mod chunk_geneariton;
