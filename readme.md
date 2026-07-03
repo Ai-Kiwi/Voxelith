@@ -31,6 +31,7 @@ Entities or objects (including terrain) that move have moving shadows that updat
  - Multi-draw indirect rendering approach.
    - Used for entites and terrain, terrain is one draw call and each entity type is one draw call. Lose objects are also grouped in with terrain so all that is 1 call. (terrain and lose objects are still split by buffer number and if transparent)
  - 256MB GPU mesh buffers for rendered content, with automatic defragmentation.
+   - Shifts meshs left in buffer, if data to the left is to small to hold chunk data. (prevents unneeded moves) 
  - Automatic creation of new mesh buffers when they are too full. 
  - An instance-based system for entity rendering.
  - Automactic chunk loading and unloading.
