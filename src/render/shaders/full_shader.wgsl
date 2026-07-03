@@ -194,6 +194,8 @@ fn fs_main(in: VertexOutput) -> GbufferOutput {
     //get camera distnce to point to pick shadow
     let shadow_camera_diff = vec3<f32>(0 - in.world_pos.x, 0 - in.world_pos.y, 0- in.world_pos.z);
     let shadow_camera_distance = length(shadow_camera_diff);
+    //different approach, buggy rn but gives blocky shadows. 
+    //let light_clip_pos = depth_texture_lod0_camera.view_proj * (floor(in.world_pos) + vec4<f32>(0.5, 0.0, 0.5, 0.0));
     let light_clip_pos = depth_texture_lod0_camera.view_proj * in.world_pos;
     let light_coords = light_clip_pos.xyz / light_clip_pos.w;    
     var closeness_response = 0.0;

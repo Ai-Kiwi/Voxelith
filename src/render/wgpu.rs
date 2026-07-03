@@ -1,11 +1,12 @@
 use std::{collections::HashMap, sync::{Arc, mpsc::{Receiver, Sender}}, time::Instant};
 
 use cgmath::Point3;
+use egui::ahash::HashSet;
 use egui_wgpu::Renderer;
 use wgpu::{BindGroupLayout, Buffer, Device, Texture, TextureView, util::DeviceExt};
 use winit::{keyboard::KeyCode, window::Window};
 
-use crate::{entity::EntityClass, game::{InputEvent, entity::EntityId}, render::{RenderFrameThreadPerformanceInfo, camera::{CameraUniform, OrthographicCamera, PerspectiveCamera}, entity_meshs::{MeshEntityLocationReference, MeshId, MeshInstance, MeshInstanceId}, init::{entity_meshs::MeshInstancesBufferInfo, gbuffer::update_render_state_gbuffer, init_render_state}, mesh::{GpuMeshReference, MeshBuffer}, render_frame::gui::GuiInfo, update_state::{ChunkMeshUpdate, EntityRenderDataUpdate}}, utils::{Vec2, Vec3}};
+use crate::{entity::EntityClass, game::{InputEvent, entity::EntityId, lose_terrain::LoseTerrainId}, render::{RenderFrameThreadPerformanceInfo, camera::{CameraUniform, OrthographicCamera, PerspectiveCamera}, entity_meshs::{MeshEntityLocationReference, MeshId, MeshInstance, MeshInstanceId}, init::{entity_meshs::MeshInstancesBufferInfo, gbuffer::update_render_state_gbuffer, init_render_state}, mesh::{GpuMeshReference, MeshBuffer}, render_frame::gui::GuiInfo, update_state::{ChunkMeshUpdate, EntityRenderDataUpdate, LoseObjectRenderDataUpdate}}, utils::{Vec2, Vec3}};
 
 pub fn get_distance_to_camera_unsquared(camera : &PerspectiveCamera, x : f32, y : f32, z : f32) -> f32 {
     let dx = camera.position.x - x;
@@ -49,7 +50,7 @@ pub struct RenderState {
     pub mesh_id_reference : HashMap<MeshId,MeshEntityLocationReference>,
     pub entity_meshs_buffer : Buffer,
     pub mesh_instances : HashMap<MeshId,MeshInstancesBufferInfo>,
-    pub blank_instance_info : Buffer,
+    pub static_and_lose_chunk_instance_info : Buffer,
 
     //gui related stuff. Also engine
     pub egui_renderer : Renderer,
@@ -95,25 +96,46 @@ pub struct RenderState {
 
     //game state related stuff
     pub camera : PerspectiveCamera,
-    pub chunk_meshs :  Vec<ChunkInfo>,
-    pub chunk_meshs_loc : HashMap<(i32,i32,i32,bool),usize>,
-    pub chunk_mesh_data : HashMap<(i32,i32,i32,bool),ChunkMeshUpdate>,
+    pub chunks : ChunkListInfo,
     pub render_channels : RenderThreadChannels,
     pub entities: Vec<EntityRenderData>,
     pub entities_loc: HashMap<EntityId,usize>,
+    pub lose_objects: Vec<LoseObjectInfo>,
+    pub lose_objects_loc: HashMap<LoseTerrainId,usize>,
 }
 
 pub struct RenderThreadChannels {
-    pub chunk_mesh_update_rx : Receiver<ChunkMeshUpdate>, 
-    pub entity_render_rx : Receiver<EntityRenderDataUpdate>, 
+    pub chunk_mesh_update_rx : Receiver<ChunkMeshUpdate>,
+    pub entity_render_rx : Receiver<EntityRenderDataUpdate>,
     pub input_event_tx: Sender<InputEvent>,
+    pub lose_object_update_rx : Receiver<LoseObjectRenderDataUpdate>
+}
+
+pub struct ChunkListInfo {
+    pub chunk_meshs :  Vec<ChunkInfo>,
+    pub chunk_meshs_loc : HashMap<ChunkIndexInfo,usize>,
 }
 
 pub struct ChunkInfo {
     pub pointer : Arc<GpuMeshReference>,
     pub buffer_number : usize,
     pub size : usize,
-    pub position : (i32,i32,i32,bool),
+    pub index_info : ChunkIndexInfo,
+    pub lose_object_id : Option<LoseTerrainId>
+}
+
+pub struct LoseObjectInfo {
+    pub position : Vec3,
+    pub id : LoseTerrainId,
+    pub chunks : ChunkListInfo,
+}
+
+#[derive(Eq, Hash, PartialEq, Copy, Clone)]
+pub struct ChunkIndexInfo {
+    pub x : i32,
+    pub y : i32,
+    pub z : i32,
+    pub transparent : bool
 }
 
 pub struct EntityRenderData {

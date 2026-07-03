@@ -33,7 +33,7 @@ pub fn create_entities_draw_calls(render_state : &mut RenderState) -> HashMap<Me
     return entity_instances_to_render;
 }
 
-pub fn render_entities(render_state : &mut RenderState, render_frame_objects : &RenderFrameObjects, render_pass : &mut wgpu::RenderPass<'_>) {
+pub fn render_entities(render_state : &RenderState, render_frame_objects : &RenderFrameObjects, render_pass : &mut wgpu::RenderPass<'_>) {
     for mesh in &render_frame_objects.entity_instances {
         let buffer_info = render_state.mesh_instances.get(&mesh.0).unwrap();
         let vertex_info = render_state.mesh_id_reference.get(&mesh.0).expect(format!("Failed to render entity as texture id {} is not loaded", mesh.0.0).as_str());

@@ -55,7 +55,7 @@ impl WorldData {
                                 if block_x <= end_chunk_x && block_x >= start_chunk_x && block_y <= end_chunk_y && block_y >= start_chunk_y && block_z <= end_chunk_z && block_z >= start_chunk_z {
                                     match chunk_data {
                                         Some(data) => {
-                                            if data.get_relative_pixel(local_x, local_y, local_z).should_be_collision() {
+                                            if data.get_relative_pixel(local_x, local_y, local_z).is_solid() {
                                                 return true
                                             }
                                         }

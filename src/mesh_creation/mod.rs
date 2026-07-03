@@ -1,6 +1,6 @@
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use crate::{game::chunk::Chunk, mesh_creation::create_mesh::create_chunk_mesh, render::update_state::ChunkMeshUpdate};
+use crate::{game::{chunk::Chunk, lose_terrain::LoseTerrainId}, mesh_creation::create_mesh::create_chunk_mesh, render::update_state::ChunkMeshUpdate};
 
 use std::{sync::{Arc, mpsc::{Receiver, Sender}}, thread::sleep};
 
@@ -9,6 +9,8 @@ pub mod create_triangles;
 mod pix_colors;
 
 pub struct ChunkMeshCreateRequest {
+    pub lose_object_id : Option<LoseTerrainId>, //says if it is for world or lose object and if so which
+
     pub chunk : Option<Arc<Chunk>>,
     pub position : (i32,i32,i32),
 
@@ -59,6 +61,7 @@ pub async fn chunk_mesh_creation_thread(chunk_mesh_update_tx : Sender<ChunkMeshU
                 mesh_l8: None,
                 transparent: false,
                 data: request.chunk.clone(),
+                lose_object_id: request.lose_object_id,
             });
 
             //transparent
@@ -74,6 +77,7 @@ pub async fn chunk_mesh_creation_thread(chunk_mesh_update_tx : Sender<ChunkMeshU
                 mesh_l8: None, 
                 transparent: true,
                 data: request.chunk.clone(),
+                lose_object_id: request.lose_object_id,
             });
         });
     }

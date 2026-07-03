@@ -17,8 +17,7 @@ fn get_block_locations_at_position(position: (f32,f32,f32), hitbox : (f32,f32,f3
         for y in ((position.1 - (hitbox.1 / 2.0)).floor() as i32)..=((position.1 + (hitbox.1 / 2.0)).ceil() as i32) {
             for z in ((position.2 - (hitbox.2 / 2.0)).floor() as i32)..=((position.2 + (hitbox.2 / 2.0)).ceil() as i32) {
                 locations.push((x,y,z));
-                
-            }   
+            }
         }
     }
 
@@ -31,7 +30,12 @@ fn get_block_locations_at_position(position: (f32,f32,f32), hitbox : (f32,f32,f3
 
 pub fn tick_physics(game : &mut Game) {
     //for now just assuming velocity as 1 unit per game tick. Will change to m/s later
-
+    for lose_terrain in &mut game.lose_terrain.objects {
+        let updated = lose_terrain.1.tick_physics(&mut game.world);
+        if updated {
+            game.lose_terrain.position_updated.insert(*lose_terrain.0);
+        }
+    }
 
     //run for all entities;
     for (_, entity) in &mut game.entities.entities {

@@ -1,7 +1,7 @@
 use core::f32;
 use std::{sync::mpsc::{Receiver, Sender}, thread::sleep};
 use fastnoise_lite::{FastNoiseLite, NoiseType};
-use crate::{game::{chunk::Chunk, pixel::PixelTypes}, utils::VoxelPosition};
+use crate::{game::{chunk::Chunk, pixel::PixelTypes::{self, Air}}, utils::VoxelPosition};
 
 pub struct NewChunkInfo {
     pub position : (i32, i32, i32),
@@ -19,6 +19,7 @@ fn get_multi_octave_map( frequency : f32, block_pos : VoxelPosition, random : f3
 const WORLD_SCALE : f32 = 1.0;
 //const WORLD_SCALE : f32 = 10.0;
 
+#[derive(Clone, Copy)]
 enum Biome {
     Plains,
     Ocean,
@@ -93,10 +94,11 @@ fn pick_biome(e: f32, h: f32, t: f32, m: f32, c : f32) -> &'static Biome {
     
 fn create_chunk(noise : &FastNoiseLite, chunk_pos : (i32, i32, i32)) -> Chunk {
     let mut created = Chunk {
-        data: Vec::new(),
+        data: [PixelTypes::Air; 16*16*16],
+        solid_items: 0,
     };
 
-    let mut biome_and_voxel_data: Vec<(f32,&Biome)> = Vec::new();
+    let mut biome_and_voxel_data: [(f32, &Biome); 256] = [(0.0, &Biome::Ocean); 16*16];
 
     for z in 0..16 {
         for x in 0..16 {
@@ -152,7 +154,7 @@ fn create_chunk(noise : &FastNoiseLite, chunk_pos : (i32, i32, i32)) -> Chunk {
 
             elevation +=  roughness * (1.0 + (hillness * 2.0) * (mountainness * 5.0).clamp(0.0, 2.0));
 
-            biome_and_voxel_data.push((elevation, biome));
+            biome_and_voxel_data[((z * 16) + x) as usize] = (elevation, biome);
 
             //causes alot of issues with rendering for some reason so im going to ignore
             //if elevation + 25.0 < world_y as f32 && world_y > 0 {
@@ -210,7 +212,10 @@ fn create_chunk(noise : &FastNoiseLite, chunk_pos : (i32, i32, i32)) -> Chunk {
                         }
                     },
                 }
-                created.data.push(pixel_block);
+                created.data[((y * 16 * 16) + (z * 16) + x) as usize] = pixel_block;
+                if pixel_block.is_solid() {
+                    created.solid_items += 1;
+                }
             }
         }
     }

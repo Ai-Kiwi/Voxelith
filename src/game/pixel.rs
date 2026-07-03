@@ -46,7 +46,7 @@ impl PixelTypes {
         }
 
     }
-    pub const fn should_be_collision(&self) -> bool {
+    pub const fn is_solid(&self) -> bool {
         match self {
             PixelTypes::Air => false,
             PixelTypes::Grass => true,

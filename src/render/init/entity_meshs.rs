@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use cgmath::{Quaternion, Vector3};
-use wgpu::{Buffer, Device, Instance, util::DeviceExt};
+use wgpu::{Buffer, BufferDescriptor, Device, Instance, naga::MathFunction::Trunc, util::DeviceExt};
 
 use crate::{mesh_creator::MeshCreator, render::entity_meshs::{MESHID_TEST, MeshEntityLocationReference, MeshId, MeshInstance, MeshInstanceId, MeshInstanceRaw}};
 
@@ -59,12 +59,14 @@ impl InitEntityMeshs {
             position: Vector3 { x: 0.0, y: 0.0, z: 0.0 },
             rotation: Quaternion::new(1.0, 0.0, 0.0, 0.0),
         };
-        let blank_instance_info = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Entity Meshs Buffer"),
+        let blank_instance_info = device.create_buffer(&BufferDescriptor {
+            label: Some("Static or rigidbody chunk instances buffere"),
+            size: 5 * 1024 * 1024, //5MB gives a lot of free room.
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::VERTEX,
-            contents: bytemuck::bytes_of(&blank_instance.to_raw()),
+            mapped_at_creation: false,
         });
 
+        queue.write_buffer(&blank_instance_info, 0, bytemuck::bytes_of(&blank_instance.to_raw()));
 
         InitEntityMeshs {
             //entity meshs

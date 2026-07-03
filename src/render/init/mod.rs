@@ -12,7 +12,7 @@ pub mod entity_meshs;
 pub mod transparent;
 pub mod volumetric_lighting;
 
-use crate::{render::{MAP_VRAM_SIZE, RenderFrameThreadPerformanceInfo, camera::{CameraUniform, PerspectiveCamera}, init::{composition::InitCompositionInfo, entity_meshs::InitEntityMeshs, gbuffer::{InitGbufferInfo, create_depth_texture}, sun_shadows::InitSunShadow, transparent::InitTransparentInfo, volumetric_lighting::InitVolumetricLightingInfo}, render_frame::gui::GuiInfo, wgpu::{RenderState, RenderThreadChannels}}, utils::{Vec2, Vertex}};
+use crate::{render::{MAP_VRAM_SIZE, RenderFrameThreadPerformanceInfo, camera::{CameraUniform, PerspectiveCamera}, init::{composition::InitCompositionInfo, entity_meshs::InitEntityMeshs, gbuffer::{InitGbufferInfo, create_depth_texture}, sun_shadows::InitSunShadow, transparent::InitTransparentInfo, volumetric_lighting::InitVolumetricLightingInfo}, render_frame::gui::GuiInfo, wgpu::{ChunkListInfo, RenderState, RenderThreadChannels}}, utils::{Vec2, Vertex}};
 
 pub async fn init_render_state(window: Arc<Window>, render_thread_channels : RenderThreadChannels) -> anyhow::Result<RenderState>  {
     let size: winit::dpi::PhysicalSize<u32> = window.inner_size();
@@ -211,18 +211,21 @@ pub async fn init_render_state(window: Arc<Window>, render_thread_channels : Ren
         mesh_id_reference: entity_mesh_data.mesh_id_reference,
         mesh_instances: entity_mesh_data.instances,
         entity_meshs_buffer: entity_mesh_data.meshs_buffer,
-        blank_instance_info : entity_mesh_data.blank_instance_info,
+        static_and_lose_chunk_instance_info : entity_mesh_data.blank_instance_info,
         volumetric_lighting_gbuffer_sampler: volumetric_lighting_data.volumetric_lighting_gbuffer_sampler,
         volumetric_lighting_gbuffer_view: volumetric_lighting_data.volumetric_lighting_gbuffer_view,
         volumetric_lighting_render_pipeline: volumetric_lighting_data.volumetric_lighting_render_pipeline,
         volumetric_lighting_bind_group: volumetric_lighting_data.volumetric_lighting_bind_group,
         volumetric_lighting_bind_group_layout: volumetric_lighting_data.volumetric_lighting_bind_group_layout,
         camera,
-        chunk_meshs: Vec::new(),
-        chunk_meshs_loc: HashMap::new(),
-        chunk_mesh_data: HashMap::new(),
         render_channels: render_thread_channels,
         entities: Vec::new(),
         entities_loc: HashMap::new(),
+        chunks: ChunkListInfo {
+            chunk_meshs: Vec::new(),
+            chunk_meshs_loc: HashMap::new(),
+        },
+        lose_objects: Vec::new(),
+        lose_objects_loc: HashMap::new(),
     })
 }

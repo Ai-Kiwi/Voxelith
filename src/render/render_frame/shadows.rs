@@ -1,7 +1,7 @@
 use cgmath::Point3;
 use wgpu::CommandEncoder;
 
-use crate::{render::{render_frame::render_world::RenderFrameObjects, wgpu::RenderState}, utils::Vec3};
+use crate::{render::{render_frame::{chunks::render_opaque_chunks, entities::render_entities, render_world::RenderFrameObjects}, wgpu::RenderState}, utils::Vec3};
 
 pub fn render_sun_shadows(render_state : &mut RenderState, encoder : &mut CommandEncoder, render_frame_objects : &RenderFrameObjects) {
     //sun shadows textures
@@ -38,7 +38,7 @@ pub fn render_sun_shadows(render_state : &mut RenderState, encoder : &mut Comman
         //draw terrain
         for (i, _draw_call) in render_frame_objects.terrain.iter().enumerate() {
             sun_shadow_render_pass.set_vertex_buffer(0, render_state.mesh_buffers[i].mesh_buffer.slice(..));
-            sun_shadow_render_pass.set_vertex_buffer(1, render_state.blank_instance_info.slice(..));
+            sun_shadow_render_pass.set_vertex_buffer(1, render_state.static_and_lose_chunk_instance_info.slice(..));
         
             sun_shadow_render_pass.multi_draw_indirect_count(
                 &render_state.mesh_buffers[i].opaque_indirect_buffer, 

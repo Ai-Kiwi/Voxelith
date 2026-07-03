@@ -3,7 +3,7 @@ use std::{collections::{BTreeMap, HashMap}, sync::mpsc::channel, thread};
 use pollster::block_on;
 use winit::event_loop::EventLoop;
 
-use crate::{game::{InputEvent, game_thread}, mesh_creator::MeshCreator, render::{app::App, camera::PerspectiveCamera, update_state::{ChunkMeshUpdate, EntityRenderDataUpdate}, wgpu::RenderThreadChannels}};
+use crate::{game::{InputEvent, game_thread}, mesh_creator::MeshCreator, render::{app::App, camera::PerspectiveCamera, update_state::{ChunkMeshUpdate, EntityRenderDataUpdate, LoseObjectRenderDataUpdate}, wgpu::RenderThreadChannels}};
 
 
 pub mod camera;
@@ -40,10 +40,11 @@ pub async fn render_thread() {
     let (chunk_mesh_update_tx, chunk_mesh_update_rx) = channel::<ChunkMeshUpdate>();
     let (entity_render_tx, entity_render_rx) = channel::<EntityRenderDataUpdate>();
     let (input_event_tx, mut input_event_rx) = channel::<InputEvent>();
+    let (lose_object_update_tx, lose_object_update_rx) = channel::<LoseObjectRenderDataUpdate>();
     
     //game loop thread start
     let _ = thread::spawn(move || {
-        block_on(game_thread(chunk_mesh_update_tx, entity_render_tx, &mut input_event_rx));
+        block_on(game_thread(chunk_mesh_update_tx, entity_render_tx, &mut input_event_rx, lose_object_update_tx));
     });
 
     app.page_open = app::PageOpen::Game;
@@ -54,6 +55,7 @@ pub async fn render_thread() {
         chunk_mesh_update_rx,
         entity_render_rx,
         input_event_tx,
+        lose_object_update_rx,
     };
 
     app.pass_render_threads = Some(render_threads);
