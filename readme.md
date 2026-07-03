@@ -53,3 +53,7 @@ implantation notes/to change
    - Possible fix is to keep running total as to move, then move in one call. 
    - Another approach is to build a list of new data from first moved location in move buffer. 
    - Both these ideas have to make sure to keep smaller then move buffer. (Could move to cpu but best to keep in gpu)
+ - Naming for internal terrain/lose objects is weird.
+ - Buffer defrag system needs to move out mesh file in wgpu.
+ - wgpu RenderState has to much in it. Should be made up of smaller structs.
+ - Shadows shouldn't be item for each one, should be a buffer array instead of something along those lines.
