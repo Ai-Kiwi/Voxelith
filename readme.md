@@ -36,11 +36,12 @@ Entities or objects (including terrain) that move have moving shadows that updat
  - Infinite world.
 
 ### Work in progress.
- - LOD systems, so the GPU doesn't render full quality all at once.
+ - lose objects with physics (objects rendering and stored, no physics yet)
+ - Physics system for entites.
  - Mesh editor.
- - See non-sun-based shadow in volumetric lighting. 
  - Full lighting system
- - Physics system. 
+ - (postponed) LOD systems, so the GPU doesn't render full quality all at once.
+ - See non-sun-based shadow in volumetric lighting. 
  - Fix for volumetric lighting blowing out the whole scene's colours. 
   
 devlogs for project : https://github.com/Ai-Kiwi/ai-kiwi-devlog/tree/main/voxelith 
