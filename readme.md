@@ -45,5 +45,11 @@ Entities or objects (including terrain) that move have moving shadows that updat
  - (postponed) LOD systems, so the GPU doesn't render full quality all at once.
  - See non-sun-based shadow in volumetric lighting. 
  - Fix for volumetric lighting blowing out the whole scene's colours. 
-  
+
 devlogs for project : https://github.com/Ai-Kiwi/ai-kiwi-devlog/tree/main/voxelith 
+
+implantation notes/to change
+ - Mesh buffer defragmentation moves mesh by mesh, doesn't support bulk moves.
+   - Possible fix is to keep running total as to move, then move in one call. 
+   - Another approach is to build a list of new data from first moved location in move buffer. 
+   - Both these ideas have to make sure to keep smaller then move buffer. (Could move to cpu but best to keep in gpu)
