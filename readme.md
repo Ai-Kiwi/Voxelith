@@ -57,3 +57,16 @@ implantation notes/to change
  - Buffer defrag system needs to move out mesh file in wgpu.
  - wgpu RenderState has to much in it. Should be made up of smaller structs.
  - Shadows shouldn't be item for each one, should be a buffer array instead of something along those lines.
+ - optimized system for colistion detection used 3d tree system to test "regions"
+ - region system for chunk loading
+ - region system for things such as detecting chunks in range, to unload or to render
+
+Plans for entity system
+ - load/unload ranges
+ - range for when entities would be lazy 
+ - mob cap, different types eg hostile, passive etc
+ - LOD system, they do less the further away you go. Would use buffer ranges for activation. So it doesn't keep turning on and off.
+ - region system so entities so quickly can fetch which entities are nearby.
+Currently unsure how to store chunk region data so that it doesn't refetch so will figure out when coming back to. Approach I can think of atm are.
+ - sort entities by chunk. Means that there would be to many reargements on move and acould be O(n^2)
+ - store list of entities in each chunk. Would be ~2 ram fetches per entity meaning CPU prefetch would be horrible. This would add up dramatically. Could just store location in vec of enttiys (which is what I would do) to lower but still ram fetches and not quite as fast. (worth noting have to remember to remove or change this location as well if actual entity one gets moved)d
