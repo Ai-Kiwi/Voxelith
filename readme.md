@@ -1,6 +1,6 @@
 # Voxelith
 
-Voxelith is a development game inspired by Teardown and Minecraft. It is currently more of a tech demo for me to learn computer graphics. The project was coded in Rust using wgpu. 
+Voxelith is a development game inspired by Teardown and Minecraft. It is currently more of a tech demo for me to learn computer graphics rendering. The project was coded in Rust using wgpu. 
 
 ## Images
 
