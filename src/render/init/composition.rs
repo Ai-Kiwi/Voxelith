@@ -1,74 +1,84 @@
 use wgpu::{Device, PipelineLayout};
 
-use crate::render::init::{gbuffer::InitGbufferInfo, volumetric_lighting::InitVolumetricLightingInfo};
+use crate::render::init::{
+    gbuffer::InitGbufferInfo, volumetric_lighting::InitVolumetricLightingInfo,
+};
 
 pub struct InitCompositionInfo {
     pub composition_pipeline_layout: PipelineLayout,
-    pub composition_render_pipeline : wgpu::RenderPipeline,
+    pub composition_render_pipeline: wgpu::RenderPipeline,
 }
 
 impl InitCompositionInfo {
-    pub fn new(device : &Device, gbuffer_info : &InitGbufferInfo, camera_bind_group_layout: &wgpu::BindGroupLayout, volumetric_lighting_data : &InitVolumetricLightingInfo, surface_format : wgpu::TextureFormat) -> InitCompositionInfo {
+    pub fn new(
+        device: &Device,
+        gbuffer_info: &InitGbufferInfo,
+        camera_bind_group_layout: &wgpu::BindGroupLayout,
+        volumetric_lighting_data: &InitVolumetricLightingInfo,
+        surface_format: wgpu::TextureFormat,
+    ) -> InitCompositionInfo {
         let composition_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Composition Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/composition_shader.wgsl").into()),
-        });
-        
-        let composition_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Composition Pipeline Layout"),
-            bind_group_layouts: &[
-                &gbuffer_info.gbuffers_bind_group_layout,
-                &camera_bind_group_layout,
-                &volumetric_lighting_data.volumetric_lighting_bind_group_layout
-            ],
-            push_constant_ranges: &[],
+            source: wgpu::ShaderSource::Wgsl(
+                include_str!("../shaders/composition_shader.wgsl").into(),
+            ),
         });
 
-        let composition_render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Composition Render Pipeline"),
-            layout: Some(&composition_pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &composition_shader,
-                entry_point: Some("vs_main"),
-                buffers: &[],
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &composition_shader,
-                entry_point: Some("fs_main"),
-                targets: &[
-                    Some(wgpu::ColorTargetState {
+        let composition_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Composition Pipeline Layout"),
+                bind_group_layouts: &[
+                    &gbuffer_info.gbuffers_bind_group_layout,
+                    &camera_bind_group_layout,
+                    &volumetric_lighting_data.volumetric_lighting_bind_group_layout,
+                ],
+                push_constant_ranges: &[],
+            });
+
+        let composition_render_pipeline =
+            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some("Composition Render Pipeline"),
+                layout: Some(&composition_pipeline_layout),
+                vertex: wgpu::VertexState {
+                    module: &composition_shader,
+                    entry_point: Some("vs_main"),
+                    buffers: &[],
+                    compilation_options: wgpu::PipelineCompilationOptions::default(),
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &composition_shader,
+                    entry_point: Some("fs_main"),
+                    targets: &[Some(wgpu::ColorTargetState {
                         format: surface_format,
                         blend: Some(wgpu::BlendState::REPLACE),
                         write_mask: wgpu::ColorWrites::ALL,
-                    }),
-                ],
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-            }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                strip_index_format: None,
-                front_face: wgpu::FrontFace::Ccw,
-                cull_mode: Some(wgpu::Face::Back),
-                polygon_mode: wgpu::PolygonMode::Fill,
-                unclipped_depth: false,
-                conservative: false,
-            },
-            depth_stencil: Some(wgpu::DepthStencilState {
-                format: wgpu::TextureFormat::Depth32Float,
-                depth_write_enabled: false,
-                depth_compare: wgpu::CompareFunction::Always,
-                stencil: wgpu::StencilState::default(),
-                bias: wgpu::DepthBiasState::default(),
-            }),
-            multisample: wgpu::MultisampleState {
-                count: 1,
-                mask: !0,
-                alpha_to_coverage_enabled: false,
-            },
-            multiview: None,
-            cache: None,
-        });
+                    })],
+                    compilation_options: wgpu::PipelineCompilationOptions::default(),
+                }),
+                primitive: wgpu::PrimitiveState {
+                    topology: wgpu::PrimitiveTopology::TriangleList,
+                    strip_index_format: None,
+                    front_face: wgpu::FrontFace::Ccw,
+                    cull_mode: Some(wgpu::Face::Back),
+                    polygon_mode: wgpu::PolygonMode::Fill,
+                    unclipped_depth: false,
+                    conservative: false,
+                },
+                depth_stencil: Some(wgpu::DepthStencilState {
+                    format: wgpu::TextureFormat::Depth32Float,
+                    depth_write_enabled: false,
+                    depth_compare: wgpu::CompareFunction::Always,
+                    stencil: wgpu::StencilState::default(),
+                    bias: wgpu::DepthBiasState::default(),
+                }),
+                multisample: wgpu::MultisampleState {
+                    count: 1,
+                    mask: !0,
+                    alpha_to_coverage_enabled: false,
+                },
+                multiview: None,
+                cache: None,
+            });
 
         InitCompositionInfo {
             composition_pipeline_layout,

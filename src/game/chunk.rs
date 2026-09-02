@@ -1,16 +1,27 @@
-use std::sync::{Arc, mpsc::{Receiver, Sender}};
+use std::sync::{
+    Arc,
+    mpsc::{Receiver, Sender},
+};
 
-use crate::{chunk_geneariton::NewChunkInfo, game::{self, MAX_CHUNK_LOAD_DISTANCE, MIN_CHUNK_UNLOAD_DISTANCE, pixel::PixelTypes, world::WorldData}, render, utils::Vec3};
-
+use crate::{
+    chunk_geneariton::NewChunkInfo,
+    game::{
+        self, MAX_CHUNK_LOAD_DISTANCE, MIN_CHUNK_UNLOAD_DISTANCE, pixel::PixelTypes,
+        world::WorldData,
+    },
+    render,
+    utils::Vec3,
+};
 
 #[derive(Clone)]
-pub struct Chunk { //shared type, used for free terrain and world terrain
-    pub solid_items : u16,
-    pub data : [PixelTypes; 16*16*16],
+pub struct Chunk {
+    //shared type, used for free terrain and world terrain
+    pub solid_items: u16,
+    pub data: [PixelTypes; 16 * 16 * 16],
 }
 
 impl Chunk {
-    pub fn set_relative_pixel(self : &mut Chunk, x : usize, y : usize, z : usize, pixel : PixelTypes) {
+    pub fn set_relative_pixel(self: &mut Chunk, x: usize, y: usize, z: usize, pixel: PixelTypes) {
         let position = (x) + (z * 16) + (y * 16 * 16);
 
         let old_pixel = self.data[position];
@@ -18,19 +29,24 @@ impl Chunk {
         if old_pixel.is_solid() != pixel.is_solid() {
             if old_pixel.is_solid() {
                 self.solid_items -= 1;
-            }else{
+            } else {
                 self.solid_items += 1;
             }
         }
 
         self.data[position] = pixel;
     }
-    pub fn get_relative_pixel(self : &Chunk, x : i32, y : i32, z : i32) -> PixelTypes {
+    pub fn get_relative_pixel(self: &Chunk, x: i32, y: i32, z: i32) -> PixelTypes {
         self.data[(x as usize) + (z as usize * 16) + (y as usize * 16 * 16)]
     }
 }
 
-pub fn handle_chunk_loaded(world : &mut WorldData, chunk_generated_rx : &Receiver<NewChunkInfo>, player_position : &Vec3, chunk_generation_request_tx : &Sender<(i32, i32, i32)>) {
+pub fn handle_chunk_loaded(
+    world: &mut WorldData,
+    chunk_generated_rx: &Receiver<NewChunkInfo>,
+    player_position: &Vec3,
+    chunk_generation_request_tx: &Sender<(i32, i32, i32)>,
+) {
     let middle_chunk_x = (player_position.x + 8.0).div_euclid(16.0) as i32;
     let middle_chunk_y = (player_position.y + 8.0).div_euclid(16.0) as i32;
     let middle_chunk_z = (player_position.z + 8.0).div_euclid(16.0) as i32;
@@ -43,49 +59,139 @@ pub fn handle_chunk_loaded(world : &mut WorldData, chunk_generated_rx : &Receive
         //chunk x range
         for chunk_x in (middle_chunk_x - range)..=(middle_chunk_x + range) {
             for chunk_y in (middle_chunk_y - range)..=(middle_chunk_y + range) {
-                if world.chunks.contains_key(&(chunk_x,chunk_y,middle_chunk_z + range)) == false && world.chunks_loading.contains_key(&(chunk_x,chunk_y,middle_chunk_z + range)) == false {
-                    world.chunks_loading.insert((chunk_x,chunk_y,middle_chunk_z + range), ());
-                    let _ = chunk_generation_request_tx.send((chunk_x,chunk_y,middle_chunk_z + range));
+                if world
+                    .chunks
+                    .contains_key(&(chunk_x, chunk_y, middle_chunk_z + range))
+                    == false
+                    && world.chunks_loading.contains_key(&(
+                        chunk_x,
+                        chunk_y,
+                        middle_chunk_z + range,
+                    )) == false
+                {
+                    world
+                        .chunks_loading
+                        .insert((chunk_x, chunk_y, middle_chunk_z + range), ());
+                    let _ = chunk_generation_request_tx.send((
+                        chunk_x,
+                        chunk_y,
+                        middle_chunk_z + range,
+                    ));
                     range_increased = true;
                 }
-    
-                if world.chunks.contains_key(&(chunk_x,chunk_y,middle_chunk_z - range)) == false && world.chunks_loading.contains_key(&(chunk_x,chunk_y,middle_chunk_z - range)) == false {
-                    world.chunks_loading.insert((chunk_x,chunk_y,middle_chunk_z - range), ());
-                    let _ = chunk_generation_request_tx.send((chunk_x,chunk_y,middle_chunk_z - range));
+
+                if world
+                    .chunks
+                    .contains_key(&(chunk_x, chunk_y, middle_chunk_z - range))
+                    == false
+                    && world.chunks_loading.contains_key(&(
+                        chunk_x,
+                        chunk_y,
+                        middle_chunk_z - range,
+                    )) == false
+                {
+                    world
+                        .chunks_loading
+                        .insert((chunk_x, chunk_y, middle_chunk_z - range), ());
+                    let _ = chunk_generation_request_tx.send((
+                        chunk_x,
+                        chunk_y,
+                        middle_chunk_z - range,
+                    ));
                     range_increased = true;
                 }
             }
         }
-    
+
         //chunk z range
         for chunk_z in (middle_chunk_z - (range - 1))..=(middle_chunk_z + (range - 1)) {
             for chunk_y in (middle_chunk_y - range)..=(middle_chunk_y + range) {
-                if world.chunks.contains_key(&(middle_chunk_x + range,chunk_y,chunk_z)) == false && world.chunks_loading.contains_key(&(middle_chunk_x + range,chunk_y,chunk_z)) == false {
-                    world.chunks_loading.insert((middle_chunk_x + range,chunk_y,chunk_z), ());
-                    let _ = chunk_generation_request_tx.send((middle_chunk_x + range,chunk_y,chunk_z));
+                if world
+                    .chunks
+                    .contains_key(&(middle_chunk_x + range, chunk_y, chunk_z))
+                    == false
+                    && world.chunks_loading.contains_key(&(
+                        middle_chunk_x + range,
+                        chunk_y,
+                        chunk_z,
+                    )) == false
+                {
+                    world
+                        .chunks_loading
+                        .insert((middle_chunk_x + range, chunk_y, chunk_z), ());
+                    let _ = chunk_generation_request_tx.send((
+                        middle_chunk_x + range,
+                        chunk_y,
+                        chunk_z,
+                    ));
                     range_increased = true;
                 }
-    
-                if world.chunks.contains_key(&(middle_chunk_x - range,chunk_y,chunk_z)) == false && world.chunks_loading.contains_key(&(middle_chunk_x - range,chunk_y,chunk_z)) == false {
-                    world.chunks_loading.insert((middle_chunk_x - range,chunk_y,chunk_z), ());
-                    let _ = chunk_generation_request_tx.send((middle_chunk_x - range,chunk_y,chunk_z));
+
+                if world
+                    .chunks
+                    .contains_key(&(middle_chunk_x - range, chunk_y, chunk_z))
+                    == false
+                    && world.chunks_loading.contains_key(&(
+                        middle_chunk_x - range,
+                        chunk_y,
+                        chunk_z,
+                    )) == false
+                {
+                    world
+                        .chunks_loading
+                        .insert((middle_chunk_x - range, chunk_y, chunk_z), ());
+                    let _ = chunk_generation_request_tx.send((
+                        middle_chunk_x - range,
+                        chunk_y,
+                        chunk_z,
+                    ));
                     range_increased = true;
                 }
             }
         }
-    
+
         //top and bottom
         for chunk_z in (middle_chunk_z - (range - 1))..=(middle_chunk_z + (range - 1)) {
             for chunk_x in (middle_chunk_x - (range - 1))..=(middle_chunk_x + (range - 1)) {
-                if world.chunks.contains_key(&(chunk_x,(middle_chunk_y + range),chunk_z)) == false && world.chunks_loading.contains_key(&(chunk_x,(middle_chunk_y + range),chunk_z)) == false {
-                    world.chunks_loading.insert((chunk_x,(middle_chunk_y + range),chunk_z), ());
-                    let _ = chunk_generation_request_tx.send((chunk_x,(middle_chunk_y + range),chunk_z));
+                if world
+                    .chunks
+                    .contains_key(&(chunk_x, (middle_chunk_y + range), chunk_z))
+                    == false
+                    && world.chunks_loading.contains_key(&(
+                        chunk_x,
+                        (middle_chunk_y + range),
+                        chunk_z,
+                    )) == false
+                {
+                    world
+                        .chunks_loading
+                        .insert((chunk_x, (middle_chunk_y + range), chunk_z), ());
+                    let _ = chunk_generation_request_tx.send((
+                        chunk_x,
+                        (middle_chunk_y + range),
+                        chunk_z,
+                    ));
                     range_increased = true;
                 }
-    
-                if world.chunks.contains_key(&(chunk_x,(middle_chunk_y - range),chunk_z)) == false && world.chunks_loading.contains_key(&(chunk_x,(middle_chunk_y - range),chunk_z)) == false {
-                    world.chunks_loading.insert((chunk_x,(middle_chunk_y - range),chunk_z), ());
-                    let _ = chunk_generation_request_tx.send((chunk_x,(middle_chunk_y - range),chunk_z));
+
+                if world
+                    .chunks
+                    .contains_key(&(chunk_x, (middle_chunk_y - range), chunk_z))
+                    == false
+                    && world.chunks_loading.contains_key(&(
+                        chunk_x,
+                        (middle_chunk_y - range),
+                        chunk_z,
+                    )) == false
+                {
+                    world
+                        .chunks_loading
+                        .insert((chunk_x, (middle_chunk_y - range), chunk_z), ());
+                    let _ = chunk_generation_request_tx.send((
+                        chunk_x,
+                        (middle_chunk_y - range),
+                        chunk_z,
+                    ));
                     range_increased = true;
                 }
             }
@@ -95,14 +201,16 @@ pub fn handle_chunk_loaded(world : &mut WorldData, chunk_generated_rx : &Receive
         }
         range += 1;
     }
-    
+
     //unload chunk
     world.chunks.retain(|position, _| {
-        let keep = (position.0 - middle_chunk_x).abs() < MIN_CHUNK_UNLOAD_DISTANCE && (position.1 - middle_chunk_y).abs() < MIN_CHUNK_UNLOAD_DISTANCE && (position.2 - middle_chunk_z).abs() < MIN_CHUNK_UNLOAD_DISTANCE;
+        let keep = (position.0 - middle_chunk_x).abs() < MIN_CHUNK_UNLOAD_DISTANCE
+            && (position.1 - middle_chunk_y).abs() < MIN_CHUNK_UNLOAD_DISTANCE
+            && (position.2 - middle_chunk_z).abs() < MIN_CHUNK_UNLOAD_DISTANCE;
         if !keep {
             world.chunk_mesh_updates_needed.insert(*position, ());
         }
-        return keep
+        return keep;
     });
 
     loop {
@@ -119,20 +227,67 @@ pub fn handle_chunk_loaded(world : &mut WorldData, chunk_generated_rx : &Receive
                 }
 
                 //tell chunk itself and ones around that they need mesh update/render
-                world.chunk_mesh_updates_needed.insert((new_chunk.position.0, new_chunk.position.1, new_chunk.position.2), ());
+                world.chunk_mesh_updates_needed.insert(
+                    (
+                        new_chunk.position.0,
+                        new_chunk.position.1,
+                        new_chunk.position.2,
+                    ),
+                    (),
+                );
 
-                world.chunk_mesh_updates_needed.insert((new_chunk.position.0 + 1, new_chunk.position.1, new_chunk.position.2), ());
-                world.chunk_mesh_updates_needed.insert((new_chunk.position.0 - 1, new_chunk.position.1, new_chunk.position.2), ());
+                world.chunk_mesh_updates_needed.insert(
+                    (
+                        new_chunk.position.0 + 1,
+                        new_chunk.position.1,
+                        new_chunk.position.2,
+                    ),
+                    (),
+                );
+                world.chunk_mesh_updates_needed.insert(
+                    (
+                        new_chunk.position.0 - 1,
+                        new_chunk.position.1,
+                        new_chunk.position.2,
+                    ),
+                    (),
+                );
 
-                world.chunk_mesh_updates_needed.insert((new_chunk.position.0, new_chunk.position.1 + 1, new_chunk.position.2), ());
-                world.chunk_mesh_updates_needed.insert((new_chunk.position.0, new_chunk.position.1 - 1, new_chunk.position.2), ());
+                world.chunk_mesh_updates_needed.insert(
+                    (
+                        new_chunk.position.0,
+                        new_chunk.position.1 + 1,
+                        new_chunk.position.2,
+                    ),
+                    (),
+                );
+                world.chunk_mesh_updates_needed.insert(
+                    (
+                        new_chunk.position.0,
+                        new_chunk.position.1 - 1,
+                        new_chunk.position.2,
+                    ),
+                    (),
+                );
 
-                world.chunk_mesh_updates_needed.insert((new_chunk.position.0, new_chunk.position.1, new_chunk.position.2 + 1), ());
-                world.chunk_mesh_updates_needed.insert((new_chunk.position.0, new_chunk.position.1, new_chunk.position.2 - 1), ());
-            },
-            Err(_) => {
-                break
-            },
+                world.chunk_mesh_updates_needed.insert(
+                    (
+                        new_chunk.position.0,
+                        new_chunk.position.1,
+                        new_chunk.position.2 + 1,
+                    ),
+                    (),
+                );
+                world.chunk_mesh_updates_needed.insert(
+                    (
+                        new_chunk.position.0,
+                        new_chunk.position.1,
+                        new_chunk.position.2 - 1,
+                    ),
+                    (),
+                );
+            }
+            Err(_) => break,
         }
     }
 }

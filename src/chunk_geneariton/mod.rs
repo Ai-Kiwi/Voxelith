@@ -1,22 +1,45 @@
+use crate::{
+    game::{
+        chunk::Chunk,
+        pixel::PixelTypes::{self, Air},
+    },
+    utils::VoxelPosition,
+};
 use core::f32;
-use std::{sync::mpsc::{Receiver, Sender}, thread::sleep};
 use fastnoise_lite::{FastNoiseLite, NoiseType};
-use crate::{game::{chunk::Chunk, pixel::PixelTypes::{self, Air}}, utils::VoxelPosition};
+use std::{
+    sync::mpsc::{Receiver, Sender},
+    thread::sleep,
+};
 
 pub struct NewChunkInfo {
-    pub position : (i32, i32, i32),
-    pub chunk : Chunk,
+    pub position: (i32, i32, i32),
+    pub chunk: Chunk,
 }
 
-fn get_multi_octave_map( frequency : f32, block_pos : VoxelPosition, random : f32, noise: &FastNoiseLite) -> f32 {
-    let mut value =  noise.get_noise_2d((block_pos.x as f32  * frequency * WORLD_SCALE) + (random * 4.0), (block_pos.z as f32 * frequency * WORLD_SCALE) + (random * 4.0));
-    value += noise.get_noise_2d((block_pos.x as f32  * frequency * WORLD_SCALE * 2.0) + (random * 2.0), (block_pos.z as f32 * frequency * WORLD_SCALE * 2.0) + (random * 2.0)) * 2.0;
-    value += noise.get_noise_2d((block_pos.x as f32  * frequency * WORLD_SCALE * 4.0) + (random * 1.0), (block_pos.z as f32 * frequency * WORLD_SCALE * 4.0) + (random * 1.0)) * 4.0;
-    
-    return value / (1.0 + 2.0 + 4.0)
+fn get_multi_octave_map(
+    frequency: f32,
+    block_pos: VoxelPosition,
+    random: f32,
+    noise: &FastNoiseLite,
+) -> f32 {
+    let mut value = noise.get_noise_2d(
+        (block_pos.x as f32 * frequency * WORLD_SCALE) + (random * 4.0),
+        (block_pos.z as f32 * frequency * WORLD_SCALE) + (random * 4.0),
+    );
+    value += noise.get_noise_2d(
+        (block_pos.x as f32 * frequency * WORLD_SCALE * 2.0) + (random * 2.0),
+        (block_pos.z as f32 * frequency * WORLD_SCALE * 2.0) + (random * 2.0),
+    ) * 2.0;
+    value += noise.get_noise_2d(
+        (block_pos.x as f32 * frequency * WORLD_SCALE * 4.0) + (random * 1.0),
+        (block_pos.z as f32 * frequency * WORLD_SCALE * 4.0) + (random * 1.0),
+    ) * 4.0;
+
+    return value / (1.0 + 2.0 + 4.0);
 }
-    
-const WORLD_SCALE : f32 = 1.0;
+
+const WORLD_SCALE: f32 = 1.0;
 //const WORLD_SCALE : f32 = 10.0;
 
 #[derive(Clone, Copy)]
@@ -25,7 +48,7 @@ enum Biome {
     Ocean,
     Desert,
     //SnowyTundra,
-    SnowyPlains
+    SnowyPlains,
 }
 
 struct BiomeRule {
@@ -34,11 +57,11 @@ struct BiomeRule {
     humidity_range: (f32, f32),
     temperature_range: (f32, f32),
     magic_range: (f32, f32),
-    continentalness : (f32, f32),
+    continentalness: (f32, f32),
     weight: f32, // optional
 }
 
-const BIOME_RULES : [BiomeRule; 4] = [
+const BIOME_RULES: [BiomeRule; 4] = [
     BiomeRule {
         biome: Biome::Plains,
         elevation_range: (-f32::INFINITY, f32::INFINITY),
@@ -74,11 +97,12 @@ const BIOME_RULES : [BiomeRule; 4] = [
         magic_range: (-1.0, 1.0),
         continentalness: (-1.0, 0.0),
         weight: 10.0,
-    }
+    },
 ];
 
-fn pick_biome(e: f32, h: f32, t: f32, m: f32, c : f32) -> &'static Biome {
-    BIOME_RULES.iter()
+fn pick_biome(e: f32, h: f32, t: f32, m: f32, c: f32) -> &'static Biome {
+    BIOME_RULES
+        .iter()
         .filter(|rule| e >= rule.elevation_range.0 && e <= rule.elevation_range.1)
         .filter(|rule| h >= rule.humidity_range.0 && h <= rule.humidity_range.1)
         .filter(|rule| t >= rule.temperature_range.0 && t <= rule.temperature_range.1)
@@ -89,16 +113,13 @@ fn pick_biome(e: f32, h: f32, t: f32, m: f32, c : f32) -> &'static Biome {
         .unwrap_or(&Biome::Plains)
 }
 
-
-
-    
-fn create_chunk(noise : &FastNoiseLite, chunk_pos : (i32, i32, i32)) -> Chunk {
+fn create_chunk(noise: &FastNoiseLite, chunk_pos: (i32, i32, i32)) -> Chunk {
     let mut created = Chunk {
-        data: [PixelTypes::Air; 16*16*16],
+        data: [PixelTypes::Air; 16 * 16 * 16],
         solid_items: 0,
     };
 
-    let mut biome_and_voxel_data: [(f32, &Biome); 256] = [(0.0, &Biome::Ocean); 16*16];
+    let mut biome_and_voxel_data: [(f32, &Biome); 256] = [(0.0, &Biome::Ocean); 16 * 16];
 
     for z in 0..16 {
         for x in 0..16 {
@@ -120,20 +141,23 @@ fn create_chunk(noise : &FastNoiseLite, chunk_pos : (i32, i32, i32)) -> Chunk {
 
             //let value = noise.get([world_x as f64  * 0.0025, 0.0, world_z as f64 * 0.0025]);
 
-            let continentalness: f32 = get_multi_octave_map(0.003125, voxel_position, 0.0,noise);
-            
-            
+            let continentalness: f32 = get_multi_octave_map(0.003125, voxel_position, 0.0, noise);
+
             let continentalness: f32 = (((continentalness + 1.0) / 2.0).powf(1.5) - 0.5) * 2.0;
             //println!("{}",continentalness);
-            
+
             //let continental_mask: f64 = if continentalness > 0.0 { 1.0 } else { -1.0 };
             //let continentalness: f64 = continentalness.abs().powf(0.05) * continental_mask;
             //let continentalness: f64 = continentalness;
 
-            let continentalness: f32 = continentalness.signum() * continentalness.abs().powf(0.9); 
-            let mountainness = (get_multi_octave_map(0.0125, voxel_position, 0.0,noise)).abs().powf(3.0);
-            let hillness = (get_multi_octave_map(0.0025, voxel_position, 0.0,noise)).abs().powf(2.0);
-            let roughness = get_multi_octave_map(0.25, voxel_position, 23453.0,noise);
+            let continentalness: f32 = continentalness.signum() * continentalness.abs().powf(0.9);
+            let mountainness = (get_multi_octave_map(0.0125, voxel_position, 0.0, noise))
+                .abs()
+                .powf(3.0);
+            let hillness = (get_multi_octave_map(0.0025, voxel_position, 0.0, noise))
+                .abs()
+                .powf(2.0);
+            let roughness = get_multi_octave_map(0.25, voxel_position, 23453.0, noise);
 
             let mut elevation: f32 = 0.0;
 
@@ -146,13 +170,14 @@ fn create_chunk(noise : &FastNoiseLite, chunk_pos : (i32, i32, i32)) -> Chunk {
             elevation = elevation + (continentalness * 150.0);
             elevation = elevation / WORLD_SCALE;
 
-            let humidity = get_multi_octave_map(0.0075, voxel_position, 53455.0,noise);
-            let temperature = get_multi_octave_map(0.0025, voxel_position, 34545.0,noise);
-            let magic = get_multi_octave_map(0.000625, voxel_position, 345435.0,noise);
+            let humidity = get_multi_octave_map(0.0075, voxel_position, 53455.0, noise);
+            let temperature = get_multi_octave_map(0.0025, voxel_position, 34545.0, noise);
+            let magic = get_multi_octave_map(0.000625, voxel_position, 345435.0, noise);
 
             let biome = pick_biome(elevation, humidity, temperature, magic, continentalness);
 
-            elevation +=  roughness * (1.0 + (hillness * 2.0) * (mountainness * 5.0).clamp(0.0, 2.0));
+            elevation +=
+                roughness * (1.0 + (hillness * 2.0) * (mountainness * 5.0).clamp(0.0, 2.0));
 
             biome_and_voxel_data[((z * 16) + x) as usize] = (elevation, biome);
 
@@ -165,52 +190,52 @@ fn create_chunk(noise : &FastNoiseLite, chunk_pos : (i32, i32, i32)) -> Chunk {
             //}
         }
     }
-    
+
     for y in 0..16 as i32 {
         for z in 0..16 as i32 {
             for x in 0..16 as i32 {
                 let data = biome_and_voxel_data.get((x + (16 * z)) as usize).unwrap();
                 let mut pixel_block = PixelTypes::Air;
                 let elevation = data.0;
-                let _world_x  = x + (16 * chunk_pos.0) as i32;
-                let world_y  = y + (16 * chunk_pos.1) as i32;
-                let _world_z  = z + (16 * chunk_pos.2) as i32;
+                let _world_x = x + (16 * chunk_pos.0) as i32;
+                let world_y = y + (16 * chunk_pos.1) as i32;
+                let _world_z = z + (16 * chunk_pos.2) as i32;
                 match data.1 {
                     Biome::Plains => {
                         if (world_y as f32) < elevation - 4.0 {
                             pixel_block = PixelTypes::Stone
-                        }else if (world_y as f32) < elevation - 1.0 {
+                        } else if (world_y as f32) < elevation - 1.0 {
                             pixel_block = PixelTypes::Dirt
-                        }else if (world_y as f32) < elevation {
+                        } else if (world_y as f32) < elevation {
                             pixel_block = PixelTypes::Grass
                         }
-                    },
+                    }
                     Biome::Ocean => {
                         if (world_y as f32) < 0.0 {
                             pixel_block = PixelTypes::Water
                         }
                         if (world_y as f32) < elevation - 3.0 {
                             pixel_block = PixelTypes::Stone
-                        }else if (world_y as f32) < elevation {
+                        } else if (world_y as f32) < elevation {
                             pixel_block = PixelTypes::Dirt
                         }
-                    },
+                    }
                     Biome::Desert => {
                         if (world_y as f32) < elevation - 4.0 {
                             pixel_block = PixelTypes::Stone
-                        }else if (world_y as f32) < elevation {
+                        } else if (world_y as f32) < elevation {
                             pixel_block = PixelTypes::Sand
                         }
-                    },
+                    }
                     Biome::SnowyPlains => {
                         if (world_y as f32) < elevation - 4.0 {
                             pixel_block = PixelTypes::Stone
-                        }else if (world_y as f32) < elevation - 1.0 {
+                        } else if (world_y as f32) < elevation - 1.0 {
                             pixel_block = PixelTypes::Dirt
-                        }else if (world_y as f32) < elevation {
+                        } else if (world_y as f32) < elevation {
                             pixel_block = PixelTypes::Snow
                         }
-                    },
+                    }
                 }
                 created.data[((y * 16 * 16) + (z * 16) + x) as usize] = pixel_block;
                 if pixel_block.is_solid() {
@@ -219,7 +244,7 @@ fn create_chunk(noise : &FastNoiseLite, chunk_pos : (i32, i32, i32)) -> Chunk {
             }
         }
     }
-    
+
     created
 }
 
@@ -256,10 +281,6 @@ fn create_chunk(noise : &FastNoiseLite, chunk_pos : (i32, i32, i32)) -> Chunk {
 //large sizes
 //lava pooring down size
 
-
-
-
-
 //canyon
 //clay biomes
 //flower biome
@@ -269,16 +290,15 @@ fn create_chunk(noise : &FastNoiseLite, chunk_pos : (i32, i32, i32)) -> Chunk {
 //floating islands
 //lava hell theme
 
-
 //add later
 
-
-
-pub async fn chunk_generation_thread(chunk_generation_request_rx : &mut Receiver<(i32,i32,i32)>, chunk_generated_tx : Sender<NewChunkInfo>) {
+pub async fn chunk_generation_thread(
+    chunk_generation_request_rx: &mut Receiver<(i32, i32, i32)>,
+    chunk_generated_tx: Sender<NewChunkInfo>,
+) {
     let mut noise = FastNoiseLite::new();
     noise.set_seed(Some(34653452));
     noise.set_noise_type(Some(NoiseType::OpenSimplex2));
-
 
     loop {
         let mut requests: Vec<_> = Vec::new();
@@ -290,15 +310,15 @@ pub async fn chunk_generation_thread(chunk_generation_request_rx : &mut Receiver
                     if requests.len() > 4 {
                         break;
                     }
-                },
+                }
                 Err(err) => {
                     match err {
                         std::sync::mpsc::TryRecvError::Empty => (),
                         std::sync::mpsc::TryRecvError::Disconnected => {
-                            return //must have been dropped so close
-                        },
+                            return; //must have been dropped so close
+                        }
                     }
-                },
+                }
             }
         }
 
@@ -308,18 +328,18 @@ pub async fn chunk_generation_thread(chunk_generation_request_rx : &mut Receiver
             continue;
         }
 
-        let results : Vec<_> = requests
-        .iter() //.par_iter for mulithread
-        .map(|pos| {
-            let chunk = create_chunk(&noise, *pos);
-            (*pos, chunk)
-        })
-        .collect();
+        let results: Vec<_> = requests
+            .iter() //.par_iter for mulithread
+            .map(|pos| {
+                let chunk = create_chunk(&noise, *pos);
+                (*pos, chunk)
+            })
+            .collect();
 
         for (pos, chunk) in results {
-            let _ = chunk_generated_tx.send(NewChunkInfo { 
-                position: pos, 
-                chunk: chunk
+            let _ = chunk_generated_tx.send(NewChunkInfo {
+                position: pos,
+                chunk: chunk,
             });
         }
     }

@@ -1,4 +1,4 @@
-use std::{ops::{Add, AddAssign, Div, Mul, Sub}};
+use std::ops::{Add, AddAssign, Div, Mul, Sub};
 
 use bincode::{Decode, Encode};
 use bytemuck::{Pod, Zeroable};
@@ -7,9 +7,9 @@ use serde::{Deserialize, Serialize};
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 pub struct Vertex {
-    pub position :  VoxelPosition,
-    pub color : Color,
-    pub extra : [u8; 4], //reflectiveness, roughness, metalic. Normal
+    pub position: VoxelPosition,
+    pub color: Color,
+    pub extra: [u8; 4], //reflectiveness, roughness, metalic. Normal
 }
 
 impl Vertex {
@@ -29,11 +29,12 @@ impl Vertex {
                     format: wgpu::VertexFormat::Unorm8x4,
                 },
                 wgpu::VertexAttribute {
-                    offset: std::mem::size_of::<[i32; 3]>() as wgpu::BufferAddress + std::mem::size_of::<[u8; 4]>() as wgpu::BufferAddress ,
+                    offset: std::mem::size_of::<[i32; 3]>() as wgpu::BufferAddress
+                        + std::mem::size_of::<[u8; 4]>() as wgpu::BufferAddress,
                     shader_location: 2,
                     format: wgpu::VertexFormat::Unorm8x4,
-                }
-            ]
+                },
+            ],
         }
     }
 }
@@ -41,21 +42,17 @@ impl Vertex {
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 pub struct VoxelPosition {
-    pub x : i32,
-    pub y : i32,
-    pub z : i32,
+    pub x: i32,
+    pub y: i32,
+    pub z: i32,
 }
 
 impl VoxelPosition {
     pub fn to_vec3(&self) -> Vec3 {
-        return Vec3::new(
-            self.x as f32, 
-            self.y as f32, 
-            self.z as f32
-        )
+        return Vec3::new(self.x as f32, self.y as f32, self.z as f32);
     }
 
-    pub const fn new(x : i32, y : i32, z : i32) -> VoxelPosition {
+    pub const fn new(x: i32, y: i32, z: i32) -> VoxelPosition {
         VoxelPosition { x, y, z }
     }
 }
@@ -63,10 +60,10 @@ impl VoxelPosition {
 impl Add for VoxelPosition {
     type Output = VoxelPosition;
     fn add(self, rhs: VoxelPosition) -> VoxelPosition {
-        VoxelPosition { 
-            x: self.x + rhs.x, 
-            y: self.y + rhs.y, 
-            z: self.z + rhs.z
+        VoxelPosition {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
         }
     }
 }
@@ -84,36 +81,36 @@ impl Sub for VoxelPosition {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
-pub struct Vec2{
-    pub x : f32, 
-    pub y : f32, 
+pub struct Vec2 {
+    pub x: f32,
+    pub y: f32,
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
-pub struct Vec3{
-    pub x : f32, 
-    pub y : f32, 
-    pub z : f32
+pub struct Vec3 {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
-pub struct Vec4{
-    x : f32, 
-    y : f32, 
-    z : f32,
-    w : f32
+pub struct Vec4 {
+    x: f32,
+    y: f32,
+    z: f32,
+    w: f32,
 }
 
 impl Vec2 {
-    pub const fn new(x : f32, y : f32) -> Vec2 {
+    pub const fn new(x: f32, y: f32) -> Vec2 {
         Vec2 { x, y }
     }
 }
 
 impl Vec3 {
-    pub const fn new(x : f32, y : f32, z : f32) -> Vec3 {
+    pub const fn new(x: f32, y: f32, z: f32) -> Vec3 {
         Vec3 { x, y, z }
     }
 
@@ -121,9 +118,9 @@ impl Vec3 {
         let len: f32 = (self.x * self.x + self.y * self.y + self.z * self.z).sqrt();
 
         Vec3 {
-            x : self.x / len,
-            y : self.y / len,
-            z : self.z / len
+            x: self.x / len,
+            y: self.y / len,
+            z: self.z / len,
         }
     }
 
@@ -136,11 +133,11 @@ impl Vec3 {
     }
 
     pub fn dot(&self, other: &Vec3) -> f32 {
-        return (self.x * other.x) + (self.y * other.y) + (self.z * other.z)
+        return (self.x * other.x) + (self.y * other.y) + (self.z * other.z);
     }
 
     pub fn length(&self) -> f32 {
-        return ((self.x * self.x) + (self.y * self.y) + (self.z * self.z)).sqrt()
+        return ((self.x * self.x) + (self.y * self.y) + (self.z * self.z)).sqrt();
     }
 
     pub fn angle_between(&self, other: &Vec3) -> f32 {
@@ -148,17 +145,17 @@ impl Vec3 {
         let mag = self.length() * other.length();
 
         let angle = (dot / mag).clamp(-1.0, 1.0).acos();
-        return angle
+        return angle;
     }
 }
 
 impl Add for Vec3 {
     type Output = Vec3;
     fn add(self, rhs: Vec3) -> Vec3 {
-        Vec3 { 
-            x: self.x + rhs.x, 
-            y: self.y + rhs.y, 
-            z: self.z + rhs.z
+        Vec3 {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
         }
     }
 }
@@ -205,7 +202,6 @@ impl Mul for Vec3 {
     }
 }
 
-
 impl Div<f32> for Vec3 {
     type Output = Vec3;
     fn div(self, rhs: f32) -> Vec3 {
@@ -218,91 +214,88 @@ impl Div<f32> for Vec3 {
 }
 
 impl Vec4 {
-    pub const fn new(x : f32, y : f32, z : f32, w : f32) -> Vec4 {
+    pub const fn new(x: f32, y: f32, z: f32, w: f32) -> Vec4 {
         Vec4 { x, y, z, w }
     }
 }
 
-
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable, Serialize, Deserialize, Decode, Encode)]
 pub struct Color {
-    pub r : u8,
-    pub g : u8,
-    pub b : u8,
-    pub a : u8
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+    pub a: u8,
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable, Serialize, Deserialize, Decode, Encode)]
 pub struct Material {
-    pub reflectiveness : u8,
-    pub roughness : u8,
-    pub metallicness : u8,
+    pub reflectiveness: u8,
+    pub roughness: u8,
+    pub metallicness: u8,
 }
 
 impl Color {
-    pub const fn new(r : u8, g : u8, b : u8, a : u8) -> Color {
+    pub const fn new(r: u8, g: u8, b: u8, a: u8) -> Color {
         Color { r, g, b, a }
     }
 }
 
 impl Material {
-    pub const fn new(reflectiveness : u8, roughness : u8, metallicness : u8) -> Material {
+    pub const fn new(reflectiveness: u8, roughness: u8, metallicness: u8) -> Material {
         Material {
-            reflectiveness : reflectiveness,
-            roughness : roughness,
-            metallicness : metallicness,
+            reflectiveness: reflectiveness,
+            roughness: roughness,
+            metallicness: metallicness,
         }
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct Mesh {
-    pub vertices : Vec<Vertex>, 
+    pub vertices: Vec<Vertex>,
 }
 
-
-pub fn raycast_test(start_position : Vec3, direction_normal : Vec3) -> impl Iterator<Item = Vec3> {
-
-    let mut current_position : Vec3 = start_position;
+pub fn raycast_test(start_position: Vec3, direction_normal: Vec3) -> impl Iterator<Item = Vec3> {
+    let mut current_position: Vec3 = start_position;
 
     std::iter::from_fn(move || {
         let mut next_x = if current_position.x - start_position.x > 0.0 {
             current_position.x.ceil()
-        }else{
+        } else {
             current_position.x.floor()
         };
         if next_x.fract() == 0.0 {
             if direction_normal.x > 0.0 {
                 next_x += 1.0;
-            }else{
+            } else {
                 next_x -= 1.0;
             }
         }
 
         let mut next_y = if current_position.y - start_position.y > 0.0 {
             current_position.y.ceil()
-        }else{
+        } else {
             current_position.y.floor()
         };
         if next_y.fract() == 0.0 {
             if direction_normal.y > 0.0 {
                 next_y += 1.0;
-            }else{
+            } else {
                 next_y -= 1.0;
             }
         }
 
         let mut next_z = if current_position.z - start_position.z > 0.0 {
             current_position.z.ceil()
-        }else{
+        } else {
             current_position.z.floor()
         };
         if next_z.fract() == 0.0 {
             if direction_normal.z > 0.0 {
                 next_z += 1.0;
-            }else{
+            } else {
                 next_z -= 1.0;
             }
         }
@@ -313,57 +306,57 @@ pub fn raycast_test(start_position : Vec3, direction_normal : Vec3) -> impl Iter
 
         if dist_x <= dist_y && dist_x <= dist_z {
             current_position += direction_normal * dist_x;
-        }else if dist_y <= dist_x && dist_y <= dist_z {
+        } else if dist_y <= dist_x && dist_y <= dist_z {
             current_position += direction_normal * dist_y;
-        }else if dist_z <= dist_y && dist_z <= dist_x {
+        } else if dist_z <= dist_y && dist_z <= dist_x {
             current_position += direction_normal * dist_z;
-        } 
+        }
         Some(current_position)
     })
 }
 
-
-
-pub fn voxel_raycast_test(start_position : Vec3, direction_normal : Vec3) -> impl Iterator<Item = Vec3> {
-
-    let mut current_position : Vec3 = start_position;
+pub fn voxel_raycast_test(
+    start_position: Vec3,
+    direction_normal: Vec3,
+) -> impl Iterator<Item = Vec3> {
+    let mut current_position: Vec3 = start_position;
 
     std::iter::from_fn(move || {
         let mut next_x = if current_position.x - start_position.x > 0.0 {
             current_position.x.ceil()
-        }else{
+        } else {
             current_position.x.floor()
         };
         if next_x.fract() == 0.0 {
             if direction_normal.x > 0.0 {
                 next_x += 1.0;
-            }else{
+            } else {
                 next_x -= 1.0;
             }
         }
 
         let mut next_y = if current_position.y - start_position.y > 0.0 {
             current_position.y.ceil()
-        }else{
+        } else {
             current_position.y.floor()
         };
         if next_y.fract() == 0.0 {
             if direction_normal.y > 0.0 {
                 next_y += 1.0;
-            }else{
+            } else {
                 next_y -= 1.0;
             }
         }
 
         let mut next_z = if current_position.z - start_position.z > 0.0 {
             current_position.z.ceil()
-        }else{
+        } else {
             current_position.z.floor()
         };
         if next_z.fract() == 0.0 {
             if direction_normal.z > 0.0 {
                 next_z += 1.0;
-            }else{
+            } else {
                 next_z -= 1.0;
             }
         }
@@ -374,11 +367,15 @@ pub fn voxel_raycast_test(start_position : Vec3, direction_normal : Vec3) -> imp
 
         if dist_x <= dist_y && dist_x <= dist_z {
             current_position += direction_normal * dist_x;
-        }else if dist_y <= dist_x && dist_y <= dist_z {
+        } else if dist_y <= dist_x && dist_y <= dist_z {
             current_position += direction_normal * dist_y;
-        }else if dist_z <= dist_y && dist_z <= dist_x {
+        } else if dist_z <= dist_y && dist_z <= dist_x {
             current_position += direction_normal * dist_z;
-        } 
-        Some(Vec3::new(current_position.x, current_position.y, current_position.z))
+        }
+        Some(Vec3::new(
+            current_position.x,
+            current_position.y,
+            current_position.z,
+        ))
     })
 }

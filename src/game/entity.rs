@@ -1,18 +1,17 @@
 use std::{collections::HashMap, sync::mpsc::Sender};
 
-use crate::{entity::{Entity, EntityClass}, game::Game, render::update_state::EntityRenderDataUpdate, utils::Vec3};
+use crate::{entity::Entity, game::Game, render::update_state::EntityRenderDataUpdate};
 
 #[derive(Eq, Hash, PartialEq, Clone, Copy)]
-pub struct EntityId (pub u64);
+pub struct EntityId(pub u64);
 
 pub struct Entities {
     pub entities: HashMap<EntityId, Entity>,
     pub entities_count: u64,
-    pub updated : HashMap<EntityId,()>
+    pub updated: HashMap<EntityId, ()>,
 }
 
-
-pub fn handle_entity_update(game : &mut Game, entity_render_tx: &Sender<EntityRenderDataUpdate>,) {
+pub fn handle_entity_update(game: &mut Game, entity_render_tx: &Sender<EntityRenderDataUpdate>) {
     //send updates for entities
     for entity in &game.entities.updated {
         if let Some(entity_data) = game.entities.entities.get(entity.0) {

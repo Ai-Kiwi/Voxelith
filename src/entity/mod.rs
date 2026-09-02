@@ -1,32 +1,27 @@
 use crate::{game::entity::EntityId, physics::PhysicsObject, utils::Vec3};
 
-
-
 pub struct Entity {
-    pub id : EntityId,
-    pub position : Vec3,
-    pub physics : PhysicsObject,
-    pub entity_class : EntityClass,
-    pub render_component : Option<EntityRenderComponent>
-
-
-    //health
-    //mob ai
-    //type
-    //position
-    //rotation
-    //physics
-    //inventory
+    pub id: EntityId,
+    pub position: Vec3,
+    pub physics: PhysicsObject,
+    pub entity_class: EntityClass,
+    pub render_component: Option<EntityRenderComponent>, //health
+                                                         //mob ai
+                                                         //type
+                                                         //position
+                                                         //rotation
+                                                         //physics
+                                                         //inventory
 }
 
 pub struct EntityRenderComponent {
-    pub entity_meshs : Vec<EntityRenderMeshInstance>,
+    pub entity_meshs: Vec<EntityRenderMeshInstance>,
 }
 
 pub struct EntityRenderMeshInstance {
-    pub mesh_id : u64,
-    pub offset : Vec3,
-    pub rotation : Vec3 
+    pub mesh_id: u64,
+    pub offset: Vec3,
+    pub rotation: Vec3,
 }
 
 pub enum EntityClass {

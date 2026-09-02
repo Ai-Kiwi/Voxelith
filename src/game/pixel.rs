@@ -1,4 +1,3 @@
-
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum PixelTypes {
     Air,
@@ -21,8 +20,8 @@ impl PixelTypes {
             PixelTypes::Sand => false,
             PixelTypes::Snow => false,
         }
-    }   
-    pub const fn should_be_face(&self, self_transparent : bool) -> bool {
+    }
+    pub const fn should_be_face(&self, self_transparent: bool) -> bool {
         if self_transparent {
             match self {
                 PixelTypes::Air => true,
@@ -33,7 +32,7 @@ impl PixelTypes {
                 PixelTypes::Sand => false,
                 PixelTypes::Snow => false,
             }
-        }else{
+        } else {
             match self {
                 PixelTypes::Air => true,
                 PixelTypes::Grass => false,
@@ -42,9 +41,8 @@ impl PixelTypes {
                 PixelTypes::Water => true,
                 PixelTypes::Sand => false,
                 PixelTypes::Snow => false,
-            }            
+            }
         }
-
     }
     pub const fn is_solid(&self) -> bool {
         match self {
@@ -55,6 +53,6 @@ impl PixelTypes {
             PixelTypes::Water => false,
             PixelTypes::Sand => true,
             PixelTypes::Snow => true,
-        }            
+        }
     }
 }

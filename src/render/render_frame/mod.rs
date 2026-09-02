@@ -1,15 +1,22 @@
 use std::time::Instant;
 
-use crate::{mesh_creator::{MeshCreator, render_mesh_creator}, render::{app::PageOpen, render_frame::render_world::render_world, wgpu::RenderState}};
+use crate::{
+    mesh_creator::{MeshCreator, render_mesh_creator},
+    render::{app::PageOpen, render_frame::render_world::render_world, wgpu::RenderState},
+};
 
-pub mod gui;
 mod chunks;
-mod render_world;
 mod entities;
+pub mod gui;
+mod render_world;
 mod shadows;
 
 impl RenderState {
-    pub fn render(&mut self, page_open : &PageOpen, mesh_creator : &mut Option<MeshCreator>) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(
+        &mut self,
+        page_open: &PageOpen,
+        mesh_creator: &mut Option<MeshCreator>,
+    ) -> Result<(), wgpu::SurfaceError> {
         let start_render_time = Instant::now();
         self.window.request_redraw();
 
@@ -17,26 +24,33 @@ impl RenderState {
         if !self.is_surface_configured {
             return Ok(());
         }
-                
-        let output = self.surface.get_current_texture()?;
-        let mut view: wgpu::TextureView = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Render Encoder"),
-        });
-        
-        self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
+        let output = self.surface.get_current_texture()?;
+        let mut view: wgpu::TextureView = output
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Render Encoder"),
+            });
+
+        self.queue.write_buffer(
+            &self.camera_buffer,
+            0,
+            bytemuck::cast_slice(&[self.camera_uniform]),
+        );
 
         self.performance_info.start_render_time = start_render_time.elapsed().as_secs_f32();
         let main_content_render_start = Instant::now();
 
         render_world(self, &mut encoder, &view);
 
-
         //render chunks
         //match page_open {
         //    PageOpen::Game => {
-        //        
+        //
         //    },
         //    PageOpen::TitleScreen => {
         //
@@ -48,8 +62,8 @@ impl RenderState {
         //    },
         //}
 
-        self.performance_info.main_content_render_time = main_content_render_start.elapsed().as_secs_f32();
-
+        self.performance_info.main_content_render_time =
+            main_content_render_start.elapsed().as_secs_f32();
 
         //render the entities
 

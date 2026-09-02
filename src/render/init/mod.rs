@@ -5,16 +5,35 @@ use egui_wgpu::{Renderer, RendererOptions};
 use wgpu::{ExperimentalFeatures, util::DeviceExt};
 use winit::window::{Theme, Window};
 
-pub mod sun_shadows;
-pub mod gbuffer;
 pub mod composition;
 pub mod entity_meshs;
+pub mod gbuffer;
+pub mod sun_shadows;
 pub mod transparent;
 pub mod volumetric_lighting;
 
-use crate::{render::{MAP_VRAM_SIZE, RenderFrameThreadPerformanceInfo, camera::{CameraUniform, PerspectiveCamera}, init::{composition::InitCompositionInfo, entity_meshs::InitEntityMeshs, gbuffer::{InitGbufferInfo, create_depth_texture}, sun_shadows::InitSunShadow, transparent::InitTransparentInfo, volumetric_lighting::InitVolumetricLightingInfo}, render_frame::gui::GuiInfo, wgpu::{ChunkListInfo, RenderState, RenderThreadChannels}}, utils::{Vec2, Vertex}};
+use crate::{
+    render::{
+        MAP_VRAM_SIZE, RenderFrameThreadPerformanceInfo,
+        camera::{CameraUniform, PerspectiveCamera},
+        init::{
+            composition::InitCompositionInfo,
+            entity_meshs::InitEntityMeshs,
+            gbuffer::{InitGbufferInfo, create_depth_texture},
+            sun_shadows::InitSunShadow,
+            transparent::InitTransparentInfo,
+            volumetric_lighting::InitVolumetricLightingInfo,
+        },
+        render_frame::gui::GuiInfo,
+        wgpu::{ChunkListInfo, RenderState, RenderThreadChannels},
+    },
+    utils::{Vec2, Vertex},
+};
 
-pub async fn init_render_state(window: Arc<Window>, render_thread_channels : RenderThreadChannels) -> anyhow::Result<RenderState>  {
+pub async fn init_render_state(
+    window: Arc<Window>,
+    render_thread_channels: RenderThreadChannels,
+) -> anyhow::Result<RenderState> {
     let size: winit::dpi::PhysicalSize<u32> = window.inner_size();
 
     // The instance is a handle to our GPU
@@ -27,34 +46,43 @@ pub async fn init_render_state(window: Arc<Window>, render_thread_channels : Ren
     let surface = instance.create_surface(window.clone()).unwrap();
 
     //setup gpu
-    let adapter = instance.request_adapter(&wgpu::RequestAdapterOptions {
-        power_preference: wgpu::PowerPreference::default(),
-        compatible_surface: Some(&surface),
-        force_fallback_adapter: false,
-    }).await?;
-    
-    if !adapter.features().contains(wgpu::Features::MULTI_DRAW_INDIRECT_COUNT) {
+    let adapter = instance
+        .request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::default(),
+            compatible_surface: Some(&surface),
+            force_fallback_adapter: false,
+        })
+        .await?;
+
+    if !adapter
+        .features()
+        .contains(wgpu::Features::MULTI_DRAW_INDIRECT_COUNT)
+    {
         panic!("multi indirect draw not supported on gpu")
     }
 
-    let (device, queue) = adapter.request_device(&wgpu::DeviceDescriptor {
-        label: None,
-        required_features: wgpu::Features::MULTI_DRAW_INDIRECT_COUNT,
-        required_limits: wgpu::Limits {
-            max_buffer_size: MAP_VRAM_SIZE,
-            ..Default::default()
-        },
-        memory_hints: Default::default(),
-        trace: wgpu::Trace::Off,
-        experimental_features: ExperimentalFeatures::default(),
-    }).await?;
+    let (device, queue) = adapter
+        .request_device(&wgpu::DeviceDescriptor {
+            label: None,
+            required_features: wgpu::Features::MULTI_DRAW_INDIRECT_COUNT,
+            required_limits: wgpu::Limits {
+                max_buffer_size: MAP_VRAM_SIZE,
+                ..Default::default()
+            },
+            memory_hints: Default::default(),
+            trace: wgpu::Trace::Off,
+            experimental_features: ExperimentalFeatures::default(),
+        })
+        .await?;
 
-    let depth_texture = create_depth_texture(&device,size.width,size.height);
+    let depth_texture = create_depth_texture(&device, size.width, size.height);
     let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
     let depth_sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
 
     let surface_caps = surface.get_capabilities(&adapter);
-    let surface_format = surface_caps.formats.iter()
+    let surface_format = surface_caps
+        .formats
+        .iter()
         .find(|f| f.is_srgb())
         .copied()
         .unwrap_or(surface_caps.formats[0]);
@@ -79,16 +107,14 @@ pub async fn init_render_state(window: Arc<Window>, render_thread_channels : Ren
     let mut camera = PerspectiveCamera::new();
     let mut camera_uniform = CameraUniform::new();
     camera_uniform.update_view_proj_prespec(&mut camera, config.width, config.height);
-    let camera_buffer = device.create_buffer_init(
-        &wgpu::util::BufferInitDescriptor {
-            label: Some("Camera Buffer"),
-            contents: bytemuck::cast_slice(&[camera_uniform]),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-        }
-    );
-    let camera_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
+    let camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Camera Buffer"),
+        contents: bytemuck::cast_slice(&[camera_uniform]),
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+    });
+    let camera_bind_group_layout =
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
                 visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
@@ -97,51 +123,82 @@ pub async fn init_render_state(window: Arc<Window>, render_thread_channels : Ren
                     min_binding_size: None,
                 },
                 count: None,
-            }
-        ],
-        label: Some("camera bind group layout"),
-    });
+            }],
+            label: Some("camera bind group layout"),
+        });
     let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
         layout: &camera_bind_group_layout,
-        entries: &[
-            wgpu::BindGroupEntry {
-                binding: 0,
-                resource: camera_buffer.as_entire_binding(),
-            }
-        ],
+        entries: &[wgpu::BindGroupEntry {
+            binding: 0,
+            resource: camera_buffer.as_entire_binding(),
+        }],
         label: Some("camera bind group"),
     });
 
     //sun shadow
     let sun_shadow = InitSunShadow::new(&device).await;
 
-    //create gbuffer 
-    let gbuffer_info = InitGbufferInfo::new(&device, &size, &depth_view, &depth_sampler, &camera_bind_group_layout, &sun_shadow).await;
+    //create gbuffer
+    let gbuffer_info = InitGbufferInfo::new(
+        &device,
+        &size,
+        &depth_view,
+        &depth_sampler,
+        &camera_bind_group_layout,
+        &sun_shadow,
+    )
+    .await;
 
-    
     //transparent render
-    let transparent = InitTransparentInfo::new(&device, &gbuffer_info, &camera_bind_group_layout, surface_format);
-    
+    let transparent = InitTransparentInfo::new(
+        &device,
+        &gbuffer_info,
+        &camera_bind_group_layout,
+        surface_format,
+    );
+
     //volumetric lighting
-    let volumetric_lighting_data = InitVolumetricLightingInfo::new(&device, &size, &gbuffer_info, &camera_bind_group_layout, &sun_shadow);
-    
+    let volumetric_lighting_data = InitVolumetricLightingInfo::new(
+        &device,
+        &size,
+        &gbuffer_info,
+        &camera_bind_group_layout,
+        &sun_shadow,
+    );
+
     //composition render
-    let composition = InitCompositionInfo::new(&device, &gbuffer_info, &camera_bind_group_layout, &volumetric_lighting_data, surface_format);
+    let composition = InitCompositionInfo::new(
+        &device,
+        &gbuffer_info,
+        &camera_bind_group_layout,
+        &volumetric_lighting_data,
+        surface_format,
+    );
 
     //entity meshs
-    let entity_mesh_data = InitEntityMeshs::new(&device,&queue);
-
+    let entity_mesh_data = InitEntityMeshs::new(&device, &queue);
 
     //setup egui
-    let egui_renderer = Renderer::new(&device, surface_format, RendererOptions { 
-        msaa_samples: 1, 
-        depth_stencil_format: None, 
-        dithering: false, 
-        predictable_texture_filtering: false 
-    });
+    let egui_renderer = Renderer::new(
+        &device,
+        surface_format,
+        RendererOptions {
+            msaa_samples: 1,
+            depth_stencil_format: None,
+            dithering: false,
+            predictable_texture_filtering: false,
+        },
+    );
 
     let egui_context: egui::Context = egui::Context::default();
-    let egui_winit: egui_winit::State = egui_winit::State::new(egui_context.clone(), ViewportId::ROOT, &window, Some(1.0), Some(Theme::Dark), Some(4096));
+    let egui_winit: egui_winit::State = egui_winit::State::new(
+        egui_context.clone(),
+        ViewportId::ROOT,
+        &window,
+        Some(1.0),
+        Some(Theme::Dark),
+        Some(4096),
+    );
 
     //performance monitoring info
     let performance_info = RenderFrameThreadPerformanceInfo {
@@ -162,7 +219,7 @@ pub async fn init_render_state(window: Arc<Window>, render_thread_channels : Ren
         queue,
         config,
         is_surface_configured: false,
-        gbuffer_render_pipeline : gbuffer_info.gbuffer_render_pipeline,
+        gbuffer_render_pipeline: gbuffer_info.gbuffer_render_pipeline,
         camera_uniform,
         camera_buffer,
         camera_bind_group,
@@ -180,43 +237,46 @@ pub async fn init_render_state(window: Arc<Window>, render_thread_channels : Ren
         egui_renderer,
         egui_context,
         egui_winit,
-        start_time : Instant::now(),
+        start_time: Instant::now(),
         game_selected: true,
         fullscreen: false,
         gui_info: GuiInfo::new(),
-        mesh_id_upto : 1, // start at 1 as 0 means empty data
+        mesh_id_upto: 1, // start at 1 as 0 means empty data
         performance_info,
         mesh_buffers: Vec::new(),
         temporary_move_buffer,
-        base_color_gbuffer_view : gbuffer_info.base_color_gbuffer_view,
-        lighting_gbuffer_view : gbuffer_info.lighting_gbuffer_view,
-        base_color_gbuffer_sampler : gbuffer_info.base_color_gbuffer_sampler,
-        lighting_gbuffer_sampler : gbuffer_info.lighting_gbuffer_sampler,
-        gbuffers_bind_group : gbuffer_info.gbuffers_bind_group,
-        gbuffers_bind_group_layout : gbuffer_info.gbuffers_bind_group_layout,
+        base_color_gbuffer_view: gbuffer_info.base_color_gbuffer_view,
+        lighting_gbuffer_view: gbuffer_info.lighting_gbuffer_view,
+        base_color_gbuffer_sampler: gbuffer_info.base_color_gbuffer_sampler,
+        lighting_gbuffer_sampler: gbuffer_info.lighting_gbuffer_sampler,
+        gbuffers_bind_group: gbuffer_info.gbuffers_bind_group,
+        gbuffers_bind_group_layout: gbuffer_info.gbuffers_bind_group_layout,
         composition_pipeline_layout: composition.composition_pipeline_layout,
         composition_render_pipeline: composition.composition_render_pipeline,
         transparent_pipeline_layout: transparent.transparent_pipeline_layout,
         transparent_render_pipeline: transparent.transparent_render_pipeline,
-        normal_gbuffer_view : gbuffer_info.normal_gbuffer_view,
-        material_gbuffer_view : gbuffer_info.material_gbuffer_view,
-        normal_gbuffer_sampler : gbuffer_info.normal_gbuffer_sampler,
-        material_gbuffer_sampler : gbuffer_info.material_gbuffer_sampler,
-        sun_shadow_lod_0 : sun_shadow.sun_shadow_lod_0,
-        sun_shadow_lod_1 : sun_shadow.sun_shadow_lod_1,
-        sun_shadow_lod_2 : sun_shadow.sun_shadow_lod_2,
-        sun_shadow_lod_3 : sun_shadow.sun_shadow_lod_3,
-        sun_shadow_render_pipeline : sun_shadow.pipeline,
-        sun_shadow_textures_bind_group : sun_shadow.bind_group,
+        normal_gbuffer_view: gbuffer_info.normal_gbuffer_view,
+        material_gbuffer_view: gbuffer_info.material_gbuffer_view,
+        normal_gbuffer_sampler: gbuffer_info.normal_gbuffer_sampler,
+        material_gbuffer_sampler: gbuffer_info.material_gbuffer_sampler,
+        sun_shadow_lod_0: sun_shadow.sun_shadow_lod_0,
+        sun_shadow_lod_1: sun_shadow.sun_shadow_lod_1,
+        sun_shadow_lod_2: sun_shadow.sun_shadow_lod_2,
+        sun_shadow_lod_3: sun_shadow.sun_shadow_lod_3,
+        sun_shadow_render_pipeline: sun_shadow.pipeline,
+        sun_shadow_textures_bind_group: sun_shadow.bind_group,
         mesh_id_reference: entity_mesh_data.mesh_id_reference,
         mesh_instances: entity_mesh_data.instances,
         entity_meshs_buffer: entity_mesh_data.meshs_buffer,
-        static_and_lose_chunk_instance_info : entity_mesh_data.blank_instance_info,
-        volumetric_lighting_gbuffer_sampler: volumetric_lighting_data.volumetric_lighting_gbuffer_sampler,
+        static_and_lose_chunk_instance_info: entity_mesh_data.blank_instance_info,
+        volumetric_lighting_gbuffer_sampler: volumetric_lighting_data
+            .volumetric_lighting_gbuffer_sampler,
         volumetric_lighting_gbuffer_view: volumetric_lighting_data.volumetric_lighting_gbuffer_view,
-        volumetric_lighting_render_pipeline: volumetric_lighting_data.volumetric_lighting_render_pipeline,
+        volumetric_lighting_render_pipeline: volumetric_lighting_data
+            .volumetric_lighting_render_pipeline,
         volumetric_lighting_bind_group: volumetric_lighting_data.volumetric_lighting_bind_group,
-        volumetric_lighting_bind_group_layout: volumetric_lighting_data.volumetric_lighting_bind_group_layout,
+        volumetric_lighting_bind_group_layout: volumetric_lighting_data
+            .volumetric_lighting_bind_group_layout,
         camera,
         render_channels: render_thread_channels,
         entities: Vec::new(),

@@ -26,46 +26,70 @@ impl CameraUniform {
         Self {
             view_proj: cgmath::Matrix4::identity().into(),
             view_proj_inverse: cgmath::Matrix4::identity().into(),
-            position: [0.0,0.0,0.0],
+            position: [0.0, 0.0, 0.0],
             _padding: 0.0,
         }
     }
 
-    pub fn update_view_proj_prespec(&mut self, camera: &mut PerspectiveCamera, width : u32, height : u32) {
+    pub fn update_view_proj_prespec(
+        &mut self,
+        camera: &mut PerspectiveCamera,
+        width: u32,
+        height: u32,
+    ) {
         let front: Vec3 = Vec3::new(
             camera.yaw.cos() * camera.pitch.cos(),
             camera.pitch.sin(),
-            camera.yaw.sin() * camera.pitch.cos()
-        ).normalize();
+            camera.yaw.sin() * camera.pitch.cos(),
+        )
+        .normalize();
         let new_target = camera.position + front;
-        camera.target = Point3::new(new_target.x, new_target.y ,new_target.z);
-        let position = Point3::new(camera.position.x, camera.position.y ,camera.position.z);
+        camera.target = Point3::new(new_target.x, new_target.y, new_target.z);
+        let position = Point3::new(camera.position.x, camera.position.y, camera.position.z);
 
         camera.aspect = (width as f32) / (height as f32);
 
         let view = cgmath::Matrix4::look_at_rh(position, camera.target, cgmath::Vector3::unit_y());
-        let proj = cgmath::perspective(cgmath::Deg(camera.fovy), camera.aspect, camera.znear, camera.zfar);
+        let proj = cgmath::perspective(
+            cgmath::Deg(camera.fovy),
+            camera.aspect,
+            camera.znear,
+            camera.zfar,
+        );
 
-        self.view_proj_inverse = (OPENGL_TO_WGPU_MATRIX * proj * view).invert().unwrap().into();
+        self.view_proj_inverse = (OPENGL_TO_WGPU_MATRIX * proj * view)
+            .invert()
+            .unwrap()
+            .into();
         self.view_proj = (OPENGL_TO_WGPU_MATRIX * proj * view).into();
         self.position = [camera.position.x, camera.position.y, camera.position.z]
     }
 
     pub fn update_view_proj_ortho(&mut self, camera: &mut OrthographicCamera) {
-        let position = Point3::new(camera.position.x, camera.position.y ,camera.position.z);
+        let position = Point3::new(camera.position.x, camera.position.y, camera.position.z);
 
         let view = cgmath::Matrix4::look_at_rh(position, camera.target, cgmath::Vector3::unit_y());
-        let proj = cgmath::ortho(-(camera.width/2.0),camera.width/2.0,-(camera.height/2.0),camera.height/2.0,camera.znear,camera.zfar);
-        self.view_proj_inverse = (OPENGL_TO_WGPU_MATRIX * proj * view).invert().unwrap().into();
-        self.view_proj = (OPENGL_TO_WGPU_MATRIX * proj * view).into();        
+        let proj = cgmath::ortho(
+            -(camera.width / 2.0),
+            camera.width / 2.0,
+            -(camera.height / 2.0),
+            camera.height / 2.0,
+            camera.znear,
+            camera.zfar,
+        );
+        self.view_proj_inverse = (OPENGL_TO_WGPU_MATRIX * proj * view)
+            .invert()
+            .unwrap()
+            .into();
+        self.view_proj = (OPENGL_TO_WGPU_MATRIX * proj * view).into();
         self.position = [camera.position.x, camera.position.y, camera.position.z]
     }
 }
 
 pub struct PerspectiveCamera {
-    pub position : Vec3,
-    pub pitch : f32,
-    pub yaw : f32,
+    pub position: Vec3,
+    pub pitch: f32,
+    pub yaw: f32,
     pub target: cgmath::Point3<f32>,
     pub aspect: f32,
     pub fovy: f32,
@@ -89,10 +113,10 @@ impl PerspectiveCamera {
 }
 
 pub struct OrthographicCamera {
-    pub position : Vec3,
+    pub position: Vec3,
     pub target: cgmath::Point3<f32>,
     pub width: f32,
-    pub height : f32,
+    pub height: f32,
     pub znear: f32,
     pub zfar: f32,
 }
@@ -109,4 +133,3 @@ impl OrthographicCamera {
         }
     }
 }
-
