@@ -1,7 +1,7 @@
 use crate::{
     game::{
         chunk::Chunk,
-        pixel::PixelTypes::{self, Air},
+        pixel::PixelTypes::{self},
     },
     utils::VoxelPosition,
 };
@@ -36,7 +36,7 @@ fn get_multi_octave_map(
         (block_pos.z as f32 * frequency * WORLD_SCALE * 4.0) + (random * 1.0),
     ) * 4.0;
 
-    return value / (1.0 + 2.0 + 4.0);
+    value / (1.0 + 2.0 + 4.0)
 }
 
 const WORLD_SCALE: f32 = 1.0;
@@ -100,17 +100,26 @@ const BIOME_RULES: [BiomeRule; 4] = [
     },
 ];
 
-fn pick_biome(e: f32, h: f32, t: f32, m: f32, c: f32) -> &'static Biome {
+fn pick_biome(
+    elevation: f32,
+    humidity: f32,
+    temperature: f32,
+    magic: f32,
+    continentalness: f32,
+) -> &'static Biome {
     BIOME_RULES
         .iter()
-        .filter(|rule| e >= rule.elevation_range.0 && e <= rule.elevation_range.1)
-        .filter(|rule| h >= rule.humidity_range.0 && h <= rule.humidity_range.1)
-        .filter(|rule| t >= rule.temperature_range.0 && t <= rule.temperature_range.1)
-        .filter(|rule| m >= rule.magic_range.0 && m <= rule.magic_range.1)
-        .filter(|rule| c >= rule.continentalness.0 && c <= rule.continentalness.1)
+        .filter(|rule| elevation >= rule.elevation_range.0 && elevation <= rule.elevation_range.1)
+        .filter(|rule| humidity >= rule.humidity_range.0 && humidity <= rule.humidity_range.1)
+        .filter(|rule| {
+            temperature >= rule.temperature_range.0 && temperature <= rule.temperature_range.1
+        })
+        .filter(|rule| magic >= rule.magic_range.0 && magic <= rule.magic_range.1)
+        .filter(|rule| {
+            continentalness >= rule.continentalness.0 && continentalness <= rule.continentalness.1
+        })
         .max_by(|a, b| a.weight.partial_cmp(&b.weight).unwrap())
-        .map(|rule| &rule.biome)
-        .unwrap_or(&Biome::Plains)
+        .map_or(&Biome::Plains, |rule| &rule.biome)
 }
 
 fn create_chunk(noise: &FastNoiseLite, chunk_pos: (i32, i32, i32)) -> Chunk {
@@ -124,7 +133,6 @@ fn create_chunk(noise: &FastNoiseLite, chunk_pos: (i32, i32, i32)) -> Chunk {
     for z in 0..16 {
         for x in 0..16 {
             let world_x = x + (16 * chunk_pos.0);
-            let _world_y = 16 * chunk_pos.1;
             let world_z = z + (16 * chunk_pos.2);
             let voxel_position = VoxelPosition {
                 x: world_x,
@@ -132,23 +140,9 @@ fn create_chunk(noise: &FastNoiseLite, chunk_pos: (i32, i32, i32)) -> Chunk {
                 z: world_z,
             };
 
-            //if y < 15 {
-            //if y as i32 + (x as i32 - 64).abs() + (z as i32 - 64).abs() < 256 {
-            //    pixel_block = PixelTypes::Grass;
-            //}else {
-            //    pixel_block = PixelTypes::Air;
-            //}
+            let continentalness: f32 = get_multi_octave_map(0.003_125, voxel_position, 0.0, noise);
 
-            //let value = noise.get([world_x as f64  * 0.0025, 0.0, world_z as f64 * 0.0025]);
-
-            let continentalness: f32 = get_multi_octave_map(0.003125, voxel_position, 0.0, noise);
-
-            let continentalness: f32 = (((continentalness + 1.0) / 2.0).powf(1.5) - 0.5) * 2.0;
-            //println!("{}",continentalness);
-
-            //let continental_mask: f64 = if continentalness > 0.0 { 1.0 } else { -1.0 };
-            //let continentalness: f64 = continentalness.abs().powf(0.05) * continental_mask;
-            //let continentalness: f64 = continentalness;
+            let continentalness: f32 = (f32::midpoint(continentalness, 1.0).powf(1.5) - 0.5) * 2.0;
 
             let continentalness: f32 = continentalness.signum() * continentalness.abs().powf(0.9);
             let mountainness = (get_multi_octave_map(0.0125, voxel_position, 0.0, noise))
@@ -167,12 +161,12 @@ fn create_chunk(noise: &FastNoiseLite, chunk_pos: (i32, i32, i32)) -> Chunk {
             elevation += 300.0 * hillness;
             //slight extra stuff
 
-            elevation = elevation + (continentalness * 150.0);
-            elevation = elevation / WORLD_SCALE;
+            elevation += continentalness * 150.0;
+            elevation /= WORLD_SCALE;
 
             let humidity = get_multi_octave_map(0.0075, voxel_position, 53455.0, noise);
             let temperature = get_multi_octave_map(0.0025, voxel_position, 34545.0, noise);
-            let magic = get_multi_octave_map(0.000625, voxel_position, 345435.0, noise);
+            let magic = get_multi_octave_map(0.000_625, voxel_position, 345_435.0, noise);
 
             let biome = pick_biome(elevation, humidity, temperature, magic, continentalness);
 
@@ -180,60 +174,50 @@ fn create_chunk(noise: &FastNoiseLite, chunk_pos: (i32, i32, i32)) -> Chunk {
                 roughness * (1.0 + (hillness * 2.0) * (mountainness * 5.0).clamp(0.0, 2.0));
 
             biome_and_voxel_data[((z * 16) + x) as usize] = (elevation, biome);
-
-            //causes alot of issues with rendering for some reason so im going to ignore
-            //if elevation + 25.0 < world_y as f32 && world_y > 0 {
-            //    for _ in 0..(16*16*16) {
-            //        created.data.push(PixelTypes::Air);
-            //    }
-            //    return created;
-            //}
         }
     }
 
-    for y in 0..16 as i32 {
-        for z in 0..16 as i32 {
-            for x in 0..16 as i32 {
+    for y in 0..16_i32 {
+        for z in 0..16_i32 {
+            for x in 0..16_i32 {
                 let data = biome_and_voxel_data.get((x + (16 * z)) as usize).unwrap();
                 let mut pixel_block = PixelTypes::Air;
                 let elevation = data.0;
-                let _world_x = x + (16 * chunk_pos.0) as i32;
-                let world_y = y + (16 * chunk_pos.1) as i32;
-                let _world_z = z + (16 * chunk_pos.2) as i32;
+                let world_y = y + 16 * chunk_pos.1;
                 match data.1 {
                     Biome::Plains => {
                         if (world_y as f32) < elevation - 4.0 {
-                            pixel_block = PixelTypes::Stone
+                            pixel_block = PixelTypes::Stone;
                         } else if (world_y as f32) < elevation - 1.0 {
-                            pixel_block = PixelTypes::Dirt
+                            pixel_block = PixelTypes::Dirt;
                         } else if (world_y as f32) < elevation {
-                            pixel_block = PixelTypes::Grass
+                            pixel_block = PixelTypes::Grass;
                         }
                     }
                     Biome::Ocean => {
                         if (world_y as f32) < 0.0 {
-                            pixel_block = PixelTypes::Water
+                            pixel_block = PixelTypes::Water;
                         }
                         if (world_y as f32) < elevation - 3.0 {
-                            pixel_block = PixelTypes::Stone
+                            pixel_block = PixelTypes::Stone;
                         } else if (world_y as f32) < elevation {
-                            pixel_block = PixelTypes::Dirt
+                            pixel_block = PixelTypes::Dirt;
                         }
                     }
                     Biome::Desert => {
                         if (world_y as f32) < elevation - 4.0 {
-                            pixel_block = PixelTypes::Stone
+                            pixel_block = PixelTypes::Stone;
                         } else if (world_y as f32) < elevation {
-                            pixel_block = PixelTypes::Sand
+                            pixel_block = PixelTypes::Sand;
                         }
                     }
                     Biome::SnowyPlains => {
                         if (world_y as f32) < elevation - 4.0 {
-                            pixel_block = PixelTypes::Stone
+                            pixel_block = PixelTypes::Stone;
                         } else if (world_y as f32) < elevation - 1.0 {
-                            pixel_block = PixelTypes::Dirt
+                            pixel_block = PixelTypes::Dirt;
                         } else if (world_y as f32) < elevation {
-                            pixel_block = PixelTypes::Snow
+                            pixel_block = PixelTypes::Snow;
                         }
                     }
                 }
@@ -297,7 +281,7 @@ pub async fn chunk_generation_thread(
     chunk_generated_tx: Sender<NewChunkInfo>,
 ) {
     let mut noise = FastNoiseLite::new();
-    noise.set_seed(Some(34653452));
+    noise.set_seed(Some(34_653_452));
     noise.set_noise_type(Some(NoiseType::OpenSimplex2));
 
     loop {
@@ -329,7 +313,7 @@ pub async fn chunk_generation_thread(
         }
 
         let results: Vec<_> = requests
-            .iter() //.par_iter for mulithread
+            .iter() //.par_iter for multithread
             .map(|pos| {
                 let chunk = create_chunk(&noise, *pos);
                 (*pos, chunk)
@@ -339,7 +323,7 @@ pub async fn chunk_generation_thread(
         for (pos, chunk) in results {
             let _ = chunk_generated_tx.send(NewChunkInfo {
                 position: pos,
-                chunk: chunk,
+                chunk,
             });
         }
     }
