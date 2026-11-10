@@ -15,8 +15,5 @@ fn main() {
 
     println!("running game");
 
-    let _ = pollster::block_on(render_thread());
+    pollster::block_on(render_thread());
 }
-
-//cargo build --release --target x86_64-pc-windows-gnu
-//cargo build --release --target x86_64-unknown-linux-musl
