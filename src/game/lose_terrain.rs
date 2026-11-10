@@ -19,6 +19,17 @@ pub struct LoseTerrain {
     pub mesh_updated: HashSet<LoseTerrainId>,
 }
 
+impl LoseTerrain {
+    pub fn new() -> LoseTerrain {
+        LoseTerrain {
+            objects: HashMap::new(),
+            object_count: 0,
+            position_updated: HashSet::new(),
+            mesh_updated: HashSet::new(),
+        }
+    }
+}
+
 #[derive(Eq, Hash, PartialEq, Clone, Copy)]
 pub struct LoseTerrainId(pub u64);
 

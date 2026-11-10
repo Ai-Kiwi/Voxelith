@@ -57,6 +57,16 @@ pub struct Game {
     pub lose_terrain: LoseTerrain,
 }
 
+impl Game {
+    pub fn new() -> Game {
+        Game {
+            world: WorldData::new(),
+            entities: Entities::new(),
+            lose_terrain: LoseTerrain::new(),
+        }
+    }
+}
+
 pub async fn game_thread(
     chunk_mesh_update_tx: Sender<ChunkMeshUpdate>,
     entity_render_tx: Sender<EntityRenderDataUpdate>,

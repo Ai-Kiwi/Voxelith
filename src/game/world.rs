@@ -11,6 +11,16 @@ pub struct WorldData {
 }
 
 impl WorldData {
+    pub fn new() -> WorldData {
+        WorldData {
+            chunks: HashMap::new(),
+            pixel_edit_queue: Vec::new(),
+            chunk_mesh_updates_needed: HashMap::new(),
+            chunks_loading: HashMap::new(),
+            chunk_shadows: HashMap::new(),
+        }
+    }
+
     pub fn get_pixel_data(&self, pixel_x: i32, pixel_y: i32, pixel_z: i32) -> Option<PixelTypes> {
         let chunk_x = pixel_x.div_euclid(16);
         let chunk_y = pixel_y.div_euclid(16);
